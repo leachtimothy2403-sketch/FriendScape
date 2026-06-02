@@ -1,0 +1,14 @@
+{
+  "name": "migo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Migo monorepo — safe social world for children",
+  "scripts": {
+    "dev:server": "npm run dev --prefix server",
+    "dev:dashboard": "npm run dev --prefix dashboard",
+    "dev:app": "npx expo start --prefix app",
+    "install:all": "npm install && npm install --prefix server && npm install --prefix dashboard && npm install --prefix app && npm install --prefix shared",
+    "migrate": "npm run migrate --prefix server",
+    "migrate:rollback": "npm run migrate:rollback --prefix server"
+  }
+}

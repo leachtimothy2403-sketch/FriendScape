@@ -1,0 +1,14 @@
+{
+  "name": "@migo/shared",
+  "version": "1.0.0",
+  "description": "Shared TypeScript types for the Migo platform",
+  "main": "dist/types/index.js",
+  "types": "dist/types/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}

@@ -1,0 +1,228 @@
+import { Response } from 'express';
+import { v4 as uuidv4 } from 'uuid';
+import db from '../db';
+import { AuthRequest } from '../middleware/auth';
+import {
+  generateFriendReply,
+  checkMood,
+  buildMemoryBrief,
+} from '../services/ai.service';
+import { toChildType, toFriendType, toMemoryType } from '../utils/db-mappers';
+import type { Child } from '../../../shared/types';
+
+// XP thresholds: index = current level, value = XP needed to reach next level
+const LEVEL_UP_AT: Record<number, number> = { 1: 100, 2: 300, 3: 600, 4: 1000, 5: 1500 };
+const LEVEL_NAMES: Record<number, string> = {
+  1: 'New Friends', 2: 'Good Friends', 3: 'Close Friends',
+  4: 'Best Friends', 5: 'Super BFFs', 6: 'Forever Friends',
+};
+const MAX_LEVEL = 6;
+const XP_PER_MESSAGE = 10;
+
+async function awardFriendshipXP(childId: string, friendId: string, child: Child, friendName: string) {
+  await db('child_friends')
+    .where({ child_id: childId, friend_id: friendId })
+    .increment('friendship_xp', XP_PER_MESSAGE);
+
+  const row = await db('child_friends')
+    .where({ child_id: childId, friend_id: friendId })
+    .select('friendship_xp', 'friendship_level')
+    .first() as { friendship_xp: number; friendship_level: number } | undefined;
+
+  if (!row) return;
+  const { friendship_xp: newXp, friendship_level: currentLevel } = row;
+
+  const threshold = LEVEL_UP_AT[currentLevel];
+  if (!threshold || newXp < threshold || currentLevel >= MAX_LEVEL) return;
+
+  const newLevel     = currentLevel + 1;
+  const newLevelName = LEVEL_NAMES[newLevel] ?? 'Legend';
+
+  await db('child_friends')
+    .where({ child_id: childId, friend_id: friendId })
+    .update({ friendship_level: newLevel });
+
+  console.log(`[xp] 🎉 Level up! ${child.name} + ${friendName} → Level ${newLevel} (${newLevelName})`);
+
+  // Add milestone to child_memories
+  const milestoneText = `Reached Level ${newLevel} friendship with ${friendName}!`;
+  const newMilestone = {
+    id:          uuidv4(),
+    title:       milestoneText,
+    description: `${child.name} and ${friendName} are now ${newLevelName}`,
+    achievedAt:  new Date().toISOString(),
+    badgeId:     null,
+  };
+
+  const memoryRow = await db('child_memories')
+    .where({ child_id: childId, friend_id: friendId })
+    .first();
+
+  const existingMilestones = ((memoryRow?.milestones as object[]) ?? []);
+
+  await db('child_memories')
+    .insert({
+      child_id:         childId,
+      friend_id:        friendId,
+      facts:            JSON.stringify(memoryRow?.facts ?? []),
+      emotional_history: JSON.stringify(memoryRow?.emotional_history ?? []),
+      milestones:       JSON.stringify([...existingMilestones, newMilestone]),
+      last_updated:     new Date(),
+    })
+    .onConflict(['child_id', 'friend_id'])
+    .merge(['milestones', 'last_updated']);
+
+  // Parent alert
+  await db('parent_alerts').insert({
+    child_id: childId,
+    type:     'milestone',
+    message:  `${child.name} and ${friendName} are now ${newLevelName}! 🎉`,
+    severity: 'info',
+  }).catch((err: unknown) => console.error('[xp] Failed to save level-up alert:', err));
+}
+
+// ─── GET /api/messages/:friendId ──────────────────────────────────────────────
+// Child-session endpoint — childId comes from JWT, not URL.
+export async function getMessages(req: AuthRequest, res: Response) {
+  const childId = req.childId;
+  if (!childId) { res.status(401).json({ error: 'Child authentication required' }); return; }
+
+  try {
+    const { friendId } = req.params;
+
+    let conversation = await db('conversations')
+      .where({ child_id: childId, friend_id: friendId })
+      .first();
+
+    if (!conversation) {
+      [conversation] = await db('conversations')
+        .insert({ child_id: childId, friend_id: friendId })
+        .returning('*');
+    }
+
+    const messages = await db('messages')
+      .where({ conversation_id: conversation.id })
+      .orderBy('created_at', 'asc')
+      .limit(50);
+
+    res.json({ messages, conversationId: conversation.id });
+  } catch (err) {
+    console.error('[messages] getMessages error:', err);
+    res.status(500).json({ error: 'Failed to fetch messages' });
+  }
+}
+
+// ─── POST /api/messages/:friendId ─────────────────────────────────────────────
+// Saves child message, calls Claude for reply, checks mood, saves parent alert.
+export async function sendMessage(req: AuthRequest, res: Response) {
+  const childId = req.childId;
+  if (!childId) { res.status(401).json({ error: 'Child authentication required' }); return; }
+
+  try {
+    const { friendId } = req.params;
+    const { content } = req.body as { content?: string };
+    if (!content?.trim()) { res.status(400).json({ error: 'content is required' }); return; }
+
+    // a. Find or create conversation
+    let conversation = await db('conversations')
+      .where({ child_id: childId, friend_id: friendId })
+      .first();
+    if (!conversation) {
+      [conversation] = await db('conversations')
+        .insert({ child_id: childId, friend_id: friendId })
+        .returning('*');
+    }
+
+    // b. Save child's message
+    const [childMessage] = await db('messages')
+      .insert({
+        conversation_id: conversation.id,
+        sender_id:       childId,
+        sender_type:     'child',
+        content:         content.trim(),
+      })
+      .returning('*');
+
+    await db('conversations').where({ id: conversation.id }).update({ updated_at: new Date() });
+
+    // c. Fetch child profile + d. Fetch friend (parallel)
+    const [childRow, friendRow] = await Promise.all([
+      db('children').where({ id: childId }).first(),
+      db('ai_friends').where({ id: friendId }).first(),
+    ]);
+
+    if (!childRow)  { res.status(404).json({ error: 'Child not found' });  return; }
+    if (!friendRow) { res.status(404).json({ error: 'Friend not found' }); return; }
+
+    const child  = toChildType(childRow);
+    const friend = toFriendType(friendRow);
+
+    // e. Fetch child memory for this specific friend
+    const memoryRow = await db('child_memories')
+      .where({ child_id: childId, friend_id: friendId })
+      .first();
+
+    // f. Build memory brief
+    const memoryBrief = memoryRow ? buildMemoryBrief(toMemoryType(memoryRow)) : null;
+
+    // g+i. Generate reply and check mood in parallel for speed
+    const lang = (childRow.language as string) || 'en';
+    console.log(`[messages] 🤖 Calling Claude — ${friend.name} replies to ${child.name}: "${content.trim().slice(0, 40)}" (lang=${lang})`);
+    const [reply, mood] = await Promise.all([
+      generateFriendReply(friend, child, content.trim(), memoryBrief, lang),
+      checkMood(content.trim(), child.name, child.age),
+    ]);
+    console.log(`[messages] ✅ ${friend.name}: "${reply.text.slice(0, 60)}" (${reply.inputTokens}→${reply.outputTokens} tokens)`);
+    console.log(`[messages] 🎭 Mood: ${mood.mood} intensity=${mood.intensity} alert=${mood.parentAlertNeeded}`);
+
+    // h. Save friend's reply
+    const [friendReply] = await db('messages')
+      .insert({
+        conversation_id: conversation.id,
+        sender_id:       friendId,
+        sender_type:     'ai',
+        content:         reply.text,
+      })
+      .returning('*');
+
+    // i+1. Award friendship XP (fire-and-forget — never fails the request)
+    awardFriendshipXP(childId, friendId, child, friend.name).catch((err: unknown) =>
+      console.error('[xp] Award failed:', err),
+    );
+
+    // j. Save parent alert — isolated try/catch so a DB failure here never
+    //    swallows the whole request or loses the child/friend reply already saved.
+    if (mood.parentAlertNeeded) {
+      try {
+        await db('parent_alerts').insert({
+          child_id: childId,
+          type:     'mood_flag',
+          message:  mood.parentAlertReason ?? 'Mood concern detected',
+          severity: mood.crisisFlag ? 'urgent' : 'warning',
+        });
+        console.log(`[alerts] ✅ Parent alert (${mood.crisisFlag ? 'URGENT' : 'warning'}) saved — child ${childId}`);
+      } catch (alertErr) {
+        console.error('[alerts] ❌ Failed to save parent alert:', alertErr);
+      }
+    }
+
+    res.json({ childMessage, friendReply, mood: mood.mood });
+  } catch (err) {
+    console.error('[messages] sendMessage error:', err);
+    res.status(500).json({ error: 'Failed to send message' });
+  }
+}
+
+// ─── Legacy parent-dashboard endpoint ─────────────────────────────────────────
+export async function getConversations(req: AuthRequest, res: Response) {
+  try {
+    const conversations = await db('conversations')
+      .join('ai_friends', 'ai_friends.id', 'conversations.friend_id')
+      .where({ 'conversations.child_id': req.params.childId })
+      .select('conversations.*', 'ai_friends.name as friend_name', 'ai_friends.avatar_url')
+      .orderBy('conversations.updated_at', 'desc');
+    res.json({ conversations });
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch conversations' });
+  }
+}

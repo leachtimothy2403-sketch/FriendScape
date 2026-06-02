@@ -1,0 +1,342 @@
+import {
+  View, Text, SafeAreaView, ScrollView, TouchableOpacity,
+  ActivityIndicator, TextInput, StyleSheet,
+} from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from 'react-i18next';
+import {
+  friends as allFriendsApi,
+  myFriendsApi, friendNetwork,
+  MyChildFriend, AiFriendRecord, FriendWithRelationship,
+} from '@/services/api';
+import { Colors } from '@/constants/theme';
+
+const COVER_COLOR: Record<string, string> = {
+  Mia: '#EEEDFE', Jake: '#E1F5EE', Zara: '#FAECE7',
+  'Coach Mike': '#E1F5EE', 'Ms. Luna': '#EEF4FF',
+  'Léa': '#FCEEFF', Tom: '#E1F5EE', 'Chloé': '#F0F8FF',
+  Hugo: '#FFF0F0', Nico: '#E1F5EE', Camille: '#FFF0F5',
+  Luca: '#F0F4FF', Sofia: '#FAECE7', 'Coach Sarah': '#E0FFE8',
+  'Prof Max': '#F0F0FF', Miga: '#F0EEFF',
+};
+
+function firstEmoji(str: string | null | undefined) { return str ? ([...str][0] ?? '🌟') : '🌟'; }
+
+// ── My friends horizontal card ─────────────────────────────────────────────────
+function MyFriendBubble({ friend }: { friend: MyChildFriend }) {
+  const bg = COVER_COLOR[friend.name] ?? '#EEEDFE';
+  return (
+    <TouchableOpacity
+      onPress={() => router.push(`/friend/${friend.id}` as never)}
+      activeOpacity={0.8}
+      style={s.myFriendBubble}
+    >
+      <View style={[s.myFriendAvatar, { backgroundColor: bg }]}>
+        <Text style={{ fontSize: 26 }}>{firstEmoji(friend.cover_emojis)}</Text>
+      </View>
+      <Text style={s.myFriendName} numberOfLines={1}>{friend.name}</Text>
+      <TouchableOpacity
+        onPress={() => router.push(`/dm/${friend.id}` as never)}
+        style={s.chatBtn}
+      >
+        <Text style={s.chatBtnText}>💬 Chat</Text>
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+}
+
+// ── Network discovery card ─────────────────────────────────────────────────────
+function NetworkCard({
+  f, referringFriendId, token, onAdd,
+}: {
+  f: FriendWithRelationship;
+  referringFriendId: string;
+  token: string;
+  onAdd: (id: string, refId: string) => Promise<void>;
+}) {
+  const [adding, setAdding]   = useState(false);
+  const [added,  setAdded]    = useState(f.already_added);
+  const bg = COVER_COLOR[f.name] ?? '#EEEDFE';
+
+  async function handleAdd() {
+    if (adding || added) return;
+    setAdding(true);
+    await onAdd(f.id, referringFriendId);
+    setAdded(true);
+    setAdding(false);
+  }
+
+  return (
+    <TouchableOpacity
+      onPress={() => router.push(`/friend/${f.id}?via=${referringFriendId}` as never)}
+      activeOpacity={0.8}
+      style={s.networkCard}
+    >
+      <View style={[s.networkAvatar, { backgroundColor: bg }]}>
+        <Text style={{ fontSize: 28 }}>{firstEmoji(f.cover_emojis)}</Text>
+      </View>
+      <Text style={s.networkName} numberOfLines={1}>{f.name}</Text>
+      <Text style={s.networkRel} numberOfLines={1}>{(f.relationship_type ?? f.network_relationship_type ?? '').replace(/_/g, ' ')}</Text>
+      {added ? (
+        <View style={s.addedTag}><Text style={s.addedText}>✓ Added</Text></View>
+      ) : (
+        <TouchableOpacity onPress={handleAdd} style={s.addBtn} disabled={adding}>
+          {adding
+            ? <ActivityIndicator size="small" color={Colors.purple} />
+            : <Text style={s.addBtnText}>+ Add</Text>}
+        </TouchableOpacity>
+      )}
+    </TouchableOpacity>
+  );
+}
+
+// ── Star friend card ───────────────────────────────────────────────────────────
+function StarCard({
+  friend, token, onAdd,
+}: { friend: AiFriendRecord; token: string; onAdd: (id: string) => Promise<void> }) {
+  const [adding, setAdding] = useState(false);
+  const [added,  setAdded]  = useState(false);
+  const bg = COVER_COLOR[friend.name] ?? '#EEEDFE';
+
+  async function handleAdd() {
+    if (adding || added) return;
+    setAdding(true);
+    await onAdd(friend.id);
+    setAdded(true);
+    setAdding(false);
+  }
+
+  return (
+    <TouchableOpacity
+      onPress={() => router.push(`/friend/${friend.id}` as never)}
+      activeOpacity={0.8}
+      style={s.starCard}
+    >
+      <View style={[s.starAvatar, { backgroundColor: bg }]}>
+        <Text style={{ fontSize: 32 }}>{firstEmoji(friend.cover_emojis)}</Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+          <Text style={s.starName}>{friend.name}</Text>
+          <View style={s.starBadge}><Text style={s.starBadgeText}>⭐ Star</Text></View>
+        </View>
+        <Text style={s.starBio} numberOfLines={2}>{friend.bio}</Text>
+      </View>
+      {added ? (
+        <View style={s.addedTag}><Text style={s.addedText}>✓</Text></View>
+      ) : (
+        <TouchableOpacity onPress={handleAdd} style={s.addBtn} disabled={adding}>
+          {adding ? <ActivityIndicator size="small" color={Colors.purple} /> : <Text style={s.addBtnText}>+ Add</Text>}
+        </TouchableOpacity>
+      )}
+    </TouchableOpacity>
+  );
+}
+
+// ── Main screen ────────────────────────────────────────────────────────────────
+export default function DiscoverScreen() {
+  const { t } = useTranslation();
+
+  const [token,       setToken]       = useState<string | null>(null);
+  const [myFriends,   setMyFriends]   = useState<MyChildFriend[]>([]);
+  const [allFriends,  setAllFriends]  = useState<AiFriendRecord[]>([]);
+  const [networks,    setNetworks]    = useState<Record<string, FriendWithRelationship[]>>({});
+  const [search,      setSearch]      = useState('');
+  const [loading,     setLoading]     = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      const tok = await AsyncStorage.getItem('childToken');
+      if (!cancelled) setToken(tok);
+
+      try {
+        const [allRes, myRes] = await Promise.all([
+          allFriendsApi.list(),
+          tok ? myFriendsApi.list(tok) : Promise.resolve(null),
+        ]);
+
+        const all  = (allRes.data.friends   as AiFriendRecord[]);
+        const mine = (myRes?.data.friends   as MyChildFriend[]) ?? [];
+
+        if (!cancelled) {
+          setAllFriends(all);
+          setMyFriends(mine);
+        }
+
+        // Fetch networks for each of child's friends in parallel
+        if (tok && mine.length > 0 && !cancelled) {
+          const netResults = await Promise.all(
+            mine.map(f => friendNetwork.getNetwork(f.id, tok).then(r => ({ id: f.id, data: r.data.friends })).catch(() => ({ id: f.id, data: [] as FriendWithRelationship[] }))),
+          );
+          if (!cancelled) {
+            const map: Record<string, FriendWithRelationship[]> = {};
+            for (const { id, data } of netResults) map[id] = data;
+            setNetworks(map);
+          }
+        }
+      } catch (e) {
+        console.error('[discover] load error:', e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    void load();
+    return () => { cancelled = true; };
+  }, []);
+
+  const addFriend = useCallback(async (friendId: string, refId?: string) => {
+    if (!token) return;
+    try {
+      await friendNetwork.addFriend(token, friendId, refId);
+      // Refresh my friends list
+      const res = await myFriendsApi.list(token);
+      setMyFriends(res.data.friends);
+    } catch {}
+  }, [token]);
+
+  const myFriendIds = new Set(myFriends.map(f => f.id));
+
+  const starFriends = allFriends.filter(
+    f => f.is_star_friend && !myFriendIds.has(f.id),
+  );
+
+  const displayedFriends = search
+    ? myFriends.filter(f =>
+        f.name.toLowerCase().includes(search.toLowerCase()) ||
+        (f.interests as string[] | undefined)?.some(i => i.toLowerCase().includes(search.toLowerCase()))
+      )
+    : myFriends;
+
+  if (loading) {
+    return (
+      <SafeAreaView style={s.screen}>
+        <View style={s.topBar}><Text style={s.title}>Find Friends 👥</Text></View>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator size="large" color={Colors.purple} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={s.screen}>
+      <View style={s.topBar}>
+        <Text style={s.title}>Find Friends 👥</Text>
+      </View>
+
+      <TextInput
+        style={s.search}
+        placeholder="Search by name or interest…"
+        placeholderTextColor={Colors.gray[400]}
+        value={search}
+        onChangeText={setSearch}
+      />
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
+
+        {/* My friends */}
+        {displayedFriends.length > 0 && (
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>{t('friends.yourFriends')} ({displayedFriends.length})</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 2, paddingRight: 10, gap: 12 }}>
+              {displayedFriends.map(f => <MyFriendBubble key={f.id} friend={f} />)}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* No friends yet */}
+        {myFriends.length === 0 && (
+          <View style={s.emptyState}>
+            <Text style={{ fontSize: 48, marginBottom: 12 }}>👋</Text>
+            <Text style={s.emptyText}>{t('friends.noFriendsYet')}</Text>
+          </View>
+        )}
+
+        {/* Explore section — each friend's network */}
+        {token && myFriends.length > 0 && (
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>{t('friends.exploreWorlds')}</Text>
+            {myFriends.map(myFriend => {
+              const net = (networks[myFriend.id] ?? []).filter(f => !myFriendIds.has(f.id));
+              if (net.length === 0) return null;
+              return (
+                <View key={myFriend.id} style={{ marginBottom: 16 }}>
+                  <TouchableOpacity onPress={() => router.push(`/friend/${myFriend.id}` as never)}>
+                    <Text style={s.exploreHeader}>{t('friends.meetFriends', { name: myFriend.name })}</Text>
+                  </TouchableOpacity>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingVertical: 4 }}>
+                    {net.map(f => (
+                      <NetworkCard
+                        key={f.id}
+                        f={f}
+                        referringFriendId={myFriend.id}
+                        token={token}
+                        onAdd={addFriend}
+                      />
+                    ))}
+                  </ScrollView>
+                </View>
+              );
+            })}
+          </View>
+        )}
+
+        {/* Star friends */}
+        {starFriends.length > 0 && token && (
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>{t('friends.starFriends')}</Text>
+            {starFriends.map(f => (
+              <StarCard key={f.id} friend={f} token={token} onAdd={(id) => addFriend(id)} />
+            ))}
+          </View>
+        )}
+
+        <View style={{ height: 20 }} />
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const s = StyleSheet.create({
+  screen:  { flex: 1, backgroundColor: Colors.bg },
+  topBar:  { paddingHorizontal: 16, paddingVertical: 14, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#F0EFF8' },
+  title:   { fontSize: 22, fontWeight: '800', color: '#2C2C2A' },
+  search:  { marginHorizontal: 14, marginVertical: 10, backgroundColor: '#fff', borderRadius: 99, paddingHorizontal: 16, paddingVertical: 11, fontSize: 14, color: '#2C2C2A', borderWidth: 1, borderColor: '#E8E6FF' },
+  scroll:  { paddingHorizontal: 14, paddingTop: 4 },
+  section: { marginBottom: 24 },
+  sectionTitle: { fontSize: 15, fontWeight: '800', color: '#2C2C2A', marginBottom: 10 },
+  exploreHeader: { fontSize: 13, fontWeight: '700', color: Colors.purple, marginBottom: 8 },
+
+  // My friends bubble
+  myFriendBubble: { width: 82, alignItems: 'center' },
+  myFriendAvatar: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 5 },
+  myFriendName:   { fontSize: 11, fontWeight: '700', color: '#2C2C2A', textAlign: 'center', marginBottom: 5 },
+  chatBtn:        { backgroundColor: Colors.purple + '18', borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3 },
+  chatBtnText:    { fontSize: 10, color: Colors.purple, fontWeight: '700' },
+
+  // Network card
+  networkCard:   { width: 88, alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, padding: 8, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
+  networkAvatar: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', marginBottom: 5 },
+  networkName:   { fontSize: 11, fontWeight: '700', color: '#2C2C2A', textAlign: 'center' },
+  networkRel:    { fontSize: 9, color: Colors.gray[400], textAlign: 'center', marginBottom: 5, textTransform: 'capitalize' },
+
+  // Star card
+  starCard:       { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 16, padding: 12, marginBottom: 10, gap: 12, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
+  starAvatar:     { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
+  starName:       { fontSize: 14, fontWeight: '700', color: '#2C2C2A' },
+  starBadge:      { backgroundColor: Colors.orange + '22', borderRadius: 99, paddingHorizontal: 7, paddingVertical: 2 },
+  starBadgeText:  { fontSize: 10, color: Colors.orange, fontWeight: '700' },
+  starBio:        { fontSize: 12, color: Colors.gray[500], lineHeight: 16 },
+
+  // Shared
+  addBtn:     { backgroundColor: Colors.purple + '18', borderRadius: 99, paddingHorizontal: 8, paddingVertical: 4, minWidth: 52, alignItems: 'center' },
+  addBtnText: { fontSize: 10, color: Colors.purple, fontWeight: '700' },
+  addedTag:   { backgroundColor: Colors.green + '22', borderRadius: 99, paddingHorizontal: 8, paddingVertical: 4 },
+  addedText:  { fontSize: 10, color: Colors.green, fontWeight: '700' },
+
+  emptyState: { alignItems: 'center', paddingVertical: 40 },
+  emptyText:  { fontSize: 14, color: Colors.gray[400], textAlign: 'center' },
+});

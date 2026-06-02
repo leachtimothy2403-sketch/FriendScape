@@ -1,0 +1,34 @@
+import { Stack } from 'expo-router';
+import { useEffect } from 'react';
+import * as SplashScreen from 'expo-splash-screen';
+import { I18nextProvider } from 'react-i18next';
+import i18n from '@/i18n';
+import { useLanguageStore } from '@/store/languageStore';
+import '../global.css';
+
+SplashScreen.preventAutoHideAsync();
+
+export default function RootLayout() {
+  const initLanguage = useLanguageStore((s) => s.initLanguage);
+
+  useEffect(() => {
+    void initLanguage().finally(() => SplashScreen.hideAsync());
+  }, []);
+
+  return (
+    <I18nextProvider i18n={i18n}>
+      <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="enroll" />
+        <Stack.Screen name="waiting" />
+        <Stack.Screen name="celebration" />
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="dm/[friendId]"
+          options={{ animation: 'slide_from_right' }}
+        />
+      </Stack>
+    </I18nextProvider>
+  );
+}

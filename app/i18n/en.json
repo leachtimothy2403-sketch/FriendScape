@@ -1,0 +1,183 @@
+{
+  "app": {
+    "name": "Migo"
+  },
+  "enroll": {
+    "title": "Ready to meet your friends?",
+    "subtitle": "Before we start, we need your parent's permission. Enter their email address and we'll send them a message!",
+    "placeholder": "Mum or Dad's email address…",
+    "sendButton": "Send! 📨",
+    "alreadyApproved": "Already approved? Tap here →",
+    "privacyNote": "🔒 We only use this to ask for permission. Nothing else!"
+  },
+  "waiting": {
+    "title": "Message sent! 🎉",
+    "subtitle": "We sent your parent an email. As soon as they say yes, Migo will come to life!",
+    "waitingFor": "Waiting for your parent to tap \"Yes\"…",
+    "jokeLabel": "🧚 Miga says — while you wait!",
+    "anotherJoke": "Another one! 😂",
+    "simulateButton": "Simulate parent approval (demo)"
+  },
+  "celebration": {
+    "title": "Your parent said YES!! 🥳",
+    "subtitle": "Time to set up your Migo! Go find your parent — you'll need them for the first few steps!",
+    "parentNote": "Your child's account is approved. The next few steps need you — grab the device and let's get started together!",
+    "button": "Let's set up Migo! →"
+  },
+  "onboarding": {
+    "together": "Do this part together",
+    "togetherBadge": "👨‍👩‍👧 Do this part together",
+    "childTurn": "Now it's your turn!",
+    "basics": {
+      "title": "Tell us about your child",
+      "subtitle": "Parents — fill this in with your child sitting with you.",
+      "namePlaceholder": "e.g. Emma",
+      "nameLabel": "Child's first name",
+      "ageLabel": "Age",
+      "genderLabel": "Gender",
+      "genderGirl": "👧 Girl",
+      "genderBoy": "👦 Boy",
+      "genderOther": "🌈 Other",
+      "languageLabel": "Language at home",
+      "specialNeedsLabel": "My child has special needs or learning differences",
+      "specialNeedsDesc": "Dyslexia, ADHD, autism spectrum, pre-reader, motor needs, and more",
+      "preReaderLabel": "My child can't read yet 🔊",
+      "preReaderDesc": "Enables Read to me mode automatically — the app will speak everything aloud"
+    },
+    "needs": {
+      "title": "Any special needs?",
+      "subtitle": "Helps us tune the experience. Select all that apply — changeable anytime.",
+      "autism": "Autism spectrum",
+      "autismDesc": "Social scripts, predictable pacing",
+      "dyslexia": "Dyslexia",
+      "dyslexiaDesc": "Special font, text-to-speech",
+      "adhd": "ADHD",
+      "adhdDesc": "Shorter sessions, calm design",
+      "preReader": "Pre-reader",
+      "preReaderDesc": "Voice-first, no reading required",
+      "motorNeeds": "Motor needs",
+      "motorNeedsDesc": "Large targets, switch access",
+      "none": "None of these",
+      "noneDesc": "Standard experience"
+    },
+    "photo": {
+      "title": "Create {{name}}'s look",
+      "subtitle": "Your child can watch and help pick their theme!",
+      "uploadPhoto": "Upload a photo",
+      "uploadDesc": "Turned into a cartoon — real photo deleted immediately",
+      "buildAvatar": "Build an avatar",
+      "buildDesc": "Choose hair, eyes, skin tone and accessories",
+      "skip": "Skip for now",
+      "skipDesc": "Use a default avatar — set it up later",
+      "privacyNote": "🔒 The real photo is used only to generate the cartoon and is permanently deleted right after.",
+      "themeLabel": "Let {{name}} pick a theme! 🎉",
+      "themes": {
+        "princess": "Princess",
+        "astronaut": "Astronaut",
+        "cat": "Cat",
+        "superhero": "Superhero",
+        "nature": "Nature",
+        "wizard": "Wizard",
+        "artist": "Artist",
+        "dino": "Dino"
+      }
+    },
+    "mascot": {
+      "title": "Pick your guide!",
+      "readToMe": "Read to me",
+      "readingToYou": "Reading to you",
+      "hearButton": "Hear {{name}}",
+      "continueButton": "I pick {{name}}! →",
+      "tapToHear": "🔊 Tap to hear what to do!",
+      "skipIntro": "Skip intro →"
+    },
+    "interests": {
+      "title": "Just for {{name}}!",
+      "freeTextLabel": "Something else? Tell us! 🗣️",
+      "freeTextPlaceholder": "Type something you love… or tap the mic to say it!",
+      "continueButton": "Those are my favourites! →"
+    },
+    "pack": {
+      "title": "Just for {{name}}!",
+      "continueButton": "I love this style! →",
+      "packs": {
+        "sketchCrew": "Sketch Crew",
+        "sketchCrewDesc": "Illustrated portraits, like a comic book",
+        "animalGang": "Animal Gang",
+        "animalGangDesc": "Every friend is a fun animal character",
+        "fantasyWorld": "Fantasy World",
+        "fantasyWorldDesc": "Elves, wizards and magical friends",
+        "toonTown": "Toon Town",
+        "toonTownDesc": "Bright, bold cartoon characters"
+      }
+    },
+    "friends": {
+      "title": "A surprise! 🎁",
+      "subtitle": "I found 3 friends who match you perfectly, {{name}}!",
+      "continueButton": "I choose {{name}}! Let's go! →"
+    },
+    "allset": {
+      "title": "You're all set, {{name}}! 🎊",
+      "subtitle": "{{mascot}} and {{friend}} are already waiting for you!",
+      "parentNote": "Parents — your dashboard is ready",
+      "parentNoteDesc": "You can see everything {{name}} does, manage friends, set screen time limits, and get instant safety alerts — anytime.",
+      "goButton": "Go to Migo! 🌟"
+    }
+  },
+  "feed": {
+    "newPost": "✏️  Share something with your friends",
+    "aiFriend": "AI friend",
+    "starFriend": "⭐ Star friend",
+    "you": "You",
+    "replyButton": "Reply",
+    "emptyTitle": "Your friends are preparing their first posts... 🌟",
+    "postPlaceholder": "What's on your mind?"
+  },
+  "dm": {
+    "online": "Online now",
+    "inputPlaceholder": "Message {{name}}…"
+  },
+  "friends": {
+    "yourFriends": "Your friends",
+    "exploreWorlds": "Explore your friends' worlds 🌍",
+    "starFriends": "⭐ Star friends",
+    "meetFriends": "Meet {{name}}'s friends →",
+    "addFriend": "+ Add {{name}}",
+    "alreadyFriends": "✓ Already friends",
+    "messageFriend": "💬 Message {{name}}",
+    "friendNetwork": "{{name}}'s friends 👥",
+    "friendOf": "Friend of {{name}}",
+    "addSuccess": "{{name}} is now your friend! 🎉",
+    "friendsSince": "Friends since {{date}}",
+    "noFriendsYet": "Complete onboarding to meet your first friends!"
+  },
+  "badges": {
+    "title": "Badges & Milestones",
+    "yourBadges": "🏆 Your badges",
+    "comingUp": "✨ Coming up",
+    "graduationTitle": "🎓 Ready for the Real World",
+    "graduationProgress": "{{n}} of 5 completed",
+    "earned": "✓ Earned",
+    "locked": "🔒 Locked",
+    "progress": "Progress: {{current}} of {{required}}",
+    "howToEarn": "How to earn this:",
+    "keepGoing": "Keep going! 💜",
+    "awesome": "Awesome! 🎉",
+    "earnedOn": "Earned on {{date}}",
+    "xpToNext": "{{xp}} more XP to reach Level {{next}}!",
+    "graduationMilestones": {
+      "joined": "Join Migo",
+      "firstPost": "Share your first post",
+      "heartToHeart": "Have a heart-to-heart conversation",
+      "digitalLesson": "Complete a digital citizenship lesson",
+      "introducedFriend": "Introduce a friend"
+    }
+  },
+  "common": {
+    "continue": "Continue →",
+    "back": "Back",
+    "loading": "Loading...",
+    "retry": "Try again",
+    "error": "Something went wrong"
+  }
+}
