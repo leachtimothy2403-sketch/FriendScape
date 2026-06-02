@@ -216,6 +216,74 @@ export interface MyChildFriend extends AiFriendRecord {
   activated_at:     string;
 }
 
+// ─── Profile types ────────────────────────────────────────────────────────────
+
+export interface ChildProfile {
+  id: string;
+  name: string;
+  age: number;
+  gender: string;
+  language: string;
+  avatarTheme: string;
+  mascotId: string;
+  interests: string[];
+  bio: string | null;
+  stats: {
+    totalPosts: number;
+    totalFriends: number;
+    totalBadges: number;
+    memberSince: string;
+    level: number;
+    levelName: string;
+  };
+}
+
+export interface MemoryItem {
+  id: string;
+  type: 'milestone' | 'emotional' | 'badge' | 'friendship' | 'learning';
+  text: string;
+  date: string;
+  icon: string;
+}
+
+export interface FriendWithStats extends AiFriendRecord {
+  friendship_level: number;
+  friendship_xp: number;
+  xp_to_next_level: number;
+  level_name: string;
+  activated_at: string;
+  last_message_at: string | null;
+}
+
+export interface ProfilePost {
+  id: string;
+  content: string;
+  mood: string | null;
+  scene_emojis: string | null;
+  created_at: string;
+  reaction_count: number;
+}
+
+export interface ModerationResult {
+  safe: boolean;
+  reason?: string;
+}
+
+export const childProfileApi = {
+  getProfile: (token: string) =>
+    api.get<ChildProfile>('/children/me/profile', withToken(token)),
+  updateProfile: (token: string, data: { bio?: string; interests?: string[] }) =>
+    api.patch<Omit<ChildProfile, 'stats'>>('/children/me/profile', data, withToken(token)),
+  getMemories: (token: string) =>
+    api.get<{ memories: MemoryItem[] }>('/children/me/memories', withToken(token)),
+  getPosts: (token: string) =>
+    api.get<{ posts: ProfilePost[] }>('/children/me/posts', withToken(token)),
+  getFriendsList: (token: string) =>
+    api.get<{ friends: FriendWithStats[] }>('/children/me/friends-list', withToken(token)),
+  validateInterest: (token: string, text: string) =>
+    api.post<ModerationResult>('/children/me/interests/validate', { text }, withToken(token)),
+};
+
 export const childSession = {
   start: (token: string) =>
     api.post<{ sessionId: string }>('/children/session/start', {}, withToken(token)),

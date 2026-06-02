@@ -816,3 +816,28 @@ ${child.preReader ? 'Very simple words only.' : ''}`.trim();
   });
   return { text: extractText(response), inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens };
 }
+
+// ── Content moderation ────────────────────────────────────────────────────────
+
+export interface ModerationResult {
+  safe: boolean;
+  reason?: string;
+}
+
+export async function moderateInterest(text: string): Promise<ModerationResult> {
+  const response = await client.messages.create({
+    model:      MODELS.fast,
+    max_tokens: 10,
+    messages: [{
+      role:    'user',
+      content: `You moderate a social app for children aged 5–12.
+A child typed this as a personal interest: "${text.slice(0, 60)}"
+Is it appropriate? Reject profanity, violence, sexual content, hate, or dangerous topics.
+Accept hobbies, sports, animals, food, creative activities, games, learning topics.
+Reply ONLY with SAFE or UNSAFE.`,
+    }],
+  });
+
+  const reply = extractText(response).trim().toUpperCase();
+  return { safe: reply.startsWith('SAFE') };
+}

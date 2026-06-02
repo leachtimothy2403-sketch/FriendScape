@@ -173,6 +173,49 @@
       "introducedFriend": "Introduce a friend"
     }
   },
+  "profile": {
+    "title": "My Profile",
+    "onMigoSince": "On Migo since {{date}}",
+    "mascotFriend": "{{mascot}}'s friend",
+    "bioPlaceholder": "Tap to add a bio...",
+    "editBio": "Edit bio",
+    "saveBio": "Save ✓",
+    "cancelBio": "Cancel",
+    "bioSaved": "Bio updated! ✓",
+    "editInterests": "+ Edit interests",
+    "interestsSaved": "Interests updated! 🎉",
+    "tabs": {
+      "posts": "Posts",
+      "friends": "Friends",
+      "memories": "Memories"
+    },
+    "posts": {
+      "empty": "You haven't posted yet!",
+      "emptySubtitle": "Share something with your friends",
+      "writePost": "Write a post →"
+    },
+    "friends": {
+      "empty": "Complete onboarding to meet your first friends!",
+      "chatButton": "💬 Chat",
+      "levelLabel": "Level {{n}} — {{levelName}}"
+    },
+    "memories": {
+      "empty": "Your memories will appear here as you use Migo!"
+    },
+    "settings": {
+      "title": "Settings ⚙️",
+      "language": "🌍 Language",
+      "readToMe": "🔊 Read to me",
+      "about": "ℹ️ About Migo",
+      "privacyPolicy": "Privacy Policy →",
+      "termsOfService": "Terms of Service →",
+      "signOut": "Sign out",
+      "signOutConfirm": "Are you sure? You'll need to sign in again.",
+      "signOutConfirmButton": "Sign out",
+      "devReset": "🔄 Reset app (dev)"
+    },
+    "avatarTapMessage": "Ask a parent to change your photo 👨‍👩‍👧"
+  },
   "common": {
     "continue": "Continue →",
     "back": "Back",

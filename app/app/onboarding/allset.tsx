@@ -8,7 +8,7 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
-import { children as childrenApi } from '@/services/api';
+import { children as childrenApi, childAuth } from '@/services/api';
 import { useOnboardingStore } from '@/store/onboardingStore';
 
 const MASCOT: Record<string, { emoji: string; name: string }> = {
@@ -130,6 +130,10 @@ export default function AllSetScreen() {
         const chars = [...(data.selectedFriend.coverEmojis || '')];
         setFriendEmoji(chars[0] || '🌟');
       }
+
+      // Mint a child token so the app can make authenticated requests
+      const tokenRes = await childAuth.login(data.childId);
+      await AsyncStorage.setItem('childToken', tokenRes.data.token);
 
       await AsyncStorage.setItem('childId', data.childId);
       await AsyncStorage.setItem('childProfile', JSON.stringify({

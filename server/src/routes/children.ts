@@ -11,6 +11,12 @@ import {
   getMyFriends,
   getMyXP,
   getMyGraduation,
+  getMyProfile,
+  updateMyProfile,
+  getMyMemories,
+  getMyPosts,
+  getMyFriendsList,
+  validateInterest,
 } from '../controllers/children.controller';
 import { requireAuth } from '../middleware/auth';
 
@@ -26,9 +32,15 @@ router.use(requireAuth);
 router.post('/session/start',  startSession);
 router.post('/session/end',    endSession);
 // me/* routes must come before /:childId to avoid param conflicts
-router.get('/me/friends',    getMyFriends);
-router.get('/me/xp',         getMyXP);
-router.get('/me/graduation', getMyGraduation);
+router.get('/me/friends',      getMyFriends);
+router.get('/me/xp',           getMyXP);
+router.get('/me/graduation',   getMyGraduation);
+router.get('/me/profile',      getMyProfile);
+router.patch('/me/profile',    updateMyProfile);
+router.get('/me/memories',     getMyMemories);
+router.get('/me/posts',        getMyPosts);
+router.get('/me/friends-list',         getMyFriendsList);
+router.post('/me/interests/validate',   validateInterest);
 
 // Parent-authenticated CRUD
 router.get('/', getChildren);

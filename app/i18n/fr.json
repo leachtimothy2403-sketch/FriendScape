@@ -173,6 +173,49 @@
       "introducedFriend": "Présenter un ami"
     }
   },
+  "profile": {
+    "title": "Mon Profil",
+    "onMigoSince": "Sur Migo depuis {{date}}",
+    "mascotFriend": "Ami(e) de {{mascot}}",
+    "bioPlaceholder": "Appuie pour ajouter une bio...",
+    "editBio": "Modifier la bio",
+    "saveBio": "Enregistrer ✓",
+    "cancelBio": "Annuler",
+    "bioSaved": "Bio mise à jour ! ✓",
+    "editInterests": "+ Modifier les intérêts",
+    "interestsSaved": "Intérêts mis à jour ! 🎉",
+    "tabs": {
+      "posts": "Posts",
+      "friends": "Amis",
+      "memories": "Souvenirs"
+    },
+    "posts": {
+      "empty": "Tu n'as pas encore posté !",
+      "emptySubtitle": "Partage quelque chose avec tes amis",
+      "writePost": "Écrire un post →"
+    },
+    "friends": {
+      "empty": "Complète l'inscription pour rencontrer tes premiers amis !",
+      "chatButton": "💬 Tchatter",
+      "levelLabel": "Niveau {{n}} — {{levelName}}"
+    },
+    "memories": {
+      "empty": "Tes souvenirs apparaîtront ici au fur et à mesure que tu utilises Migo !"
+    },
+    "settings": {
+      "title": "Paramètres ⚙️",
+      "language": "🌍 Langue",
+      "readToMe": "🔊 Lis-moi ça",
+      "about": "ℹ️ À propos de Migo",
+      "privacyPolicy": "Politique de confidentialité →",
+      "termsOfService": "Conditions d'utilisation →",
+      "signOut": "Se déconnecter",
+      "signOutConfirm": "Tu es sûr(e) ? Tu devras te reconnecter.",
+      "signOutConfirmButton": "Se déconnecter",
+      "devReset": "🔄 Réinitialiser l'app (dev)"
+    },
+    "avatarTapMessage": "Demande à un parent de changer ta photo 👨‍👩‍👧"
+  },
   "common": {
     "continue": "Continuer →",
     "back": "Retour",
