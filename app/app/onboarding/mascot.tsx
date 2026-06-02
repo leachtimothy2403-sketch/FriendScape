@@ -11,52 +11,59 @@ import { useTranslation } from 'react-i18next';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { useLanguageStore } from '@/store/languageStore';
 
-// ─── Intro script ─────────────────────────────────────────────────────────────
-const INTRO_TEXT_1 =
+// ─── Intro text ───────────────────────────────────────────────────────────────
+
+const EN_INTRO_TEXT_1 =
   "Hi! Before you meet your friends on Migo, you need a special guide — someone who will always be there for you, celebrate your wins, and keep you safe. That guide is called your mascot! 🌟";
 
-const INTRO_TEXT_1_FR =
+const EN_INTRO_TEXT_2 =
+  "I'm Miga! I'm a sparkly fairy and I will ALWAYS have your back on Migo. I'd love to be your mascot! But you can also meet Pixel, Finn and Sage below — tap them to hear their voices and learn about them. Then pick the one you love most! 💜";
+
+const FR_INTRO_TEXT_1 =
   "Salut ! Avant de rencontrer tes amis sur Migo, tu as besoin d'un guide spécial — quelqu'un qui sera toujours là pour toi, qui célèbrera tes victoires et qui te gardera en sécurité. Ce guide s'appelle ton mascotte ! 🌟";
 
-const INTRO_TEXT_2 =
-  "I'm Miga! I'm a sparkly fairy and I will ALWAYS have your back on Migo. I'd love to be your mascot! But you can also meet Pixel, Finn, and Sage below — tap them to hear their voices and learn about them. Then pick the one you love most! 💜";
+const FR_INTRO_TEXT_2 =
+  "Je suis Miga ! Je suis une petite fée pétillante et je serai TOUJOURS là pour toi sur Migo. J'adorerais être ta mascotte ! Mais tu peux aussi rencontrer Pixel, Finn et Sage ci-dessous — appuie sur eux pour entendre leurs voix et en savoir plus. Puis choisis celui que tu préfères ! 💜";
 
-const INTRO_TEXT_2_FR =
-  "Je suis Miga ! Je suis une fée scintillante et je serai TOUJOURS là pour toi sur Migo. J'adorerais être ta mascotte ! Tu peux aussi rencontrer Pixel, Finn et Sage ci-dessous — appuie sur eux pour entendre leurs voix. Puis choisis celui que tu préfères ! 💜";
+// ─── Audio assets — module-level so Metro can statically resolve all requires ─
 
-// ─── Audio assets — all use English files; swap in FR recordings when available ─
-const AUDIO = {
-  lumi_intro:    require('../../assets/audio/lumi_intro.mp3'),
-  lumi_selected: require('../../assets/audio/lumi_selected.mp3'),
-  lumi_hear:     require('../../assets/audio/lumi_hear.mp3'),
+const AUDIO_EN = {
+  miga_intro:    require('../../assets/audio/miga_intro.mp3'),
+  miga_selected: require('../../assets/audio/miga_selected.mp3'),
+  miga_hear:     require('../../assets/audio/miga_hear.mp3'),
   finn_intro:    require('../../assets/audio/finn_intro.mp3'),
   pixel_intro:   require('../../assets/audio/pixel_intro.mp3'),
   sage_intro:    require('../../assets/audio/sage_intro.mp3'),
 };
 
-type AudioSource = (typeof AUDIO)[keyof typeof AUDIO];
+const AUDIO_FR = {
+  miga_intro:    require('../../assets/audio/miga_intro_fr.mp3'),
+  miga_selected: require('../../assets/audio/miga_selected_fr.mp3'),
+  miga_hear:     require('../../assets/audio/miga_hear_fr.mp3'),
+  finn_intro:    require('../../assets/audio/finn_intro.mp3'),
+  pixel_intro:   require('../../assets/audio/pixel_intro.mp3'),
+  sage_intro:    require('../../assets/audio/sage_intro.mp3'),
+};
 
-// ─── Mascots ──────────────────────────────────────────────────────────────────
-const MASCOTS = [
-  { id: 'pixel', name: 'Pixel', emoji: '🤖',
+type AudioSource = (typeof AUDIO_EN)[keyof typeof AUDIO_EN];
+type MascotId    = 'pixel' | 'finn' | 'miga' | 'sage';
+
+// ─── Static mascot data (audio resolved inside component) ─────────────────────
+
+const MASCOT_DATA = [
+  { id: 'pixel' as const, name: 'Pixel', emoji: '🤖',
     bubble:   "Hi!! I'm Pixel! I love games and gadgets and I always know how to fix things. Pick me! 🤖⚡",
-    bubbleFr: "Salut !! Je suis Pixel ! J'adore les jeux et les gadgets et je sais toujours comment réparer les choses. Choisis-moi ! 🤖⚡",
-    intro:    AUDIO.pixel_intro, hear: AUDIO.pixel_intro, selected: null },
-  { id: 'finn',  name: 'Finn',  emoji: '🦊',
+    bubbleFr: "Salut !! Je suis Pixel ! J'adore les jeux et les gadgets et je sais toujours comment réparer les choses. Choisis-moi ! 🤖⚡" },
+  { id: 'finn'  as const, name: 'Finn',  emoji: '🦊',
     bubble:   "Heeey!! I'm Finn the fox! I know a million jokes and always have big ideas! 🦊😄",
-    bubbleFr: "Hééé !! Je suis Finn le renard ! Je connais un million de blagues et j'ai toujours de grandes idées ! 🦊😄",
-    intro:    AUDIO.finn_intro,  hear: AUDIO.finn_intro,  selected: null },
-  { id: 'miga',  name: 'Miga',  emoji: '🧚',
+    bubbleFr: "Hééé !! Je suis Finn le renard ! Je connais un million de blagues et j'ai toujours de grandes idées ! 🦊😄" },
+  { id: 'miga'  as const, name: 'Miga',  emoji: '🧚',
     bubble:   "Hiii!! I'm Miga!! I'm a sparkly little fairy and I will always have your back! 🧚✨",
-    bubbleFr: "Coucou !! Je suis Miga !! Je suis une petite fée scintillante et je serai toujours là pour toi ! 🧚✨",
-    intro:    AUDIO.lumi_intro,  hear: AUDIO.lumi_hear,   selected: AUDIO.lumi_selected },
-  { id: 'sage',  name: 'Sage',  emoji: '🦉',
+    bubbleFr: "Coucou !! Je suis Miga !! Je suis une petite fée scintillante et je serai toujours là pour toi ! 🧚✨" },
+  { id: 'sage'  as const, name: 'Sage',  emoji: '🦉',
     bubble:   "Hoooo there! I'm Sage. A wise owl who knows something about almost everything! 🦉📚",
-    bubbleFr: "Houuu ! Je suis Sage. Un hibou sage qui sait quelque chose sur presque tout ! 🦉📚",
-    intro:    AUDIO.sage_intro,  hear: AUDIO.sage_intro,  selected: null },
-] as const;
-
-type MascotId = (typeof MASCOTS)[number]['id'];
+    bubbleFr: "Houuu ! Je suis Sage. Un hibou sage qui sait quelque chose sur presque tout ! 🦉📚" },
+];
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function MascotScreen() {
@@ -65,8 +72,23 @@ export default function MascotScreen() {
   const { mascotId, setMascotId, preReader } = useOnboardingStore();
 
   const isFr = language === 'fr';
-  const INTRO_TEXT_1_ACTIVE = isFr ? INTRO_TEXT_1_FR : INTRO_TEXT_1;
-  const INTRO_TEXT_2_ACTIVE = isFr ? INTRO_TEXT_2_FR : INTRO_TEXT_2;
+
+  // Language-specific audio and text
+  const AUDIO      = isFr ? AUDIO_FR : AUDIO_EN;
+  const introText1 = isFr ? FR_INTRO_TEXT_1 : EN_INTRO_TEXT_1;
+  const introText2 = isFr ? FR_INTRO_TEXT_2 : EN_INTRO_TEXT_2;
+
+  // MASCOTS with audio resolved for current language
+  const MASCOTS: Array<{
+    id: MascotId; name: string; emoji: string;
+    bubble: string; bubbleFr: string;
+    intro: AudioSource; hear: AudioSource; selected: AudioSource | null;
+  }> = [
+    { ...MASCOT_DATA[0], intro: AUDIO.pixel_intro, hear: AUDIO.pixel_intro, selected: null },
+    { ...MASCOT_DATA[1], intro: AUDIO.finn_intro,  hear: AUDIO.finn_intro,  selected: null },
+    { ...MASCOT_DATA[2], intro: AUDIO.miga_intro,  hear: AUDIO.miga_hear,   selected: AUDIO.miga_selected },
+    { ...MASCOT_DATA[3], intro: AUDIO.sage_intro,  hear: AUDIO.sage_intro,  selected: null },
+  ];
 
   const [selected, setSelected]           = useState<MascotId>((mascotId as MascotId) || 'miga');
   const [introStarted, setIntroStarted]   = useState(false);
@@ -158,13 +180,13 @@ export default function MascotScreen() {
 
   function beginIntro(autoAdvance: boolean) {
     setIntroStarted(true);
-    startTypewriter(INTRO_TEXT_1_ACTIVE);
+    startTypewriter(introText1);
     nextTimerRef.current = setTimeout(() => setShowNext(true), 4000);
 
     if (autoAdvance) {
-      setTimeout(() => playAudio(AUDIO.lumi_intro, () => handleNext()), 500);
+      setTimeout(() => playAudio(AUDIO.miga_intro, () => handleNext()), 500);
     } else {
-      setTimeout(() => playAudio(AUDIO.lumi_intro), 500);
+      setTimeout(() => playAudio(AUDIO.miga_intro), 500);
     }
   }
 
@@ -173,8 +195,8 @@ export default function MascotScreen() {
     advancedRef.current = true;
 
     setShowNext(false);
-    startTypewriter(INTRO_TEXT_2_ACTIVE);
-    playAudio(AUDIO.lumi_selected);
+    startTypewriter(introText2);
+    playAudio(AUDIO.miga_selected);
 
     gridTimerRef.current = setTimeout(() => setIntroComplete(true), 1000);
   }
