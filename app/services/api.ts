@@ -51,7 +51,7 @@ export const children = {
       childId: string;
       name: string;
       mascotId: string;
-      selectedFriend: { id: string; name: string; coverEmojis: string } | null;
+      assignedFriends: { id: string; name: string; coverEmojis: string; matchReason: string }[];
     }>('/children/onboarding', data),
 };
 

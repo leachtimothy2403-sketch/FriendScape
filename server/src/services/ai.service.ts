@@ -15,15 +15,16 @@ const MODELS = {
 } as const;
 
 const MAX_TOKENS = {
-  friendReply:        300,
-  dailyPosts:         800,
-  moodCheck:          250,
-  memoryDistill:      500,
-  friendMatch:        600,
-  tutorReply:         400,
-  mascotReply:        250,
-  digitalCitizenship: 350,
-  networkWelcome:     200,
+  friendReply:          300,
+  dailyPosts:           800,
+  moodCheck:            250,
+  memoryDistill:        500,
+  friendMatch:          600,
+  tutorReply:           400,
+  mascotReply:          250,
+  digitalCitizenship:   350,
+  networkWelcome:       200,
+  personalisedFriends:  2500,
 } as const;
 
 
@@ -263,7 +264,158 @@ CONVERSATION BALANCE RULES:
 }
 
 
-// ── 2. Generate daily posts ───────────────────────────────────────────────────
+// ── 2. Generate personalised friends ─────────────────────────────────────────
+
+export interface GeneratedFriend {
+  name: string;
+  age: number;
+  gender: string;
+  bio: string;
+  personality: string[];
+  interests: string[];
+  matchTags: string[];
+  coverEmojis: string;
+  personalityPrompt: string;
+  relationshipType: string;
+  matchReason: string;
+  quirk: string;
+}
+
+export interface GeneratedFriendsResult extends AITokenUsage {
+  friends: GeneratedFriend[];
+  error?: string;
+}
+
+export async function generatePersonalisedFriends(
+  child: Child,
+  language: string = 'en',
+  count: number = 2,
+): Promise<GeneratedFriendsResult> {
+  const BANNED_NAMES = [
+    'Mia', 'Jake', 'Zara', 'Coach Mike', 'Ms Luna', 'Léa', 'Tom',
+    'Chloé', 'Hugo', 'Nico', 'Camille', 'Luca', 'Sofia', 'Coach Sarah', 'Prof Max',
+  ];
+
+  const system = `You are creating personalised AI friends for a child on Migo, a safe social app for kids.
+
+CHILD PROFILE:
+Name: ${child.name}
+Age: ${child.age}
+Gender: ${child.gender}
+Language: ${child.language}
+Interests: ${child.interests?.join(', ') || 'not specified'}
+Personality traits: ${child.personalityTraits?.join(', ') || 'not specified'}
+About themselves: ${child.personalityFreeText || 'nothing extra added'}
+Special needs: ${JSON.stringify(child.specialNeeds || [])}
+Pre-reader: ${child.preReader || false}
+
+FRIEND GENERATION RULES:
+
+1. NAMES: Use realistic first names appropriate for the child's language/region.
+   For French children: French names (Antoine, Léa, Manon, Théo, etc)
+   For English children: English names (Clara, Oliver, Iris, Sam, etc)
+   NEVER use these existing Migo friend names: ${BANNED_NAMES.join(', ')}
+
+2. PERSONALITY MATCHING:
+   - A quiet/shy child needs warm patient friends who don't overwhelm
+   - A chatty/outgoing child can handle more energetic friends
+   - A child who feels deeply needs empathetic friends who validate emotions
+   - A resilient child can handle more playful teasing
+   - Always include at least 1 friend with high personality compatibility
+   - Include 1 friend who is interestingly different but still likeable
+
+3. INTERESTS:
+   - At least 2 of the friend's interests must overlap with the child's
+   - The friend should have 1-2 unique interests the child doesn't have yet
+
+4. AGE: Within 1-2 years of child's age (${child.age})
+
+5. SPECIAL NEEDS ADAPTATIONS:
+   - learning disability: personality_prompt must include "Never reference reading, writing speed, or academic performance."
+   - physical disability: personality_prompt must include "Never reference physical activities casually. Be sensitive and warm."
+   - Pre-reader: friend uses very simple words, short sentences, lots of emojis
+
+6. LANGUAGE: Friend's bio, personality, and all responses must be in ${language === 'fr' ? 'French' : 'English'}.
+   ${language === 'fr' ? 'Use French cultural references naturally.' : ''}
+
+7. PERSONALITY PROMPT must include:
+   - Who the friend is in 2 sentences
+   - Their communication style
+   - What makes them a good match for this specific child
+   - Any special considerations from the child's profile
+   - "Always respond in ${language === 'fr' ? 'French' : 'English'}"
+
+8. RELATIONSHIP TYPE:
+   First friend: always 'close_friend'
+   Second friend: 'close_friend' or 'interesting_different' based on complement
+
+9. QUIRK: One memorable funny/endearing detail (a pet, a habit, a funny story) that makes the friend feel real.
+
+10. COVER EMOJIS: 3 emojis that visually capture the friend's personality
+
+Generate exactly ${count} friends.
+Return ONLY valid JSON array — no markdown, no explanation:
+[
+  {
+    "name": "string",
+    "age": number,
+    "gender": "boy|girl|other",
+    "bio": "string (2-3 sentences, first person, warm and fun)",
+    "personality": ["trait1", "trait2", "trait3", "trait4"],
+    "interests": ["interest1", "interest2", "interest3", "interest4", "interest5"],
+    "matchTags": ["tag1", "tag2", "tag3"],
+    "coverEmojis": "emoji1emoji2emoji3",
+    "personalityPrompt": "string (full prompt for Claude to play this friend)",
+    "relationshipType": "close_friend|interesting_different",
+    "matchReason": "one sentence why this friend suits this child",
+    "quirk": "one memorable detail"
+  }
+]`.trim();
+
+  const response = await client.messages.create({
+    model: MODELS.smart,
+    max_tokens: MAX_TOKENS.personalisedFriends,
+    system,
+    messages: [{ role: 'user', content: `Generate ${count} personalised friends for ${child.name}.` }],
+  });
+
+  const raw = extractText(response).replace(/```json|```/g, '').trim();
+
+  // Attempt normal parse first
+  let parsed: GeneratedFriend[] | null = null;
+  try {
+    parsed = JSON.parse(raw) as GeneratedFriend[];
+  } catch {
+    // Truncation recovery: find the last complete object and close the array
+    const lastBrace = raw.lastIndexOf('}');
+    if (lastBrace !== -1) {
+      const repaired = raw.slice(0, lastBrace + 1) + ']';
+      try {
+        const recovered = JSON.parse(repaired) as GeneratedFriend[];
+        if (recovered.length > 0) {
+          console.warn(`[friends] ⚠️ JSON truncated — recovered ${recovered.length} of ${count} friends`);
+          parsed = recovered;
+        }
+      } catch {
+        // Both attempts failed
+      }
+    }
+
+    if (!parsed) {
+      console.error('[friends] ❌ Failed to parse generated friends. Raw response:\n', raw);
+      return { friends: [], error: 'JSON parse failed — response truncated beyond recovery', inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens };
+    }
+  }
+
+  return {
+    friends: parsed,
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+  };
+}
+
+
+// ── 3. Generate daily posts ───────────────────────────────────────────────────
 
 export async function generateDailyPosts(
   friends: FriendForAI[],

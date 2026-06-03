@@ -1,8 +1,11 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import { v4 as uuidv4 } from 'uuid';
 import db from '../db';
 import { AuthRequest } from '../middleware/auth';
+import { generatePersonalisedFriends } from '../services/ai.service';
+import { toChildType } from '../utils/db-mappers';
 
 // ─── Authed CRUD ──────────────────────────────────────────────────────────────
 
@@ -135,6 +138,7 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
       specialNeeds, specialNeedsDetails, preReader,
       avatarTheme, mascotId, interests, freeInterest,
       avatarPack, selectedFriendId,
+      personalityTraits, personalityFreeText,
     } = req.body as Record<string, unknown>;
 
     // 1. Validate required fields
@@ -180,71 +184,143 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
     if (Array.isArray(specialNeedsDetails)) needsArray.push(...(specialNeedsDetails as string[]));
     if (preReader && !needsArray.includes('preReader')) needsArray.push('preReader');
 
+    const traitsArray = Array.isArray(personalityTraits) ? (personalityTraits as string[]) : [];
+    const freeText    = personalityFreeText ? String(personalityFreeText) : null;
+
     const [child] = await db('children')
       .insert({
-        parent_id:     parentUser.id,
+        parent_id:             parentUser.id,
         name,
-        age:           ageNum,
-        gender:        mappedGender,
-        language:      mappedLang,
-        special_needs: JSON.stringify(needsArray),
-        pre_reader:    Boolean(preReader),
-        avatar_theme:  mappedTheme,
-        mascot:        String(mascotId || 'miga'),
-        interests:     JSON.stringify(Array.isArray(interests) ? interests : []),
-        selected_pack: String(avatarPack || ''),
+        age:                   ageNum,
+        gender:                mappedGender,
+        language:              mappedLang,
+        special_needs:         JSON.stringify(needsArray),
+        pre_reader:            Boolean(preReader),
+        avatar_theme:          mappedTheme,
+        mascot:                String(mascotId || 'miga'),
+        interests:             JSON.stringify(Array.isArray(interests) ? interests : []),
+        selected_pack:         String(avatarPack || ''),
+        personality_traits:    traitsArray.length ? JSON.stringify(traitsArray) : null,
+        personality_free_text: freeText,
+        personality_completed: traitsArray.length > 0,
       })
       .returning('*');
 
-    // 5. Link selected friend + seed initial friendship
-    if (selectedFriendId) {
-      await db('child_friends')
-        .insert({
-          child_id:         child.id,
-          friend_id:        selectedFriendId,
-          activated_at:     new Date(),
-          friendship_level: 1,
-          friendship_xp:    0,
-        })
-        .onConflict(['child_id', 'friend_id'])
-        .ignore();
-
-      // 6. Create initial memory record
-      await db('child_memories')
-        .insert({
-          child_id:         child.id,
-          friend_id:        selectedFriendId,
-          facts:            JSON.stringify([]),
-          emotional_history: JSON.stringify([]),
-          milestones:       JSON.stringify(['Joined Migo!']),
-          last_updated:     new Date(),
-        })
-        .onConflict(['child_id', 'friend_id'])
-        .ignore();
-    }
-
-    // 7. Stamp enrollment with child id
+    // 5. Stamp enrollment
     await db('enrollments')
       .where({ id: enrollment.id })
       .update({ child_device_id: child.id });
 
-    // 8. Fetch selected friend for summary
-    const friend = selectedFriendId
-      ? await db('ai_friends').where({ id: selectedFriendId }).first()
-      : null;
-
-    // 9. Include free-interest note in interests if provided
+    // 6. Include free-interest note in logs if provided
     if (freeInterest) {
       console.log(`[onboarding] free interest note for ${child.id}: "${freeInterest}"`);
     }
 
+    // 7. Generate 2 personalised AI friends via Claude
+    const childObj = toChildType(child);
+    const lang     = (child.language as string) || 'en';
+
+    console.log(`[friends] 🤖 Generating personalised friends for ${childObj.name}...`);
+    const genResult = await generatePersonalisedFriends(childObj, lang, 2);
+
+    const assignedFriends: { id: string; name: string; coverEmojis: string; matchReason: string }[] = [];
+
+    for (const gf of genResult.friends) {
+      const interestsList = Array.isArray(interests) ? (interests as string[]) : [];
+
+      const [newFriend] = await db('ai_friends')
+        .insert({
+          name:               gf.name,
+          age:                gf.age,
+          gender:             gf.gender,
+          bio:                gf.bio,
+          personality:        JSON.stringify(gf.personality),
+          interests:          JSON.stringify(gf.interests),
+          match_tags:         JSON.stringify(gf.matchTags),
+          cover_emojis:       gf.coverEmojis,
+          personality_prompt: gf.personalityPrompt,
+          relationship_type:  gf.relationshipType,
+          is_star_friend:     false,
+          is_teacher:         false,
+          is_generated:       true,
+          age_range_min:      Math.max(5, ageNum - 2),
+          age_range_max:      Math.min(12, ageNum + 2),
+          avatar_style:       'cartoon',
+          teacher_subjects:   JSON.stringify([]),
+        })
+        .returning('*');
+
+      await db('child_friends').insert({
+        child_id:         child.id,
+        friend_id:        newFriend.id,
+        activated_at:     new Date(),
+        friendship_level: 1,
+        friendship_xp:    0,
+      }).onConflict(['child_id', 'friend_id']).ignore();
+
+      await db('child_memories').insert({
+        child_id:          child.id,
+        friend_id:         newFriend.id,
+        facts:             JSON.stringify([]),
+        emotional_history: JSON.stringify([]),
+        milestones:        JSON.stringify(['Joined Migo!']),
+        last_updated:      new Date(),
+      }).onConflict(['child_id', 'friend_id']).ignore();
+
+      assignedFriends.push({
+        id:          newFriend.id,
+        name:        gf.name,
+        coverEmojis: gf.coverEmojis,
+        matchReason: gf.matchReason,
+      });
+
+      console.log(`[friends] ✅ Generated: ${gf.name} — "${gf.matchReason}"`);
+    }
+
+    // 8. Auto-select 1 star friend based on interests
+    const interestsList = Array.isArray(interests) ? (interests as string[]).map((i) => String(i).toLowerCase()) : [];
+    const hasSports = interestsList.some((i) => ['sports', 'soccer', 'football', 'basketball', 'swimming'].includes(i));
+    const hasDrama  = interestsList.some((i) => ['drama', 'art', 'stories', 'theatre', 'theatre', 'theater', 'music', 'dance'].includes(i));
+
+    let starFriendName = 'Zara';
+    if (hasSports) starFriendName = 'Jake';
+
+    const starFriend = await db('ai_friends')
+      .where({ is_star_friend: true, name: starFriendName })
+      .first()
+      ?? await db('ai_friends').where({ is_star_friend: true }).first();
+
+    if (starFriend) {
+      await db('child_friends').insert({
+        child_id:         child.id,
+        friend_id:        starFriend.id,
+        activated_at:     new Date(),
+        friendship_level: 1,
+        friendship_xp:    0,
+      }).onConflict(['child_id', 'friend_id']).ignore();
+
+      await db('child_memories').insert({
+        child_id:          child.id,
+        friend_id:         starFriend.id,
+        facts:             JSON.stringify([]),
+        emotional_history: JSON.stringify([]),
+        milestones:        JSON.stringify(['Joined Migo!']),
+        last_updated:      new Date(),
+      }).onConflict(['child_id', 'friend_id']).ignore();
+
+      assignedFriends.push({
+        id:          starFriend.id as string,
+        name:        starFriend.name as string,
+        coverEmojis: (starFriend.cover_emojis as string) || '🌟',
+        matchReason: 'A special star friend picked just for you!',
+      });
+    }
+
     res.status(201).json({
-      childId: child.id,
-      name:    child.name,
-      mascotId: child.mascot,
-      selectedFriend: friend
-        ? { id: friend.id, name: friend.name, coverEmojis: friend.cover_emojis || '🌟' }
-        : null,
+      childId:        child.id,
+      name:           child.name,
+      mascotId:       child.mascot,
+      assignedFriends,
     });
   } catch (err) {
     console.error('createChildFromOnboarding error:', err);

@@ -17,6 +17,9 @@ export interface Child {
   interests: string[];          // e.g. ['dinosaurs', 'art', 'music']
   selectedPack: string;         // friend pack ID
   avatarUrl: string | null;
+  personalityTraits?: string[]; // e.g. ['quiet_listener', 'feels_deeply']
+  personalityFreeText?: string;
+  personalityCompleted?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

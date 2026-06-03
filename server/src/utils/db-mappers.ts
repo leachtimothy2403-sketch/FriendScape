@@ -14,8 +14,11 @@ export function toChildType(row: Record<string, unknown>): Child {
     avatarTheme:  (row.avatar_theme as Child['avatarTheme']) || 'animals',
     mascot:       (row.mascot as Child['mascot'])       || 'luna',
     interests:    (row.interests as string[])           || [],
-    selectedPack: String(row.selected_pack ?? ''),
-    avatarUrl:    row.avatar_url ? String(row.avatar_url) : null,
+    selectedPack:        String(row.selected_pack ?? ''),
+    avatarUrl:           row.avatar_url ? String(row.avatar_url) : null,
+    personalityTraits:   Array.isArray(row.personality_traits) ? (row.personality_traits as string[]) : undefined,
+    personalityFreeText: row.personality_free_text ? String(row.personality_free_text) : undefined,
+    personalityCompleted: Boolean(row.personality_completed),
     createdAt:    row.created_at as Date,
     updatedAt:    row.updated_at as Date,
   };

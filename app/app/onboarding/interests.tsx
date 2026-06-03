@@ -139,10 +139,10 @@ export default function InterestsScreen() {
       >
         {/* Progress */}
         <View style={{ height: 6, backgroundColor: '#E0E0E0', borderRadius: 3, marginBottom: 8 }}>
-          <View style={{ width: '66%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
+          <View style={{ width: '60%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
         </View>
         <Text style={{ fontSize: 13, color: '#888780', marginBottom: 16 }}>
-          Step 6 of 9 · {t('onboarding.interests.title', { name: displayName })}
+          Step 6 of 10 · {t('onboarding.interests.title', { name: displayName })}
         </Text>
 
         {/* Badge */}
@@ -269,7 +269,7 @@ export default function InterestsScreen() {
 
         {/* Buttons */}
         <TouchableOpacity
-          onPress={() => router.push('/onboarding/pack')}
+          onPress={() => router.push('/onboarding/personality' as never)}
           disabled={!canContinue}
           style={{
             backgroundColor: canContinue ? '#7F77DD' : '#E0E0E0',

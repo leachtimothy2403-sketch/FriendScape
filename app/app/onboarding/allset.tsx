@@ -67,10 +67,11 @@ export default function AllSetScreen() {
   const packName  = PACK_NAME[store.avatarPack] ?? store.avatarPack;
   const childName = store.childName.trim() || 'you';
 
-  const [status, setStatus]       = useState<Status>('loading');
-  const [errorMsg, setErrorMsg]   = useState('');
-  const [friendName, setFriendName]   = useState('your friend');
-  const [friendEmoji, setFriendEmoji] = useState('🌟');
+  type AssignedFriend = { id: string; name: string; coverEmojis: string; matchReason: string };
+
+  const [status, setStatus]               = useState<Status>('loading');
+  const [errorMsg, setErrorMsg]           = useState('');
+  const [assignedFriends, setAssignedFriends] = useState<AssignedFriend[]>([]);
 
   const floatY     = useSharedValue(0);
   const celebScale = useSharedValue(0);
@@ -120,15 +121,15 @@ export default function AllSetScreen() {
       freeInterest:        store.freeInterest,
       avatarPack:          store.avatarPack,
       selectedFriendId:    store.selectedFriendId,
+      personalityTraits:   store.personalityTraits,
+      personalityFreeText: store.personalityFreeText,
     };
 
     try {
       const res = await childrenApi.createFromOnboarding(payload);
       const data = res.data;
-      if (data.selectedFriend) {
-        setFriendName(data.selectedFriend.name);
-        const chars = [...(data.selectedFriend.coverEmojis || '')];
-        setFriendEmoji(chars[0] || '🌟');
+      if (data.assignedFriends?.length) {
+        setAssignedFriends(data.assignedFriends);
       }
 
       // Mint a child token so the app can make authenticated requests
@@ -223,18 +224,43 @@ export default function AllSetScreen() {
           {t('onboarding.allset.title', { name: childName })}
         </Text>
         <Text style={{ fontSize: 14, color: '#888780', textAlign: 'center', marginBottom: 24, lineHeight: 21 }}>
-          {t('onboarding.allset.subtitle', { mascot: mascot.name, friend: friendName })}
+          {t('onboarding.allset.subtitle', {
+            mascot: mascot.name,
+            friend: assignedFriends[0]?.name ?? 'your friends',
+          })}
         </Text>
 
         {/* Summary chips */}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginBottom: 28 }}>
           <Chip>{`${mascot.emoji} Guide: ${mascot.name}`}</Chip>
           <Chip>{`🎨 Style: ${packName}`}</Chip>
-          <Chip>{`${friendEmoji} First friend: ${friendName}`}</Chip>
+          {assignedFriends.map((f) => (
+            <Chip key={f.id}>{`${[...(f.coverEmojis || '')][0] ?? '🌟'} ${f.name}`}</Chip>
+          ))}
           {store.interests.slice(0, 2).length > 0 && (
             <Chip>{`❤️ Loves: ${store.interests.slice(0, 2).join(', ')}`}</Chip>
           )}
         </View>
+
+        {/* Friend match reasons */}
+        {assignedFriends.length > 0 && (
+          <View style={{ marginBottom: 20, gap: 8 }}>
+            {assignedFriends.map((f) => (
+              <View key={f.id} style={{
+                backgroundColor: '#fff', borderRadius: 12,
+                borderWidth: 1, borderColor: '#E8E6FF',
+                paddingHorizontal: 14, paddingVertical: 10,
+                flexDirection: 'row', alignItems: 'center', gap: 10,
+              }}>
+                <Text style={{ fontSize: 22 }}>{[...(f.coverEmojis || '')][0] ?? '🌟'}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#2C2C2A' }}>{f.name}</Text>
+                  <Text style={{ fontSize: 12, color: '#888780', marginTop: 1 }}>{f.matchReason}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* Parent note */}
         <View style={{

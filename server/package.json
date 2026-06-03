@@ -12,7 +12,8 @@
     "migrate:make": "npx knex --knexfile src/db/knexfile.ts migrate:make",
     "seed": "npx knex --knexfile src/db/knexfile.ts seed:run",
     "db:check": "ts-node -r dotenv/config scripts/check-db.ts",
-    "generate:audio": "ts-node -r dotenv/config scripts/generateMigaAudio.ts"
+    "generate:audio": "ts-node -r dotenv/config scripts/generateMigaAudio.ts",
+    "demo:generate": "ts-node -r dotenv/config scripts/generateDemoFriends.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.3",
