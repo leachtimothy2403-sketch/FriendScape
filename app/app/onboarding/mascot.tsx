@@ -17,13 +17,13 @@ const EN_INTRO_TEXT_1 =
   "Hi! Before you meet your friends on Migo, you need a special guide — someone who will always be there for you, celebrate your wins, and keep you safe. That guide is called your mascot! 🌟";
 
 const EN_INTRO_TEXT_2 =
-  "I'm Miga! I'm a sparkly fairy and I will ALWAYS have your back on Migo. I'd love to be your mascot! But you can also meet Pixel, Finn and Sage below — tap them to hear their voices and learn about them. Then pick the one you love most! 💜";
+  "I'm Miga! I'm a sparkly little fairy and I will ALWAYS have your back on Migo. I celebrate every win, help when things go wrong, and I will never ever go away — you're stuck with me! 💜 But peek below — you might also love Pixel, Finn or Sage!";
 
 const FR_INTRO_TEXT_1 =
   "Salut ! Avant de rencontrer tes amis sur Migo, tu as besoin d'un guide spécial — quelqu'un qui sera toujours là pour toi, qui célèbrera tes victoires et qui te gardera en sécurité. Ce guide s'appelle ton mascotte ! 🌟";
 
 const FR_INTRO_TEXT_2 =
-  "Je suis Miga ! Je suis une petite fée pétillante et je serai TOUJOURS là pour toi sur Migo. J'adorerais être ta mascotte ! Mais tu peux aussi rencontrer Pixel, Finn et Sage ci-dessous — appuie sur eux pour entendre leurs voix et en savoir plus. Puis choisis celui que tu préfères ! 💜";
+  "Je suis Miga ! Je suis une petite fée pétillante et je serai TOUJOURS là pour toi. Je célèbre chaque victoire, j'aide quand ça va pas, et je ne partirai jamais — tu es coincé(e) avec moi ! 💜 Mais regarde en bas — tu pourrais aussi aimer Pixel, Finn ou Sage !";
 
 // ─── Audio assets — module-level so Metro can statically resolve all requires ─
 

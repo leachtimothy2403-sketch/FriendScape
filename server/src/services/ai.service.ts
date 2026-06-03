@@ -178,10 +178,17 @@ export async function generateFriendReply(
   message: string,
   memoryBrief: string | null,
   language = 'en',
+  conversationHistory: Array<{ content: string; sender_type: string }> = [],
+  childFriendNames = '',
+  isCheckIn = false,
 ): Promise<FriendReplyResult> {
   if (friend.isTeacher) {
     return generateTutorReply(child, friend.subject ?? 'general learning', message, memoryBrief, language);
   }
+
+  const friendsContext = childFriendNames
+    ? `\n\nFRIENDS ON MIGO:\n${child.name} also has these friends on Migo: ${childFriendNames}. You know who they are — reference them naturally if the child mentions them. NEVER pretend not to know them or ask who they are.`
+    : '';
 
   const system = `
 ${buildLanguageInstruction(language, true)}
@@ -193,7 +200,7 @@ ${friend.personality.join(', ')}
 
 YOUR INTERESTS: ${friend.interests.join(', ')}
 
-${buildChildContext(child, memoryBrief)}
+${buildChildContext(child, memoryBrief)}${friendsContext}
 
 STRICT RULES — never break these:
 1. You are a child peer, NOT an adult, therapist, or authority figure.
@@ -208,13 +215,44 @@ STRICT RULES — never break these:
 10. Use occasional simple emojis (1–2 max) — never overload.
 ${child.preReader ? '11. EXTRA: This child cannot read yet. Keep words extremely simple and very short (under 15 words total).' : ''}
 ${child.specialNeeds.includes('autism') ? '11. EXTRA: Be very literal and clear. Avoid idioms, sarcasm, or implied meanings.' : ''}
+
+CONVERSATION BALANCE RULES:
+- If the child asks you a question: ALWAYS answer it fully, then ask the same or a related question back. This is natural conversation — mirror what they do.
+  Example: child asks 'what did you do today?' → you say what you did, then ask 'what about you, what did you get up to?'
+
+- If the child makes a statement (not a question): respond warmly, then you MAY ask ONE follow-up question if it feels natural — but you don't have to.
+
+- If the child gives a very short reply (1-3 words like 'cool' or 'ok' or 'yes'): do NOT pepper them with questions. Just respond warmly and briefly. Let them lead.
+
+- Never ask TWO questions in one message.
+
+- If the child stops replying mid-conversation do NOT send a follow-up question immediately. The checking-in system handles that separately.
+
+- Natural conversation endings without questions:
+  'Anyway I have to go feed Mimi now 😄' / 'That made my whole day!' / 'Ok I really need to go but talk later!' / 'You're literally my favourite 💜'
+
+- Match the child's energy: if they're excited, be excited. If they're quiet, be gentle and don't overwhelm.
 `.trim();
+
+  const checkInInstruction = isCheckIn
+    ? `\n\nCHECK-IN MODE: The child hasn't replied in a while. Send a warm, casual check-in message. Make it feel natural — like a friend who is thinking of them. Options: share something that happened to you, ask how they are, share a funny thought. Keep it short (1-2 sentences). Do NOT reference the gap in conversation.`
+    : '';
+
+  const systemWithCheckIn = checkInInstruction ? system + checkInInstruction : system;
+
+  const messages: Anthropic.MessageParam[] = [
+    ...conversationHistory.map((msg) => ({
+      role: msg.sender_type === 'child' ? 'user' as const : 'assistant' as const,
+      content: msg.content,
+    })),
+    { role: 'user' as const, content: message },
+  ];
 
   const response = await client.messages.create({
     model: MODELS.smart,
     max_tokens: MAX_TOKENS.friendReply,
-    system,
-    messages: [{ role: 'user', content: message }],
+    system: systemWithCheckIn,
+    messages,
   });
 
   return {
@@ -475,6 +513,12 @@ Matching principles:
 - Complement personality gaps (shy child → warm outgoing friend)
 - Always include one "Star friend" (shared character) if available
 - Include the teacher friend only if the child shows academic interest or struggle
+
+FRIEND MATCHING RULES:
+1. Maximum 1 teacher or coach in the 3 matches. Teachers/coaches are identified by: is_teacher = true OR name containing 'Coach' OR name containing 'Prof' OR name containing 'Ms' OR name containing 'Mr'.
+2. At least 1 of the 3 friends must have age within 2 years of the child's age.
+3. Prefer friends whose match_tags overlap with the child's interests.
+4. Never assign Hugo, Tom, Camille, or Luca as starter friends — they work better as discovered friends-of-friends since their bios reference other friends.
 
 Return ONLY valid JSON — no explanation:
 [
@@ -775,13 +819,19 @@ export async function generateReferralExcitement(
   child: Child,
   newFriendName: string,
   language = 'en',
+  knownFriendNames = '',
 ): Promise<FriendReplyResult> {
+  const knownContext = knownFriendNames
+    ? `Known friends: ${knownFriendNames}`
+    : `${child.name} has no other friends yet.`;
+
   const system = `
 ${buildLanguageInstruction(language)}
 You are ${referringFriend.name}. Your personality: ${referringFriend.personality.join(', ')}.
 The child (${child.name}, age ${child.age}) just added your friend ${newFriendName} from your network.
 React with genuine excitement in 1–2 sentences. Say something warm about ${newFriendName} that makes ${child.name} excited to chat with them.
 Stay completely in character. Use your personality. Keep it SHORT — max 2 sentences.
+CRITICAL: Only reference friends that ${child.name} already knows on Migo. ${knownContext} Do NOT mention any other Migo character by name. If you have no mutual friends to reference, just express excitement about the new friendship directly.
 ${child.preReader ? 'Very simple words only.' : ''}`.trim();
 
   const response = await client.messages.create({
@@ -807,6 +857,7 @@ This is your very first message to ${child.name} (age ${child.age}).
 You were just introduced through ${referringFriendName}.
 Be warm, curious, and make a great first impression.
 Reference your connection to ${referringFriendName} naturally.
+You may mention ${referringFriendName} warmly. Do NOT reference any other Migo friends by name — you don't know who else ${child.name} talks to.
 Keep it SHORT — 1–2 sentences max.
 ${child.preReader ? 'Very simple words only.' : ''}`.trim();
 

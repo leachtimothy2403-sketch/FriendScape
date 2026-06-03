@@ -30,6 +30,8 @@ import { errorHandler } from './middleware/errorHandler';
 import './jobs/nightlyMemory';
 import './jobs/dailyPosts';
 import './jobs/migaObserver';
+import './jobs/onlineStatus';
+import './jobs/friendCheckIn';
 
 const app  = express();
 const PORT = process.env.PORT || 3001;

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getConversations, getMessages, sendMessage } from '../controllers/messages.controller';
+import { getConversations, getMessages, sendMessage, getLatestMessage } from '../controllers/messages.controller';
 import { requireAuth } from '../middleware/auth';
 
 const router = Router();
@@ -10,6 +10,7 @@ router.use(requireAuth);
 router.get('/conversations/:childId', getConversations);
 
 // Child-session endpoints — childId is read from the JWT, not the URL
+router.get('/:friendId/latest', getLatestMessage);
 router.get('/:friendId', getMessages);
 router.post('/:friendId', sendMessage);
 

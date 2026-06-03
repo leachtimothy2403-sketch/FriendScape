@@ -103,9 +103,9 @@ export const childAuth = {
 };
 
 export const childPosts = {
-  generateDaily: (token: string) =>
+  generateDaily: (token: string, force = false) =>
     api.post<{ generated: boolean; posts: unknown[]; message?: string }>(
-      '/posts/generate-daily', {}, withToken(token),
+      `/posts/generate-daily${force ? '?force=true' : ''}`, {}, withToken(token),
     ),
   feed: (token: string) =>
     api.get<{ posts: unknown[] }>('/posts/feed', withToken(token)),
@@ -123,14 +123,22 @@ export const childMessages = {
       `/messages/${friendId}`, withToken(token),
     ),
   send: (token: string, friendId: string, content: string) =>
-    api.post<{ childMessage: unknown; friendReply: unknown; mood: string }>(
+    api.post<{ childMessage: unknown; friendReply: unknown | null; status?: string; estimatedReplySeconds?: number; mood: string }>(
       `/messages/${friendId}`, { content }, withToken(token),
+    ),
+  getLatest: (token: string, friendId: string) =>
+    api.get<{ message: unknown | null }>(
+      `/messages/${friendId}/latest`, withToken(token),
     ),
 };
 
 export const childFriends = {
   get: (token: string, friendId: string) =>
     api.get<{ friend: Record<string, unknown> }>(`/friends/${friendId}`, withToken(token)),
+  getStatus: (friendId: string) =>
+    api.get<{ is_online: boolean; friend_name: string; response_delay_min: number; response_delay_max: number }>(
+      `/friends/${friendId}/status`,
+    ),
 };
 
 export const audioApi = {

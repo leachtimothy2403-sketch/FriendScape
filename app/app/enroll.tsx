@@ -29,10 +29,17 @@ export default function EnrollScreen() {
   const { t } = useTranslation();
   const { language, setLanguage } = useLanguageStore();
 
-  const [email, setEmail]     = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
-  const [focused, setFocused] = useState(false);
+  const [email, setEmail]               = useState('');
+  const [loading, setLoading]           = useState(false);
+  const [error, setError]               = useState('');
+  const [focused, setFocused]           = useState(false);
+
+  // "Already approved?" check state
+  const [showCheckRow, setShowCheckRow] = useState(false);
+  const [checkEmail, setCheckEmail]     = useState('');
+  const [checkFocused, setCheckFocused] = useState(false);
+  const [checking, setChecking]         = useState(false);
+  const [checkMessage, setCheckMessage] = useState<{ text: string; color: string } | null>(null);
 
   const translateY = useSharedValue(0);
 
@@ -76,6 +83,39 @@ export default function EnrollScreen() {
       setError(msg);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAlreadyApproved = () => {
+    // Pre-fill the check email with the main input if it looks valid
+    if (validateEmail(email.trim())) setCheckEmail(email.trim());
+    setShowCheckRow(true);
+    setCheckMessage(null);
+  };
+
+  const handleCheckApproval = async () => {
+    const trimmed = checkEmail.trim();
+    if (!validateEmail(trimmed)) {
+      setCheckMessage({ text: "Please enter a valid email address.", color: '#E53E3E' });
+      return;
+    }
+    setCheckMessage(null);
+    setChecking(true);
+    try {
+      const res = await auth.enrollmentStatus(trimmed);
+      const status = res.data.status;
+      if (status === 'approved') {
+        await AsyncStorage.setItem('pendingParentEmail', trimmed);
+        router.replace('/celebration');
+      } else if (status === 'pending') {
+        setCheckMessage({ text: t('enroll.approvalPending'), color: '#EF9F27' });
+      } else {
+        setCheckMessage({ text: t('enroll.approvalNotFound'), color: '#E53E3E' });
+      }
+    } catch {
+      setCheckMessage({ text: t('enroll.approvalNotFound'), color: '#E53E3E' });
+    } finally {
+      setChecking(false);
     }
   };
 
@@ -211,15 +251,86 @@ export default function EnrollScreen() {
               }
             </TouchableOpacity>
 
-            {/* Already approved */}
-            <TouchableOpacity onPress={() => router.push('/celebration')}>
+            {/* Already approved — tap to reveal check row */}
+            <TouchableOpacity onPress={handleAlreadyApproved}>
               <Text style={{ color: '#7F77DD', fontSize: 14 }}>{t('enroll.alreadyApproved')}</Text>
             </TouchableOpacity>
+
+            {/* Approval check row */}
+            {showCheckRow && (
+              <View style={{ width: '100%', marginTop: 20 }}>
+                <TextInput
+                  style={{
+                    width: '100%',
+                    backgroundColor: '#fff',
+                    paddingHorizontal: 24,
+                    paddingVertical: 14,
+                    borderRadius: 9999,
+                    borderWidth: 2,
+                    borderColor: checkFocused ? '#7F77DD' : '#E0E0E0',
+                    fontSize: 15,
+                    color: '#2C2C2A',
+                    marginBottom: 10,
+                  }}
+                  placeholder={t('enroll.placeholder')}
+                  placeholderTextColor="#BDBDBD"
+                  value={checkEmail}
+                  onChangeText={(v) => { setCheckEmail(v); setCheckMessage(null); }}
+                  onFocus={() => setCheckFocused(true)}
+                  onBlur={() => setCheckFocused(false)}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+
+                <TouchableOpacity
+                  style={{
+                    width: '100%',
+                    alignItems: 'center',
+                    paddingVertical: 14,
+                    backgroundColor: '#5DCAA5',
+                    borderRadius: 9999,
+                    opacity: checking ? 0.75 : 1,
+                  }}
+                  onPress={() => void handleCheckApproval()}
+                  disabled={checking}
+                  activeOpacity={0.85}
+                >
+                  {checking
+                    ? <ActivityIndicator color="#fff" />
+                    : <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>{t('enroll.alreadyApprovedCheck')}</Text>
+                  }
+                </TouchableOpacity>
+
+                {checkMessage && (
+                  <Text style={{
+                    color: checkMessage.color,
+                    fontSize: 13,
+                    textAlign: 'center',
+                    marginTop: 10,
+                    maxWidth: 300,
+                    alignSelf: 'center',
+                  }}>
+                    {checkMessage.text}
+                  </Text>
+                )}
+              </View>
+            )}
 
             {/* Privacy note */}
             <Text style={{ fontSize: 11, color: '#BDBDBD', textAlign: 'center', marginTop: 28, maxWidth: 280 }}>
               {t('enroll.privacyNote')}
             </Text>
+
+            {/* Dev-only skip */}
+            {__DEV__ && (
+              <TouchableOpacity
+                onPress={() => router.replace('/celebration')}
+                style={{ marginTop: 16 }}
+              >
+                <Text style={{ color: '#BDBDBD', fontSize: 11 }}>Skip to celebration (dev only)</Text>
+              </TouchableOpacity>
+            )}
 
           </View>
         </ScrollView>

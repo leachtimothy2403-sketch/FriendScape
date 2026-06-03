@@ -10,6 +10,20 @@ import {
 import { toChildType, toFriendType, toMemoryType } from '../utils/db-mappers';
 import type { Child } from '../../../shared/types';
 
+function calculateTypingDelay(wordCount: number, isOnline: boolean): number {
+  let delay = 0;
+  for (let i = 0; i < wordCount; i++) {
+    if (i < 5)       delay += 800;
+    else if (i < 15) delay += 400;
+    else             delay += 200;
+  }
+  if (!isOnline) delay *= 2;
+  if (process.env.NODE_ENV === 'development') {
+    delay = Math.min(delay, 15000);
+  }
+  return Math.max(delay, 2000);
+}
+
 // XP thresholds: index = current level, value = XP needed to reach next level
 const LEVEL_UP_AT: Record<number, number> = { 1: 100, 2: 300, 3: 600, 4: 1000, 5: 1500 };
 const LEVEL_NAMES: Record<number, string> = {
@@ -113,7 +127,8 @@ export async function getMessages(req: AuthRequest, res: Response) {
 }
 
 // ─── POST /api/messages/:friendId ─────────────────────────────────────────────
-// Saves child message, calls Claude for reply, checks mood, saves parent alert.
+// Saves child message, returns immediately with status:'pending', then fires
+// Claude reply after a realistic delay via setTimeout.
 export async function sendMessage(req: AuthRequest, res: Response) {
   const childId = req.childId;
   if (!childId) { res.status(401).json({ error: 'Child authentication required' }); return; }
@@ -145,10 +160,13 @@ export async function sendMessage(req: AuthRequest, res: Response) {
 
     await db('conversations').where({ id: conversation.id }).update({ updated_at: new Date() });
 
-    // c. Fetch child profile + d. Fetch friend (parallel)
+    // c. Fetch child profile + friend (parallel)
     const [childRow, friendRow] = await Promise.all([
       db('children').where({ id: childId }).first(),
-      db('ai_friends').where({ id: friendId }).first(),
+      db('ai_friends')
+        .where({ id: friendId })
+        .select('*', 'is_online', 'response_delay_min', 'response_delay_max')
+        .first(),
     ]);
 
     if (!childRow)  { res.status(404).json({ error: 'Child not found' });  return; }
@@ -156,60 +174,107 @@ export async function sendMessage(req: AuthRequest, res: Response) {
 
     const child  = toChildType(childRow);
     const friend = toFriendType(friendRow);
+    const isOnline = !!(friendRow.is_online as boolean);
 
-    // e. Fetch child memory for this specific friend
+    // d. Generate Claude reply immediately so we can base the delay on word count
     const memoryRow = await db('child_memories')
       .where({ child_id: childId, friend_id: friendId })
       .first();
-
-    // f. Build memory brief
     const memoryBrief = memoryRow ? buildMemoryBrief(toMemoryType(memoryRow)) : null;
 
-    // g+i. Generate reply and check mood in parallel for speed
+    const recentMessages = await db('messages')
+      .where({ conversation_id: conversation.id })
+      .orderBy('created_at', 'asc')
+      .limit(15)
+      .select('content', 'sender_type') as Array<{ content: string; sender_type: string }>;
+
+    const childFriendRows = await db('child_friends')
+      .where({ child_id: childId })
+      .join('ai_friends', 'ai_friends.id', 'child_friends.friend_id')
+      .select('ai_friends.name') as Array<{ name: string }>;
+    const friendNames = childFriendRows.map((f) => f.name).join(', ');
+
     const lang = (childRow.language as string) || 'en';
     console.log(`[messages] 🤖 Calling Claude — ${friend.name} replies to ${child.name}: "${content.trim().slice(0, 40)}" (lang=${lang})`);
+
     const [reply, mood] = await Promise.all([
-      generateFriendReply(friend, child, content.trim(), memoryBrief, lang),
+      generateFriendReply(friend, child, content.trim(), memoryBrief, lang, recentMessages, friendNames),
       checkMood(content.trim(), child.name, child.age),
     ]);
+
     console.log(`[messages] ✅ ${friend.name}: "${reply.text.slice(0, 60)}" (${reply.inputTokens}→${reply.outputTokens} tokens)`);
     console.log(`[messages] 🎭 Mood: ${mood.mood} intensity=${mood.intensity} alert=${mood.parentAlertNeeded}`);
 
-    // h. Save friend's reply
-    const [friendReply] = await db('messages')
-      .insert({
-        conversation_id: conversation.id,
-        sender_id:       friendId,
-        sender_type:     'ai',
-        content:         reply.text,
-      })
-      .returning('*');
+    // e. Calculate delay based on actual word count
+    const wordCount  = reply.text.split(' ').length;
+    const delayMs    = calculateTypingDelay(wordCount, isOnline);
+    const delaySeconds = Math.round(delayMs / 1000);
 
-    // i+1. Award friendship XP (fire-and-forget — never fails the request)
-    awardFriendshipXP(childId, friendId, child, friend.name).catch((err: unknown) =>
-      console.error('[xp] Award failed:', err),
-    );
+    // f. Return immediately — app polls for the reply
+    res.json({ childMessage, friendReply: null, status: 'pending', estimatedReplySeconds: delaySeconds });
 
-    // j. Save parent alert — isolated try/catch so a DB failure here never
-    //    swallows the whole request or loses the child/friend reply already saved.
-    if (mood.parentAlertNeeded) {
-      try {
-        await db('parent_alerts').insert({
-          child_id: childId,
-          type:     'mood_flag',
-          message:  mood.parentAlertReason ?? 'Mood concern detected',
-          severity: mood.crisisFlag ? 'urgent' : 'warning',
-        });
-        console.log(`[alerts] ✅ Parent alert (${mood.crisisFlag ? 'URGENT' : 'warning'}) saved — child ${childId}`);
-      } catch (alertErr) {
-        console.error('[alerts] ❌ Failed to save parent alert:', alertErr);
-      }
-    }
+    // g. Save reply after the calculated typing delay (out-of-band — response already sent)
+    setTimeout(() => {
+      void (async () => {
+        try {
+          await db('messages').insert({
+            conversation_id: conversation.id,
+            sender_id:       friendId,
+            sender_type:     'ai',
+            content:         reply.text,
+          });
 
-    res.json({ childMessage, friendReply, mood: mood.mood });
+          awardFriendshipXP(childId, friendId, child, friend.name).catch((err: unknown) =>
+            console.error('[xp] Award failed:', err),
+          );
+
+          if (mood.parentAlertNeeded) {
+            await db('parent_alerts').insert({
+              child_id: childId,
+              type:     'mood_flag',
+              message:  mood.parentAlertReason ?? 'Mood concern detected',
+              severity: mood.crisisFlag ? 'urgent' : 'warning',
+            }).catch((alertErr: unknown) =>
+              console.error('[alerts] ❌ Failed to save parent alert:', alertErr),
+            );
+          }
+        } catch (err) {
+          console.error('[messages] ❌ Delayed reply save failed:', err);
+        }
+      })();
+    }, delayMs);
+
   } catch (err) {
     console.error('[messages] sendMessage error:', err);
     res.status(500).json({ error: 'Failed to send message' });
+  }
+}
+
+// ─── GET /api/messages/:friendId/latest ───────────────────────────────────────
+// Returns the single most recent message in this conversation (used to poll for
+// pending AI replies).
+export async function getLatestMessage(req: AuthRequest, res: Response) {
+  const childId = req.childId;
+  if (!childId) { res.status(401).json({ error: 'Child authentication required' }); return; }
+
+  try {
+    const { friendId } = req.params;
+
+    const conversation = await db('conversations')
+      .where({ child_id: childId, friend_id: friendId })
+      .first();
+
+    if (!conversation) { res.json({ message: null }); return; }
+
+    const message = await db('messages')
+      .where({ conversation_id: conversation.id })
+      .orderBy('created_at', 'desc')
+      .first();
+
+    res.json({ message: message ?? null });
+  } catch (err) {
+    console.error('[messages] getLatestMessage error:', err);
+    res.status(500).json({ error: 'Failed to fetch latest message' });
   }
 }
 

@@ -27,10 +27,14 @@ export async function triggerWelcomeFlow(
   newFriendId:      string,
   referringFriendId: string,
 ): Promise<void> {
-  const [childRow, newFriendRow, referringFriendRow] = await Promise.all([
+  const [childRow, newFriendRow, referringFriendRow, existingFriendRows] = await Promise.all([
     db('children').where({ id: childId }).first(),
     db('ai_friends').where({ id: newFriendId }).first(),
     db('ai_friends').where({ id: referringFriendId }).first(),
+    db('child_friends')
+      .where({ child_id: childId })
+      .join('ai_friends', 'ai_friends.id', 'child_friends.friend_id')
+      .select('ai_friends.name') as Promise<Array<{ name: string }>>,
   ]);
 
   if (!childRow || !newFriendRow || !referringFriendRow) return;
@@ -40,8 +44,14 @@ export async function triggerWelcomeFlow(
   const referringFriend = toFriendType(referringFriendRow);
   const lang            = child.language === 'fr' ? 'fr' : 'en';
 
+  // Build the list of friends the child already knows (excluding the referring friend itself)
+  const knownFriendNames = existingFriendRows
+    .map((f) => f.name)
+    .filter((name) => name !== referringFriend.name)
+    .join(', ');
+
   const [excitedMsg, introMsg] = await Promise.all([
-    generateReferralExcitement(referringFriend, child, newFriend.name, lang),
+    generateReferralExcitement(referringFriend, child, newFriend.name, lang, knownFriendNames),
     generateNewFriendIntro(newFriend, child, referringFriend.name, lang),
   ]);
 

@@ -64,7 +64,11 @@ export async function login(req: Request, res: Response) {
       return;
     }
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: '7d' });
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, type: 'parent' },
+      process.env.JWT_SECRET!,
+      { expiresIn: '30d' },
+    );
     res.json({
       token,
       user: { id: user.id, email: user.email, displayName: user.display_name },

@@ -175,3 +175,29 @@ export async function deactivateFriendForChild(req: AuthRequest, res: Response) 
     res.status(500).json({ error: 'Failed to deactivate friend' });
   }
 }
+
+// GET /friends/:friendId/status — no auth required
+export async function getFriendStatus(req: Request, res: Response) {
+  try {
+    const friend = await db('ai_friends')
+      .where({ id: req.params.friendId })
+      .select('name', 'is_online', 'response_delay_min', 'response_delay_max')
+      .first() as {
+        name: string;
+        is_online: boolean;
+        response_delay_min: number;
+        response_delay_max: number;
+      } | undefined;
+
+    if (!friend) { res.status(404).json({ error: 'Friend not found' }); return; }
+
+    res.json({
+      is_online:           !!friend.is_online,
+      friend_name:         friend.name,
+      response_delay_min:  Number(friend.response_delay_min ?? 1),
+      response_delay_max:  Number(friend.response_delay_max ?? 3),
+    });
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch friend status' });
+  }
+}

@@ -8,6 +8,9 @@
     "placeholder": "Mum or Dad's email address…",
     "sendButton": "Send! 📨",
     "alreadyApproved": "Already approved? Tap here →",
+    "alreadyApprovedCheck": "Check approval →",
+    "approvalPending": "Still waiting — check your email! 📧",
+    "approvalNotFound": "No request found. Send a new request above.",
     "privacyNote": "🔒 We only use this to ask for permission. Nothing else!"
   },
   "waiting": {

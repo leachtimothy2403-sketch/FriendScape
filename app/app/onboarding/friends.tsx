@@ -37,32 +37,77 @@ function firstEmoji(str: string | null | undefined): string {
   return chars[0] || '🌟';
 }
 
-function scoreAndRank(allFriends: ApiFriend[], interests: string[]): ApiFriend[] {
+// Friends excluded from starter matching — they work better as discovered friends-of-friends
+const DISCOVERY_ONLY = new Set(['Hugo', 'Tom', 'Camille', 'Luca']);
+
+function isCoachOrTeacher(f: ApiFriend): boolean {
+  return (
+    f.is_teacher ||
+    f.name.includes('Coach') ||
+    f.name.includes('Prof') ||
+    f.name.startsWith('Ms') ||
+    f.name.startsWith('Mr')
+  );
+}
+
+function scoreAndRank(allFriends: ApiFriend[], interests: string[], childAge?: number): ApiFriend[] {
   const lower = interests.map((i) => i.toLowerCase());
-  return allFriends
-    .filter((f) => !f.is_teacher)
-    .map((f) => {
-      const tags: string[] = f.match_tags || [];
-      const score = tags.filter((t) => lower.includes(t.toLowerCase())).length;
-      return { friend: f, score };
-    })
-    .sort((a, b) =>
-      b.score !== a.score
-        ? b.score - a.score
-        : Number(b.friend.is_star_friend) - Number(a.friend.is_star_friend),
-    )
-    .slice(0, 3)
-    .map((s) => s.friend);
+
+  const eligible = allFriends.filter((f) => !DISCOVERY_ONLY.has(f.name));
+
+  const scored = eligible.map((f) => {
+    const tags: string[] = Array.isArray(f.match_tags) ? f.match_tags : [];
+    const interestScore  = tags.filter((t) => lower.includes(t.toLowerCase())).length;
+    const starBonus      = f.is_star_friend ? 0.5 : 0;
+    const ageScore       = childAge != null && f.age != null && Math.abs(f.age - childAge) <= 2 ? 1 : 0;
+    return { friend: f, score: interestScore + starBonus + ageScore };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+
+  // Build the top-3 enforcing: max 1 coach/teacher, at least 1 age-appropriate peer
+  const result: ApiFriend[]  = [];
+  let coachCount             = 0;
+  let hasAgePeer             = false;
+
+  for (const { friend: f } of scored) {
+    if (result.length >= 3) break;
+    const isAdult = isCoachOrTeacher(f);
+    if (isAdult && coachCount >= 1) continue;
+    result.push(f);
+    if (isAdult) coachCount++;
+    if (childAge != null && f.age != null && Math.abs(f.age - childAge) <= 2) hasAgePeer = true;
+  }
+
+  // If no age-appropriate peer yet, swap the lowest-priority slot with the best-scoring age peer
+  if (!hasAgePeer && childAge != null) {
+    const agePeer = scored.find(
+      ({ friend: f }) =>
+        !result.includes(f) &&
+        f.age != null &&
+        Math.abs(f.age - childAge) <= 2 &&
+        !isCoachOrTeacher(f),
+    );
+    if (agePeer) result[result.length - 1] = agePeer.friend;
+  }
+
+  return result;
 }
 
 export default function FriendsScreen() {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
-  const { childName, mascotId, interests, selectedFriendId, setSelectedFriendId } =
+  const { childName, mascotId, interests, age, selectedFriendId, setSelectedFriendId } =
     useOnboardingStore();
 
   const displayName = childName.trim() || 'you';
   const mascotEmoji = MASCOT_EMOJI[mascotId] ?? '🧚';
+
+  // Parse "7–8" → 7 for age-appropriate matching
+  const childAge = (() => {
+    const m = age.match(/(\d+)/);
+    return m ? parseInt(m[1], 10) : undefined;
+  })();
   const HPAD        = 24;
   const GAP         = 10;
   const cardW       = (width - HPAD * 2 - GAP * 2) / 3;
@@ -89,7 +134,7 @@ export default function FriendsScreen() {
       try {
         const res = await friendsApi.list();
         const all: ApiFriend[] = res.data?.friends ?? [];
-        const top = scoreAndRank(all, interests);
+        const top = scoreAndRank(all, interests, childAge);
         setCards(top);
         const initial = selectedFriendId || top[0]?.id || '';
         setSelected(initial);

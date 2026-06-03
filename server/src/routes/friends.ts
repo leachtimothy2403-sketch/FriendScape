@@ -8,6 +8,7 @@ import {
   activateFriendForChild,
   deactivateFriendForChild,
   getChildFriends,
+  getFriendStatus,
 } from '../controllers/friends.controller';
 import { requireAuth, optionalAuth } from '../middleware/auth';
 
@@ -22,6 +23,7 @@ router.delete('/child/:childId/:friendId', requireAuth,  deactivateFriendForChil
 
 router.get('/:friendId/network', optionalAuth, getFriendNetwork);
 router.get('/:friendId/posts',   requireAuth,  getFriendPosts);
+router.get('/:friendId/status',              getFriendStatus);
 router.post('/:friendId/add',    requireAuth,  addFriendForChild);
 
 // Catch-all — must be last

@@ -16,16 +16,20 @@ export async function generateDailyPosts(req: AuthRequest, res: Response) {
   }
 
   try {
-    // Return early if already generated today
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-    const existing = await db('posts')
-      .where({ child_id: childId, author_type: 'ai' })
-      .where('created_at', '>=', startOfDay)
-      .first();
-    if (existing) {
-      res.json({ message: 'Already generated today', generated: false });
-      return;
+    const force = req.query.force === 'true';
+
+    // Return early if already generated today (skip guard when force=true)
+    if (!force) {
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      const existing = await db('posts')
+        .where({ child_id: childId, author_type: 'ai' })
+        .where('created_at', '>=', startOfDay)
+        .first();
+      if (existing) {
+        res.json({ message: 'Already generated today', generated: false });
+        return;
+      }
     }
 
     const childRow = await db('children').where({ id: childId }).first();

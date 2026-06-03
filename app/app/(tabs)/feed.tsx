@@ -1,7 +1,7 @@
 import {
   View, Text, SafeAreaView, ScrollView, FlatList, TouchableOpacity,
   Modal, TextInput, RefreshControl, ActivityIndicator, Animated,
-  AppState, AppStateStatus, StyleSheet,
+  AppState, AppStateStatus, StyleSheet, Platform,
 } from 'react-native';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { router } from 'expo-router';
@@ -11,6 +11,7 @@ import { childAuth, childPosts, childSession } from '@/services/api';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { Colors, Mascots } from '@/constants/theme';
 import AudioPlayer from '@/components/AudioPlayer';
+import { requestPermission } from '@/utils/webNotifications';
 
 interface FeedPost {
   id: string;
@@ -69,6 +70,7 @@ export default function FeedScreen() {
   const [posts, setPosts]             = useState<FeedPost[]>([]);
   const [loading, setLoading]         = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
+  const [reloading, setReloading]     = useState(false);
   const [childToken, setChildToken]   = useState<string | null>(null);
   const [showNewPost, setShowNewPost] = useState(false);
   const [newPostText, setNewPostText] = useState('');
@@ -92,6 +94,9 @@ export default function FeedScreen() {
       const id    = await AsyncStorage.getItem('childId');
       let   token = await AsyncStorage.getItem('childToken');
 
+      console.log('[feed] childId:', id);
+      console.log('[feed] token:', token ? 'exists' : 'missing');
+
       if (!token && id) {
         try {
           const res = await childAuth.login(id);
@@ -106,10 +111,15 @@ export default function FeedScreen() {
         childTokenRef.current = token;
         setChildToken(token);
         childSession.start(token).catch(() => {});
+        console.log('[feed] generating posts...');
         await loadFeed(token, true);
       }
 
       if (!cancelled) setLoading(false);
+
+      if (Platform.OS === 'web') {
+        void requestPermission();
+      }
     }
 
     void init();
@@ -145,12 +155,29 @@ export default function FeedScreen() {
     try {
       await childPosts.generateDaily(token).catch(() => {});
       const res = await childPosts.feed(token);
-      setPosts(res.data.posts as FeedPost[]);
+      const loaded = res.data.posts as FeedPost[];
+      console.log('[feed] posts loaded:', loaded.length);
+      setPosts(loaded);
     } catch (e) {
       console.error('[feed] loadFeed error:', e);
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  }
+
+  async function hardRefresh() {
+    const token = childTokenRef.current;
+    if (!token || reloading) return;
+    setReloading(true);
+    try {
+      await childPosts.generateDaily(token, true).catch(() => {});
+      const res = await childPosts.feed(token);
+      setPosts(res.data.posts as FeedPost[]);
+    } catch (e) {
+      console.error('[feed] hardRefresh error:', e);
+    } finally {
+      setReloading(false);
     }
   }
 
@@ -246,6 +273,12 @@ export default function FeedScreen() {
               <Text style={s.devResetText}>🔄 Reset</Text>
             </TouchableOpacity>
           )}
+          <TouchableOpacity onPress={() => void hardRefresh()} disabled={reloading}>
+            {reloading
+              ? <ActivityIndicator size="small" color={Colors.purple} />
+              : <Text style={s.refreshIcon}>🔄</Text>
+            }
+          </TouchableOpacity>
           <View>
             <Text style={{ fontSize: 22 }}>🔔</Text>
             <View style={s.redDot} />
@@ -547,4 +580,5 @@ const s = StyleSheet.create({
   devResetBtn:   { backgroundColor: '#FFE5E5', borderRadius: 8,
                    paddingHorizontal: 8, paddingVertical: 4 },
   devResetText:  { fontSize: 11, color: '#CC0000', fontWeight: '700' },
+  refreshIcon:   { fontSize: 20, color: '#B4B2A9' },
 });

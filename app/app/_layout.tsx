@@ -1,15 +1,19 @@
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { useEffect } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '@/i18n';
 import { useLanguageStore } from '@/store/languageStore';
+import { useNotificationStore } from '@/store/notificationStore';
+import NotificationBanner from '@/components/NotificationBanner';
 import '../global.css';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const initLanguage = useLanguageStore((s) => s.initLanguage);
+  const initLanguage      = useLanguageStore((s) => s.initLanguage);
+  const notification      = useNotificationStore((s) => s.notification);
+  const clearNotification = useNotificationStore((s) => s.clearNotification);
 
   useEffect(() => {
     void initLanguage().finally(() => SplashScreen.hideAsync());
@@ -29,6 +33,20 @@ export default function RootLayout() {
           options={{ animation: 'slide_from_right' }}
         />
       </Stack>
+      <NotificationBanner
+        visible={notification !== null}
+        friendName={notification?.friendName ?? ''}
+        friendEmoji={notification?.friendEmoji ?? '🌟'}
+        message={notification?.message ?? ''}
+        onPress={() => {
+          if (notification) {
+            const id = notification.friendId;
+            clearNotification();
+            router.push(`/dm/${id}` as never);
+          }
+        }}
+        onDismiss={clearNotification}
+      />
     </I18nextProvider>
   );
 }

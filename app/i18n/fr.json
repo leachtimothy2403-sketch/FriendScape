@@ -8,6 +8,9 @@
     "placeholder": "Email de maman ou papa…",
     "sendButton": "Envoyer ! 📨",
     "alreadyApproved": "Déjà approuvé ? Appuie ici →",
+    "alreadyApprovedCheck": "Vérifier l'approbation →",
+    "approvalPending": "En attente — vérifie tes emails ! 📧",
+    "approvalNotFound": "Aucune demande trouvée. Envoie une nouvelle demande ci-dessus.",
     "privacyNote": "🔒 On utilise cet email uniquement pour demander la permission. C'est tout !"
   },
   "waiting": {
