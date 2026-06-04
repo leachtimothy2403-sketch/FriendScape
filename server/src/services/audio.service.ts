@@ -4,6 +4,7 @@ import path from 'path';
 import { ElevenLabsClient } from 'elevenlabs';
 import { Readable } from 'stream';
 import { get as redisGet, set as redisSet } from './redis.service';
+import db from '../db';
 
 const elevenlabs = new ElevenLabsClient({
   apiKey: process.env.ELEVENLABS_API_KEY ?? '',
@@ -81,9 +82,27 @@ export async function generateSpeech(
 
   // 3. Call ElevenLabs
   const lang = language === 'fr' ? 'fr' : 'en';
-  const voiceMap = VOICE_IDS[lang];
-  const voiceId  = voiceMap[characterId.toLowerCase()] ?? DEFAULT_VOICE[lang];
-  const modelId  = lang === 'fr' ? 'eleven_multilingual_v2' : 'eleven_monolingual_v1';
+
+  // Check DB for a voice_id assigned at generation time (generated friends)
+  let voiceId: string | undefined;
+  let voiceModel: string | undefined;
+  try {
+    const friendRow = await db('ai_friends')
+      .where({ name: characterId })
+      .select('voice_id', 'voice_model')
+      .first() as { voice_id: string | null; voice_model: string | null } | undefined;
+    if (friendRow?.voice_id) {
+      voiceId    = friendRow.voice_id;
+      voiceModel = friendRow.voice_model ?? undefined;
+    }
+  } catch { /* db unavailable — fall through to map */ }
+
+  if (!voiceId) {
+    const voiceMap = VOICE_IDS[lang];
+    voiceId = voiceMap[characterId.toLowerCase()] ?? DEFAULT_VOICE[lang];
+  }
+
+  const modelId = voiceModel ?? (lang === 'fr' ? 'eleven_multilingual_v2' : 'eleven_monolingual_v1');
 
   const audioStream = await elevenlabs.textToSpeech.convert(voiceId, {
     text,

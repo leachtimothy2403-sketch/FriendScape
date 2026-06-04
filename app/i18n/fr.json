@@ -154,7 +154,13 @@
     "friends": {
       "title": "Une surprise ! 🎁",
       "subtitle": "J'ai trouvé 3 amis qui te correspondent parfaitement, {{name}} !",
-      "continueButton": "Je choisis {{name}} ! C'est parti ! →"
+      "continueButton": "Je choisis {{name}} ! C'est parti ! →",
+      "tryDifferent": "Pas convaincu(e) ? Essaie d'autres amis →",
+      "confirmRegen": "Tu es sûr(e) ? Tu vas rencontrer 2 nouveaux amis mais dire au revoir à ceux-ci.",
+      "confirmRegenYes": "Oui, réessayer",
+      "confirmRegenNo": "Garder ceux-ci",
+      "regenLoading": "Je cherche de nouveaux amis... 🌟",
+      "regenMaxed": "Tu as rencontré les meilleures correspondances pour toi ! 🌟"
     },
     "allset": {
       "title": "Tout est prêt, {{name}} ! 🎊",

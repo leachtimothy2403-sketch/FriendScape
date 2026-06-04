@@ -290,6 +290,11 @@ export const childProfileApi = {
     api.get<{ friends: FriendWithStats[] }>('/children/me/friends-list', withToken(token)),
   validateInterest: (token: string, text: string) =>
     api.post<ModerationResult>('/children/me/interests/validate', { text }, withToken(token)),
+  regenerateFriends: (token: string) =>
+    api.post<{
+      assignedFriends: { id: string; name: string; coverEmojis: string; matchReason: string }[];
+      regenerationCount: number;
+    }>('/children/me/regenerate-friends', {}, withToken(token)),
 };
 
 export const childSession = {

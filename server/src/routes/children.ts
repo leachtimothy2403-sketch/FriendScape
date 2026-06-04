@@ -17,6 +17,7 @@ import {
   getMyPosts,
   getMyFriendsList,
   validateInterest,
+  regenerateFriends,
 } from '../controllers/children.controller';
 import { requireAuth } from '../middleware/auth';
 
@@ -39,8 +40,9 @@ router.get('/me/profile',      getMyProfile);
 router.patch('/me/profile',    updateMyProfile);
 router.get('/me/memories',     getMyMemories);
 router.get('/me/posts',        getMyPosts);
-router.get('/me/friends-list',         getMyFriendsList);
-router.post('/me/interests/validate',   validateInterest);
+router.get('/me/friends-list',           getMyFriendsList);
+router.post('/me/interests/validate',    validateInterest);
+router.post('/me/regenerate-friends',    regenerateFriends);
 
 // Parent-authenticated CRUD
 router.get('/', getChildren);

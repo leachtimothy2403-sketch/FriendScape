@@ -1,17 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, SafeAreaView,
   ScrollView, ActivityIndicator, useWindowDimensions,
 } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle,
-  withRepeat, withSequence, withTiming, Easing,
+  withRepeat, withSequence, withTiming, Easing, FadeIn, FadeOut,
 } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
-import { friends as friendsApi } from '@/services/api';
+import { friends as friendsApi, childProfileApi } from '@/services/api';
 import { useOnboardingStore } from '@/store/onboardingStore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface ApiFriend {
   id: string;
@@ -23,6 +24,13 @@ interface ApiFriend {
   match_tags: string[];
   interests: string[];
   age: number | null;
+}
+
+interface AssignedFriend {
+  id: string;
+  name: string;
+  coverEmojis: string;
+  matchReason: string;
 }
 
 const MASCOT_EMOJI: Record<string, string> = {
@@ -37,7 +45,6 @@ function firstEmoji(str: string | null | undefined): string {
   return chars[0] || '🌟';
 }
 
-// Friends excluded from starter matching — they work better as discovered friends-of-friends
 const DISCOVERY_ONLY = new Set(['Hugo', 'Tom', 'Camille', 'Luca']);
 
 function isCoachOrTeacher(f: ApiFriend): boolean {
@@ -52,9 +59,7 @@ function isCoachOrTeacher(f: ApiFriend): boolean {
 
 function scoreAndRank(allFriends: ApiFriend[], interests: string[], childAge?: number): ApiFriend[] {
   const lower = interests.map((i) => i.toLowerCase());
-
   const eligible = allFriends.filter((f) => !DISCOVERY_ONLY.has(f.name));
-
   const scored = eligible.map((f) => {
     const tags: string[] = Array.isArray(f.match_tags) ? f.match_tags : [];
     const interestScore  = tags.filter((t) => lower.includes(t.toLowerCase())).length;
@@ -62,13 +67,11 @@ function scoreAndRank(allFriends: ApiFriend[], interests: string[], childAge?: n
     const ageScore       = childAge != null && f.age != null && Math.abs(f.age - childAge) <= 2 ? 1 : 0;
     return { friend: f, score: interestScore + starBonus + ageScore };
   });
-
   scored.sort((a, b) => b.score - a.score);
 
-  // Build the top-3 enforcing: max 1 coach/teacher, at least 1 age-appropriate peer
-  const result: ApiFriend[]  = [];
-  let coachCount             = 0;
-  let hasAgePeer             = false;
+  const result: ApiFriend[] = [];
+  let coachCount = 0;
+  let hasAgePeer = false;
 
   for (const { friend: f } of scored) {
     if (result.length >= 3) break;
@@ -79,7 +82,6 @@ function scoreAndRank(allFriends: ApiFriend[], interests: string[], childAge?: n
     if (childAge != null && f.age != null && Math.abs(f.age - childAge) <= 2) hasAgePeer = true;
   }
 
-  // If no age-appropriate peer yet, swap the lowest-priority slot with the best-scoring age peer
   if (!hasAgePeer && childAge != null) {
     const agePeer = scored.find(
       ({ friend: f }) =>
@@ -103,21 +105,27 @@ export default function FriendsScreen() {
   const displayName = childName.trim() || 'you';
   const mascotEmoji = MASCOT_EMOJI[mascotId] ?? '🧚';
 
-  // Parse "7–8" → 7 for age-appropriate matching
   const childAge = (() => {
     const m = age.match(/(\d+)/);
     return m ? parseInt(m[1], 10) : undefined;
   })();
-  const HPAD        = 24;
-  const GAP         = 10;
-  const cardW       = (width - HPAD * 2 - GAP * 2) / 3;
+  const HPAD  = 24;
+  const GAP   = 10;
+  const cardW = (width - HPAD * 2 - GAP * 2) / 3;
 
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState('');
-  const [cards, setCards]       = useState<ApiFriend[]>([]);
-  const [selected, setSelected] = useState(selectedFriendId);
+  const [loading, setLoading]               = useState(true);
+  const [error, setError]                   = useState('');
+  const [cards, setCards]                   = useState<ApiFriend[]>([]);
+  const [selected, setSelected]             = useState(selectedFriendId);
+  const [regenCount, setRegenCount]         = useState(0);
+  const [regenLoading, setRegenLoading]     = useState(false);
+  const [showConfirm, setShowConfirm]       = useState(false);
+  const [regenMaxed, setRegenMaxed]         = useState(false);
+  const [assignedCards, setAssignedCards]   = useState<AssignedFriend[] | null>(null);
 
   const floatY = useSharedValue(0);
+  const cardsOpacity = useSharedValue(1);
+
   useEffect(() => {
     floatY.value = withRepeat(
       withSequence(
@@ -127,7 +135,9 @@ export default function FriendsScreen() {
       -1, false,
     );
   }, []);
-  const floatStyle = useAnimatedStyle(() => ({ transform: [{ translateY: floatY.value }] }));
+
+  const floatStyle  = useAnimatedStyle(() => ({ transform: [{ translateY: floatY.value }] }));
+  const cardsStyle  = useAnimatedStyle(() => ({ opacity: cardsOpacity.value }));
 
   useEffect(() => {
     (async () => {
@@ -152,8 +162,48 @@ export default function FriendsScreen() {
     setSelectedFriendId(id);
   }
 
-  const activeFriend = cards.find((c) => c.id === selected);
-  const canContinue  = !!selected;
+  async function handleRegenerate() {
+    setShowConfirm(false);
+    setRegenLoading(true);
+
+    try {
+      const token = await AsyncStorage.getItem('childToken');
+      if (!token) {
+        setRegenLoading(false);
+        return;
+      }
+
+      // Fade out current cards
+      cardsOpacity.value = withTiming(0, { duration: 250 });
+
+      const res = await childProfileApi.regenerateFriends(token);
+      const data = res.data;
+
+      const newCount = data.regenerationCount ?? regenCount + 1;
+      setRegenCount(newCount);
+      setAssignedCards(data.assignedFriends);
+
+      if (newCount >= 3) setRegenMaxed(true);
+
+      // Fade in new cards
+      cardsOpacity.value = withTiming(1, { duration: 400 });
+    } catch (err: unknown) {
+      const e = err as { response?: { status?: number } };
+      if (e?.response?.status === 429) {
+        setRegenMaxed(true);
+      }
+      // Fade back in on error
+      cardsOpacity.value = withTiming(1, { duration: 300 });
+    } finally {
+      setRegenLoading(false);
+    }
+  }
+
+  const activeFriend = assignedCards
+    ? null
+    : cards.find((c) => c.id === selected);
+
+  const canContinue = !!selected || !!assignedCards;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F7FF' }}>
@@ -180,7 +230,9 @@ export default function FriendsScreen() {
           </Animated.Text>
           <View style={{ flex: 1, backgroundColor: '#fff', borderRadius: 16, borderTopLeftRadius: 4, borderWidth: 1.5, borderColor: '#E0E0E0', padding: 12 }}>
             <Text style={{ fontSize: 13, color: '#2C2C2A', lineHeight: 20 }}>
-              {t('onboarding.friends.subtitle', { name: displayName })}
+              {regenLoading
+                ? t('onboarding.friends.regenLoading')
+                : t('onboarding.friends.subtitle', { name: displayName })}
             </Text>
           </View>
         </View>
@@ -204,102 +256,173 @@ export default function FriendsScreen() {
           </View>
         )}
 
-        {!loading && !error && cards.length > 0 && (
+        {!loading && !error && (
           <>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: GAP, marginBottom: 16 }}>
-              {cards.map((friend, idx) => {
-                const isSel    = selected === friend.id;
-                const avatarBg = AVATAR_BG[idx % AVATAR_BG.length];
-                const emoji    = firstEmoji(friend.cover_emojis);
-                const tags     = (friend.interests as string[] | undefined || []).slice(0, 2);
-
-                return (
-                  <TouchableOpacity
-                    key={friend.id}
-                    onPress={() => handleSelect(friend.id)}
-                    style={{
-                      width: cardW,
-                      backgroundColor: '#fff',
-                      borderRadius: 20,
-                      borderWidth: 2.5,
-                      borderColor: isSel ? '#7F77DD' : '#E8E6FF',
-                      padding: 12,
-                      alignItems: 'center',
-                      transform: [{ scale: isSel ? 1.04 : 1 }],
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: isSel ? 0.12 : 0.05,
-                      shadowRadius: 8,
-                      elevation: isSel ? 5 : 2,
-                    }}
-                    activeOpacity={0.75}
-                  >
-                    <View style={{
-                      width: 60, height: 60, borderRadius: 30,
-                      backgroundColor: avatarBg,
-                      alignItems: 'center', justifyContent: 'center',
-                      marginBottom: 8,
-                    }}>
-                      <Text style={{ fontSize: 30 }}>{emoji}</Text>
-                    </View>
-
-                    {isSel && (
-                      <View style={{
-                        position: 'absolute', top: 6, right: 6,
-                        width: 20, height: 20, borderRadius: 10,
-                        backgroundColor: '#7F77DD',
-                        alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>✓</Text>
-                      </View>
-                    )}
-
-                    <Text style={{ fontSize: 13, fontWeight: 'bold', color: isSel ? '#7F77DD' : '#2C2C2A', textAlign: 'center', marginBottom: 4 }}>
-                      {friend.name}
-                    </Text>
-
-                    {friend.age != null && (
-                      <Text style={{ fontSize: 10, color: '#888780', marginBottom: 6 }}>Age {friend.age}</Text>
-                    )}
-
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, justifyContent: 'center' }}>
-                      {tags.map((tag) => (
-                        <View key={tag} style={{ backgroundColor: isSel ? '#EEEDFE' : '#F5F5F5', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}>
-                          <Text style={{ fontSize: 9, color: isSel ? '#7F77DD' : '#888780', fontWeight: '600' }}>{tag}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            {activeFriend && (
-              <View style={{
-                backgroundColor: '#fff',
-                borderRadius: 16,
-                padding: 14,
-                marginBottom: 28,
-                borderWidth: 1.5,
-                borderColor: '#E8E6FF',
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.05,
-                shadowRadius: 6,
-                elevation: 2,
-              }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                  <View style={{
-                    width: 36, height: 36, borderRadius: 18,
-                    backgroundColor: AVATAR_BG[cards.findIndex(c => c.id === activeFriend.id) % AVATAR_BG.length],
-                    alignItems: 'center', justifyContent: 'center', marginRight: 10,
+            {/* Assigned cards (post-regen) */}
+            {assignedCards && (
+              <Animated.View style={[cardsStyle, { marginBottom: 16 }]}>
+                {assignedCards.map((f, idx) => (
+                  <View key={f.id} style={{
+                    backgroundColor: '#fff', borderRadius: 16,
+                    borderWidth: 2, borderColor: '#7F77DD',
+                    padding: 14, marginBottom: 10,
+                    flexDirection: 'row', alignItems: 'center', gap: 12,
                   }}>
-                    <Text style={{ fontSize: 18 }}>{firstEmoji(activeFriend.cover_emojis)}</Text>
+                    <View style={{
+                      width: 50, height: 50, borderRadius: 25,
+                      backgroundColor: AVATAR_BG[idx % AVATAR_BG.length],
+                      alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <Text style={{ fontSize: 26 }}>{firstEmoji(f.coverEmojis)}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 15, fontWeight: '700', color: '#2C2C2A' }}>{f.name}</Text>
+                      <Text style={{ fontSize: 12, color: '#888780', marginTop: 2 }}>{f.matchReason}</Text>
+                    </View>
                   </View>
-                  <Text style={{ fontSize: 15, fontWeight: '700', color: '#2C2C2A' }}>{activeFriend.name}</Text>
+                ))}
+              </Animated.View>
+            )}
+
+            {/* Original cards (pre-regen) */}
+            {!assignedCards && cards.length > 0 && (
+              <Animated.View style={cardsStyle}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: GAP, marginBottom: 16 }}>
+                  {cards.map((friend, idx) => {
+                    const isSel    = selected === friend.id;
+                    const avatarBg = AVATAR_BG[idx % AVATAR_BG.length];
+                    const emoji    = firstEmoji(friend.cover_emojis);
+                    const tags     = (friend.interests as string[] | undefined || []).slice(0, 2);
+
+                    return (
+                      <TouchableOpacity
+                        key={friend.id}
+                        onPress={() => handleSelect(friend.id)}
+                        style={{
+                          width: cardW, backgroundColor: '#fff',
+                          borderRadius: 20, borderWidth: 2.5,
+                          borderColor: isSel ? '#7F77DD' : '#E8E6FF',
+                          padding: 12, alignItems: 'center',
+                          transform: [{ scale: isSel ? 1.04 : 1 }],
+                          shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: isSel ? 0.12 : 0.05, shadowRadius: 8,
+                          elevation: isSel ? 5 : 2,
+                        }}
+                        activeOpacity={0.75}
+                      >
+                        <View style={{
+                          width: 60, height: 60, borderRadius: 30,
+                          backgroundColor: avatarBg,
+                          alignItems: 'center', justifyContent: 'center', marginBottom: 8,
+                        }}>
+                          <Text style={{ fontSize: 30 }}>{emoji}</Text>
+                        </View>
+                        {isSel && (
+                          <View style={{
+                            position: 'absolute', top: 6, right: 6,
+                            width: 20, height: 20, borderRadius: 10,
+                            backgroundColor: '#7F77DD', alignItems: 'center', justifyContent: 'center',
+                          }}>
+                            <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>✓</Text>
+                          </View>
+                        )}
+                        <Text style={{ fontSize: 13, fontWeight: 'bold', color: isSel ? '#7F77DD' : '#2C2C2A', textAlign: 'center', marginBottom: 4 }}>
+                          {friend.name}
+                        </Text>
+                        {friend.age != null && (
+                          <Text style={{ fontSize: 10, color: '#888780', marginBottom: 6 }}>Age {friend.age}</Text>
+                        )}
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, justifyContent: 'center' }}>
+                          {tags.map((tag) => (
+                            <View key={tag} style={{ backgroundColor: isSel ? '#EEEDFE' : '#F5F5F5', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}>
+                              <Text style={{ fontSize: 9, color: isSel ? '#7F77DD' : '#888780', fontWeight: '600' }}>{tag}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
-                <Text style={{ fontSize: 13, color: '#888780', lineHeight: 20 }}>
-                  {activeFriend.bio || 'A wonderful friend waiting to meet you!'}
+
+                {activeFriend && (
+                  <View style={{
+                    backgroundColor: '#fff', borderRadius: 16, padding: 14,
+                    marginBottom: 16, borderWidth: 1.5, borderColor: '#E8E6FF',
+                    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+                  }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                      <View style={{
+                        width: 36, height: 36, borderRadius: 18,
+                        backgroundColor: AVATAR_BG[cards.findIndex(c => c.id === activeFriend.id) % AVATAR_BG.length],
+                        alignItems: 'center', justifyContent: 'center', marginRight: 10,
+                      }}>
+                        <Text style={{ fontSize: 18 }}>{firstEmoji(activeFriend.cover_emojis)}</Text>
+                      </View>
+                      <Text style={{ fontSize: 15, fontWeight: '700', color: '#2C2C2A' }}>{activeFriend.name}</Text>
+                    </View>
+                    <Text style={{ fontSize: 13, color: '#888780', lineHeight: 20 }}>
+                      {activeFriend.bio || 'A wonderful friend waiting to meet you!'}
+                    </Text>
+                  </View>
+                )}
+              </Animated.View>
+            )}
+
+            {/* Regen maxed message */}
+            {regenMaxed && (
+              <Text style={{ fontSize: 13, color: '#5DCAA5', fontWeight: '600', textAlign: 'center', marginBottom: 16 }}>
+                {t('onboarding.friends.regenMaxed')}
+              </Text>
+            )}
+
+            {/* Try different / confirm prompt */}
+            {!regenMaxed && !regenLoading && (
+              <>
+                {!showConfirm ? (
+                  <TouchableOpacity
+                    onPress={() => setShowConfirm(true)}
+                    style={{ alignItems: 'center', marginBottom: 12 }}
+                  >
+                    <Text style={{ fontSize: 13, color: '#B4B2A9' }}>
+                      {t('onboarding.friends.tryDifferent')}
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <View style={{
+                    backgroundColor: '#fff', borderRadius: 14,
+                    borderWidth: 1.5, borderColor: '#E8E6FF',
+                    padding: 16, marginBottom: 16,
+                  }}>
+                    <Text style={{ fontSize: 13, color: '#2C2C2A', textAlign: 'center', marginBottom: 14, lineHeight: 20 }}>
+                      {t('onboarding.friends.confirmRegen')}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => void handleRegenerate()}
+                      style={{ backgroundColor: '#7F77DD', borderRadius: 9999, paddingVertical: 12, alignItems: 'center', marginBottom: 8 }}
+                    >
+                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>
+                        {t('onboarding.friends.confirmRegenYes')}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setShowConfirm(false)}
+                      style={{ alignItems: 'center', paddingVertical: 8 }}
+                    >
+                      <Text style={{ fontSize: 13, color: '#888780' }}>
+                        {t('onboarding.friends.confirmRegenNo')}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </>
+            )}
+
+            {regenLoading && (
+              <View style={{ alignItems: 'center', paddingVertical: 16, marginBottom: 12 }}>
+                <ActivityIndicator size="small" color="#7F77DD" />
+                <Text style={{ fontSize: 13, color: '#888780', marginTop: 8 }}>
+                  {t('onboarding.friends.regenLoading')}
                 </Text>
               </View>
             )}
@@ -314,9 +437,11 @@ export default function FriendsScreen() {
               activeOpacity={0.85}
             >
               <Text style={{ color: canContinue ? '#fff' : '#BDBDBD', fontSize: 17, fontWeight: 'bold' }}>
-                {activeFriend
-                  ? t('onboarding.friends.continueButton', { name: activeFriend.name })
-                  : 'Choose a friend first'}
+                {assignedCards
+                  ? `Let's go! →`
+                  : activeFriend
+                    ? t('onboarding.friends.continueButton', { name: activeFriend.name })
+                    : 'Choose a friend first'}
               </Text>
             </TouchableOpacity>
 

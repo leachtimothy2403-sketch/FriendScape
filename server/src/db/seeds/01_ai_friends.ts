@@ -25,6 +25,8 @@ export async function seed(knex: Knex): Promise<void> {
       online_hours_end:     21,
       avatar_style:         'cartoon',
       teacher_subjects:     JSON.stringify([]),
+      voice_id:             'EXAVITQu4vr4xnSDxMaL',
+      voice_model:          'eleven_monolingual_v1',
     },
     {
       name:                 'Jake',
@@ -46,6 +48,8 @@ export async function seed(knex: Knex): Promise<void> {
       online_hours_end:     22,
       avatar_style:         'cartoon',
       teacher_subjects:     JSON.stringify([]),
+      voice_id:             'VR6AewLTigWG4xSOukaG',
+      voice_model:          'eleven_monolingual_v1',
     },
     {
       name:                 'Zara',
@@ -67,6 +71,8 @@ export async function seed(knex: Knex): Promise<void> {
       online_hours_end:     20,
       avatar_style:         'cartoon',
       teacher_subjects:     JSON.stringify([]),
+      voice_id:             'XB0fDUnXU5powFXDhCwa',
+      voice_model:          'eleven_monolingual_v1',
     },
     {
       name:                 'Coach Mike',
@@ -88,6 +94,8 @@ export async function seed(knex: Knex): Promise<void> {
       online_hours_end:     20,
       avatar_style:         'cartoon',
       teacher_subjects:     JSON.stringify([]),
+      voice_id:             'pNInz6obpgDQGcFmaJgB',
+      voice_model:          'eleven_monolingual_v1',
     },
     {
       name:                 'Ms. Luna',
@@ -109,11 +117,15 @@ export async function seed(knex: Knex): Promise<void> {
       online_hours_end:     17,
       avatar_style:         'cartoon',
       teacher_subjects:     JSON.stringify(['math','reading','spelling','science','general']),
+      voice_id:             'EXAVITQu4vr4xnSDxMaL',
+      voice_model:          'eleven_monolingual_v1',
     },
 
     // ── Mia's network (fixed IDs) ─────────────────────────────────────────────
     {
       id:                   'b1000001-0000-0000-0000-000000000001',
+      voice_id:             'Xb7hH8MSUJpSbSDYk0k2',
+      voice_model:          'eleven_multilingual_v2',
       name:                 'Léa',
       age:                  9,
       gender:               'girl',
@@ -137,6 +149,8 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id:                   'b1000002-0000-0000-0000-000000000002',
+      voice_id:             'onwK4e9ZLuTAKqWW03F9',
+      voice_model:          'eleven_multilingual_v2',
       name:                 'Tom',
       age:                  9,
       gender:               'boy',
@@ -160,6 +174,8 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id:                   'b1000003-0000-0000-0000-000000000003',
+      voice_id:             'Xb7hH8MSUJpSbSDYk0k2',
+      voice_model:          'eleven_multilingual_v2',
       name:                 'Chloé',
       age:                  10,
       gender:               'girl',
@@ -183,6 +199,8 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id:                   'b1000004-0000-0000-0000-000000000004',
+      voice_id:             'onwK4e9ZLuTAKqWW03F9',
+      voice_model:          'eleven_multilingual_v2',
       name:                 'Hugo',
       age:                  10,
       gender:               'boy',
@@ -208,6 +226,8 @@ export async function seed(knex: Knex): Promise<void> {
     // ── Jake's network ────────────────────────────────────────────────────────
     {
       id:                   'b1000005-0000-0000-0000-000000000005',
+      voice_id:             'onwK4e9ZLuTAKqWW03F9',
+      voice_model:          'eleven_multilingual_v2',
       name:                 'Nico',
       age:                  9,
       gender:               'boy',
@@ -231,6 +251,8 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id:                   'b1000006-0000-0000-0000-000000000006',
+      voice_id:             'Xb7hH8MSUJpSbSDYk0k2',
+      voice_model:          'eleven_multilingual_v2',
       name:                 'Camille',
       age:                  9,
       gender:               'girl',
@@ -254,6 +276,8 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id:                   'b1000007-0000-0000-0000-000000000007',
+      voice_id:             'onwK4e9ZLuTAKqWW03F9',
+      voice_model:          'eleven_multilingual_v2',
       name:                 'Luca',
       age:                  10,
       gender:               'boy',
@@ -279,6 +303,8 @@ export async function seed(knex: Knex): Promise<void> {
     // ── Zara's network ────────────────────────────────────────────────────────
     {
       id:                   'b1000008-0000-0000-0000-000000000008',
+      voice_id:             'Xb7hH8MSUJpSbSDYk0k2',
+      voice_model:          'eleven_multilingual_v2',
       name:                 'Sofia',
       age:                  8,
       gender:               'girl',
@@ -304,6 +330,8 @@ export async function seed(knex: Knex): Promise<void> {
     // ── Coach Mike's network ──────────────────────────────────────────────────
     {
       id:                   'b1000009-0000-0000-0000-000000000009',
+      voice_id:             'EXAVITQu4vr4xnSDxMaL',
+      voice_model:          'eleven_monolingual_v1',
       name:                 'Coach Sarah',
       age:                  null,
       gender:               'female',
@@ -329,6 +357,8 @@ export async function seed(knex: Knex): Promise<void> {
     // ── Ms. Luna's network ────────────────────────────────────────────────────
     {
       id:                   'b1000010-0000-0000-0000-000000000010',
+      voice_id:             'ErXwobaYiN019PkySvjV',
+      voice_model:          'eleven_monolingual_v1',
       name:                 'Prof Max',
       age:                  null,
       gender:               'male',

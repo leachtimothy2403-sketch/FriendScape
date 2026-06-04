@@ -415,7 +415,117 @@ Return ONLY valid JSON array — no markdown, no explanation:
 }
 
 
-// ── 3. Generate daily posts ───────────────────────────────────────────────────
+// ── 3. Voice selection ────────────────────────────────────────────────────────
+
+const VOICE = {
+  bella:    'EXAVITQu4vr4xnSDxMaL',
+  dorothy:  'ThT5KcBeYPX3keUQqHPh',
+  charlotte:'XB0fDUnXU5powFXDhCwa',
+  adam:     'pNInz6obpgDQGcFmaJgB',
+  arnold:   'VR6AewLTigWG4xSOukaG',
+  antoni:   'ErXwobaYiN019PkySvjV',
+  alice:    'Xb7hH8MSUJpSbSDYk0k2',
+  daniel:   'onwK4e9ZLuTAKqWW03F9',
+} as const;
+
+export function selectVoiceId(
+  gender: string,
+  language: string,
+  personality: string[],
+): string {
+  if (language === 'fr') {
+    return gender === 'boy' || gender === 'male' ? VOICE.daniel : VOICE.alice;
+  }
+
+  const isEnergetic  = personality.some((p) => ['outgoing', 'funny', 'chatty', 'energetic and upbeat'].includes(p));
+  const isTheatrical = personality.some((p) => ['creative', 'theatrical', 'theatrical and expressive'].includes(p));
+  const isCalm       = personality.some((p) => ['quiet_listener', 'thoughtful', 'gentle', 'calm'].includes(p));
+
+  if (gender === 'girl' || gender === 'female' || gender === 'other') {
+    if (isTheatrical) return VOICE.charlotte;
+    if (isEnergetic)  return VOICE.dorothy;
+    return VOICE.bella;
+  }
+
+  if (isEnergetic) return VOICE.arnold;
+  if (isCalm)      return VOICE.antoni;
+  return VOICE.adam;
+}
+
+
+// ── 4. Friend network generation ─────────────────────────────────────────────
+
+export interface NetworkConnectionRaw {
+  type: 'existing' | 'new';
+  // existing
+  friendName?: string;
+  // new
+  name?: string;
+  bio?: string;
+  coverEmojis?: string;
+  // both
+  relationshipType: string;
+  relationshipDescription: string;
+}
+
+export async function generateFriendNetwork(
+  friend: GeneratedFriend & { id: string },
+  child: Child,
+  language: string,
+  existingFriends: Array<{ id: string; name: string; interests: string[] }>,
+): Promise<NetworkConnectionRaw[]> {
+  const existingList = existingFriends
+    .map((f) => `${f.name} (${f.interests.slice(0, 3).join(', ')})`)
+    .join('\n');
+
+  const system = `You are creating the social circle for ${friend.name}, an AI friend on Migo.
+
+${friend.name}'s profile:
+- Age: ${friend.age}, ${friend.gender}
+- Personality: ${friend.personality.join(', ')}
+- Interests: ${friend.interests.join(', ')}
+- Quirk: ${friend.quirk}
+
+The child ${child.name} (age ${child.age}) already has these friends on Migo:
+${existingList || 'No other friends yet.'}
+
+Create 2-3 network connections for ${friend.name}. For each connection:
+- Prefer connecting to the child's existing friends where it makes natural sense
+- You may also create 1 new mini-character who exists only in this friend's network
+- Make the relationships feel organic and specific to ${friend.name}'s interests
+
+Return ONLY valid JSON array — no markdown:
+[
+  {
+    "type": "existing",
+    "friendName": "exact name from the list above",
+    "relationshipType": "classmate|teammate|neighbour|online_friend|close_friend",
+    "relationshipDescription": "one natural sentence how they know each other"
+  },
+  {
+    "type": "new",
+    "name": "character name",
+    "bio": "1-2 sentence bio, warm and specific",
+    "coverEmojis": "3 emojis",
+    "relationshipType": "classmate|neighbour|close_friend|teammate",
+    "relationshipDescription": "one sentence how they know each other"
+  }
+]`.trim();
+
+  const response = await client.messages.create({
+    model: MODELS.smart,
+    max_tokens: 600,
+    system,
+    messages: [{ role: 'user', content: `Generate 2-3 network connections for ${friend.name}.` }],
+  });
+
+  const raw = extractText(response).replace(/```json|```/g, '').trim();
+  const parsed = parseJSON<NetworkConnectionRaw[]>(raw, 'friend network');
+  return parsed ?? [];
+}
+
+
+// ── 5. Generate daily posts ───────────────────────────────────────────────────
 
 export async function generateDailyPosts(
   friends: FriendForAI[],

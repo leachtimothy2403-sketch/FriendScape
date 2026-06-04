@@ -154,7 +154,13 @@
     "friends": {
       "title": "A surprise! 🎁",
       "subtitle": "I found 3 friends who match you perfectly, {{name}}!",
-      "continueButton": "I choose {{name}}! Let's go! →"
+      "continueButton": "I choose {{name}}! Let's go! →",
+      "tryDifferent": "Not feeling it? Try different friends →",
+      "confirmRegen": "Are you sure? You'll meet 2 new friends but say goodbye to these.",
+      "confirmRegenYes": "Yes, try again",
+      "confirmRegenNo": "Actually keep these",
+      "regenLoading": "Finding new friends... 🌟",
+      "regenMaxed": "You've met all the best matches for you! 🌟"
     },
     "allset": {
       "title": "You're all set, {{name}}! 🎊",

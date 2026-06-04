@@ -4,7 +4,11 @@ import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import db from '../db';
 import { AuthRequest } from '../middleware/auth';
-import { generatePersonalisedFriends } from '../services/ai.service';
+import {
+  generatePersonalisedFriends,
+  generateFriendNetwork,
+  selectVoiceId,
+} from '../services/ai.service';
 import { toChildType } from '../utils/db-mappers';
 
 // ─── Authed CRUD ──────────────────────────────────────────────────────────────
@@ -226,7 +230,7 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
     const assignedFriends: { id: string; name: string; coverEmojis: string; matchReason: string }[] = [];
 
     for (const gf of genResult.friends) {
-      const interestsList = Array.isArray(interests) ? (interests as string[]) : [];
+      const voiceId = selectVoiceId(gf.gender, lang, gf.personality);
 
       const [newFriend] = await db('ai_friends')
         .insert({
@@ -247,6 +251,8 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
           age_range_max:      Math.min(12, ageNum + 2),
           avatar_style:       'cartoon',
           teacher_subjects:   JSON.stringify([]),
+          voice_id:           voiceId,
+          voice_model:        lang === 'fr' ? 'eleven_multilingual_v2' : 'eleven_monolingual_v1',
         })
         .returning('*');
 
@@ -268,13 +274,88 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
       }).onConflict(['child_id', 'friend_id']).ignore();
 
       assignedFriends.push({
-        id:          newFriend.id,
+        id:          newFriend.id as string,
         name:        gf.name,
         coverEmojis: gf.coverEmojis,
         matchReason: gf.matchReason,
       });
 
-      console.log(`[friends] ✅ Generated: ${gf.name} — "${gf.matchReason}"`);
+      console.log(`[friends] ✅ Generated: ${gf.name} — "${gf.matchReason}" (voice: ${voiceId})`);
+
+      // Generate friend network connections
+      console.log(`[friends] 🌐 Generating network for ${gf.name}...`);
+      const networkConnections = await generateFriendNetwork(
+        { ...gf, id: newFriend.id as string },
+        childObj,
+        lang,
+        assignedFriends.map((f) => ({
+          id: f.id,
+          name: f.name,
+          interests: gf.interests,
+        })),
+      ).catch((err) => {
+        console.error('[friends] ⚠️ Network generation failed:', err);
+        return [];
+      });
+
+      let networkCount = 0;
+      for (const conn of networkConnections) {
+        if (conn.type === 'existing') {
+          // Find matching friend by name from already-assigned friends
+          const match = assignedFriends.find(
+            (f) => f.name.toLowerCase() === (conn.friendName ?? '').toLowerCase(),
+          );
+          if (!match) continue;
+          await db('ai_friend_network')
+            .insert({
+              ai_friend_id:             newFriend.id,
+              connected_friend_id:      match.id,
+              relationship_type:        conn.relationshipType,
+              relationship_description: conn.relationshipDescription,
+            })
+            .onConflict(['ai_friend_id', 'connected_friend_id']).ignore();
+          await db('ai_friend_network')
+            .insert({
+              ai_friend_id:             match.id,
+              connected_friend_id:      newFriend.id,
+              relationship_type:        conn.relationshipType,
+              relationship_description: conn.relationshipDescription,
+            })
+            .onConflict(['ai_friend_id', 'connected_friend_id']).ignore();
+          networkCount++;
+        } else if (conn.type === 'new' && conn.name && conn.bio) {
+          const [mini] = await db('ai_friends')
+            .insert({
+              name:               conn.name,
+              bio:                conn.bio,
+              cover_emojis:       conn.coverEmojis ?? '🌟',
+              is_generated:       true,
+              is_star_friend:     false,
+              is_teacher:         false,
+              personality:        JSON.stringify([]),
+              interests:          JSON.stringify([]),
+              match_tags:         JSON.stringify([]),
+              personality_prompt: `You are ${conn.name}. ${conn.bio} Be warm and friendly.`,
+              age_range_min:      Math.max(5, ageNum - 2),
+              age_range_max:      Math.min(12, ageNum + 2),
+              avatar_style:       'cartoon',
+              teacher_subjects:   JSON.stringify([]),
+              voice_id:           selectVoiceId('other', lang, []),
+              voice_model:        lang === 'fr' ? 'eleven_multilingual_v2' : 'eleven_monolingual_v1',
+            })
+            .returning('*');
+          await db('ai_friend_network')
+            .insert({
+              ai_friend_id:             newFriend.id,
+              connected_friend_id:      mini.id,
+              relationship_type:        conn.relationshipType,
+              relationship_description: conn.relationshipDescription,
+            })
+            .onConflict(['ai_friend_id', 'connected_friend_id']).ignore();
+          networkCount++;
+        }
+      }
+      console.log(`[friends] ✅ Network: ${networkCount} connections created for ${gf.name}`);
     }
 
     // 8. Auto-select 1 star friend based on interests
@@ -314,6 +395,18 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
         coverEmojis: (starFriend.cover_emojis as string) || '🌟',
         matchReason: 'A special star friend picked just for you!',
       });
+
+      // Connect each generated friend to the star friend via network
+      for (const gf of assignedFriends.slice(0, -1)) {
+        await db('ai_friend_network')
+          .insert({
+            ai_friend_id:             gf.id,
+            connected_friend_id:      starFriend.id,
+            relationship_type:        'close_friend',
+            relationship_description: `They both know ${String(child.name)} through Migo`,
+          })
+          .onConflict(['ai_friend_id', 'connected_friend_id']).ignore();
+      }
     }
 
     res.status(201).json({
@@ -727,6 +820,115 @@ export async function getMyPosts(req: AuthRequest, res: Response) {
   } catch (err) {
     console.error('[profile] getMyPosts error:', err);
     res.status(500).json({ error: 'Failed to fetch posts' });
+  }
+}
+
+// ─── POST /children/me/regenerate-friends ────────────────────────────────────
+export async function regenerateFriends(req: AuthRequest, res: Response) {
+  const childId = req.childId;
+  if (!childId) { res.status(401).json({ error: 'Child authentication required' }); return; }
+
+  try {
+    const childRow = await db('children').where({ id: childId }).first();
+    if (!childRow) { res.status(404).json({ error: 'Child not found' }); return; }
+
+    const regenCount = Number(childRow.regeneration_count ?? 0);
+    if (regenCount >= 3) {
+      res.status(429).json({
+        error: 'Maximum regenerations reached',
+        message: "You have already met lots of great friends! Give them a chance 😊",
+      });
+      return;
+    }
+
+    // Delete existing non-star generated friends
+    const generatedFriendIds = await db('child_friends as cf')
+      .join('ai_friends as af', 'af.id', 'cf.friend_id')
+      .where('cf.child_id', childId)
+      .where('af.is_generated', true)
+      .where('af.is_star_friend', false)
+      .select('af.id') as Array<{ id: string }>;
+
+    for (const { id: fid } of generatedFriendIds) {
+      await db('child_friends').where({ child_id: childId, friend_id: fid }).delete();
+      await db('ai_friends').where({ id: fid, is_generated: true, is_star_friend: false }).delete();
+    }
+
+    // Increment regeneration_count
+    await db('children').where({ id: childId }).update({
+      regeneration_count: regenCount + 1,
+    });
+
+    const child  = toChildType(childRow);
+    const lang   = (childRow.language as string) || 'en';
+    const ageNum = Number(childRow.age);
+
+    console.log(`[friends] 🔄 Regenerating friends for ${child.name} (attempt ${regenCount + 1})`);
+    const genResult = await generatePersonalisedFriends(child, lang, 2);
+
+    const assignedFriends: { id: string; name: string; coverEmojis: string; matchReason: string }[] = [];
+
+    for (const gf of genResult.friends) {
+      const voiceId = selectVoiceId(gf.gender, lang, gf.personality);
+
+      const [newFriend] = await db('ai_friends')
+        .insert({
+          name:               gf.name,
+          age:                gf.age,
+          gender:             gf.gender,
+          bio:                gf.bio,
+          personality:        JSON.stringify(gf.personality),
+          interests:          JSON.stringify(gf.interests),
+          match_tags:         JSON.stringify(gf.matchTags),
+          cover_emojis:       gf.coverEmojis,
+          personality_prompt: gf.personalityPrompt,
+          relationship_type:  gf.relationshipType,
+          is_star_friend:     false,
+          is_teacher:         false,
+          is_generated:       true,
+          age_range_min:      Math.max(5, ageNum - 2),
+          age_range_max:      Math.min(12, ageNum + 2),
+          avatar_style:       'cartoon',
+          teacher_subjects:   JSON.stringify([]),
+          voice_id:           voiceId,
+          voice_model:        lang === 'fr' ? 'eleven_multilingual_v2' : 'eleven_monolingual_v1',
+        })
+        .returning('*');
+
+      await db('child_friends').insert({
+        child_id:         childId,
+        friend_id:        newFriend.id,
+        activated_at:     new Date(),
+        friendship_level: 1,
+        friendship_xp:    0,
+      }).onConflict(['child_id', 'friend_id']).ignore();
+
+      await db('child_memories').insert({
+        child_id:          childId,
+        friend_id:         newFriend.id,
+        facts:             JSON.stringify([]),
+        emotional_history: JSON.stringify([]),
+        milestones:        JSON.stringify(['Joined Migo!']),
+        last_updated:      new Date(),
+      }).onConflict(['child_id', 'friend_id']).ignore();
+
+      assignedFriends.push({
+        id:          newFriend.id as string,
+        name:        gf.name,
+        coverEmojis: gf.coverEmojis,
+        matchReason: gf.matchReason,
+      });
+
+      console.log(`[friends] ✅ Regenerated: ${gf.name}`);
+    }
+
+    res.json({
+      assignedFriends,
+      regenerationCount: regenCount + 1,
+    });
+  } catch (err) {
+    console.error('[friends] regenerateFriends error:', err);
+    res.status(500).json({ error: 'Failed to regenerate friends' });
   }
 }
 
