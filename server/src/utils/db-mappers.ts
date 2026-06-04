@@ -19,6 +19,10 @@ export function toChildType(row: Record<string, unknown>): Child {
     personalityTraits:   Array.isArray(row.personality_traits) ? (row.personality_traits as string[]) : undefined,
     personalityFreeText: row.personality_free_text ? String(row.personality_free_text) : undefined,
     personalityCompleted: Boolean(row.personality_completed),
+    schoolGrade:          row.school_grade ? String(row.school_grade) : undefined,
+    schoolCountry:        row.school_country ? String(row.school_country) : undefined,
+    learningSessionsCount: row.learning_sessions_count !== undefined ? Number(row.learning_sessions_count) : undefined,
+    lastSubject:          row.last_subject ? String(row.last_subject) : undefined,
     createdAt:    row.created_at as Date,
     updatedAt:    row.updated_at as Date,
   };

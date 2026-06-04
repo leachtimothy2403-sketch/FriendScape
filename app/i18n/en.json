@@ -183,6 +183,15 @@
     "online": "Online now",
     "inputPlaceholder": "Message {{name}}…"
   },
+  "luna": {
+    "photoAdded": "📸 Photo added — Luna can see it",
+    "photoPrivacyTitle": "📸 Privacy",
+    "photoPrivacyText": "Your photo is sent directly to Ms. Luna to help you. It is never saved on our servers. It disappears as soon as Ms. Luna has read it!",
+    "photoPrivacyButton": "Got it ✓",
+    "photoHelpPrompt": "Can you help me with this?",
+    "cameraButton": "📸 Take a photo",
+    "libraryButton": "📂 Choose a photo"
+  },
   "friends": {
     "yourFriends": "Your friends",
     "exploreWorlds": "Explore your friends' worlds 🌍",

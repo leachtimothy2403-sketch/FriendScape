@@ -20,6 +20,10 @@ export interface Child {
   personalityTraits?: string[]; // e.g. ['quiet_listener', 'feels_deeply']
   personalityFreeText?: string;
   personalityCompleted?: boolean;
+  schoolGrade?: string;         // e.g. 'CP', 'CE1', 'CE2', 'CM1', 'CM2', '6eme', '5eme', '4eme', '3eme'
+  schoolCountry?: string;       // default 'FR'
+  learningSessionsCount?: number;
+  lastSubject?: string;
   createdAt: Date;
   updatedAt: Date;
 }

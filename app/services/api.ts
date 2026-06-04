@@ -122,9 +122,17 @@ export const childMessages = {
     api.get<{ messages: unknown[]; conversationId: string }>(
       `/messages/${friendId}`, withToken(token),
     ),
-  send: (token: string, friendId: string, content: string) =>
+  send: (
+    token: string,
+    friendId: string,
+    content: string,
+    imageBase64?: string,
+    imageMediaType?: string,
+  ) =>
     api.post<{ childMessage: unknown; friendReply: unknown | null; status?: string; estimatedReplySeconds?: number; mood: string }>(
-      `/messages/${friendId}`, { content }, withToken(token),
+      `/messages/${friendId}`,
+      { content, ...(imageBase64 ? { imageBase64, imageMediaType: imageMediaType ?? 'image/jpeg' } : {}) },
+      withToken(token),
     ),
   getLatest: (token: string, friendId: string) =>
     api.get<{ message: unknown | null }>(

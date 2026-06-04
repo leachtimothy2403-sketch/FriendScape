@@ -4,8 +4,11 @@ import db from '../db';
 import { AuthRequest } from '../middleware/auth';
 import {
   generateFriendReply,
+  generateTutorReply,
   checkMood,
   buildMemoryBrief,
+  type TutorReply,
+  type FriendReplyResult,
 } from '../services/ai.service';
 import { toChildType, toFriendType, toMemoryType } from '../utils/db-mappers';
 import type { Child } from '../../../shared/types';
@@ -135,7 +138,11 @@ export async function sendMessage(req: AuthRequest, res: Response) {
 
   try {
     const { friendId } = req.params;
-    const { content } = req.body as { content?: string };
+    const { content, imageBase64, imageMediaType } = req.body as {
+      content?: string;
+      imageBase64?: string;
+      imageMediaType?: string;
+    };
     if (!content?.trim()) { res.status(400).json({ error: 'content is required' }); return; }
 
     // a. Find or create conversation
@@ -195,12 +202,67 @@ export async function sendMessage(req: AuthRequest, res: Response) {
     const friendNames = childFriendRows.map((f) => f.name).join(', ');
 
     const lang = (childRow.language as string) || 'en';
-    console.log(`[messages] 🤖 Calling Claude — ${friend.name} replies to ${child.name}: "${content.trim().slice(0, 40)}" (lang=${lang})`);
+    const isTeacher = Boolean(friendRow.is_teacher);
 
-    const [reply, mood] = await Promise.all([
-      generateFriendReply(friend, child, content.trim(), memoryBrief, lang, recentMessages, friendNames),
-      checkMood(content.trim(), child.name, child.age),
-    ]);
+    console.log(`[messages] 🤖 Calling Claude — ${friend.name} replies to ${child.name}: "${content.trim().slice(0, 40)}" (lang=${lang}${isTeacher ? ', teacher' : ''})`);
+
+    let reply: FriendReplyResult;
+    let tutorMeta: TutorReply | null = null;
+
+    if (isTeacher) {
+      const tutorLang = (lang === 'fr' ? 'fr' : 'en') as 'en' | 'fr';
+      const isFirstInteraction = !child.schoolGrade;
+
+      const [tutorReply, mood2] = await Promise.all([
+        generateTutorReply(
+          child,
+          (friendRow.subject as string | undefined) ?? 'general',
+          content.trim(),
+          memoryBrief,
+          tutorLang,
+          recentMessages,
+          imageBase64,
+          imageMediaType,
+          isFirstInteraction,
+        ),
+        checkMood(content.trim(), child.name, child.age),
+      ]);
+
+      reply     = tutorReply;
+      tutorMeta = tutorReply;
+
+      // Grade capture
+      if (tutorMeta.gradeCapture) {
+        await db('children').where({ id: childId }).update({ school_grade: tutorMeta.gradeCapture });
+        console.log(`[luna] 📚 Grade captured: ${tutorMeta.gradeCapture} for ${child.name}`);
+      }
+
+      // Subject tracking + session count
+      if (tutorMeta.detectedSubject) {
+        const isNewSubject = tutorMeta.detectedSubject !== child.lastSubject;
+        await db('children').where({ id: childId }).update({ last_subject: tutorMeta.detectedSubject });
+        if (isNewSubject) {
+          await db('children').where({ id: childId }).increment('learning_sessions_count', 1);
+        }
+      }
+
+      if (imageBase64) {
+        console.log(`[luna] 📸 Image received, processed by Claude, not stored`);
+      }
+
+      // Stash mood for use below
+      (req as unknown as Record<string, unknown>)._mood = mood2;
+
+    } else {
+      const [friendReply, mood2] = await Promise.all([
+        generateFriendReply(friend, child, content.trim(), memoryBrief, lang, recentMessages, friendNames),
+        checkMood(content.trim(), child.name, child.age),
+      ]);
+      reply = friendReply;
+      (req as unknown as Record<string, unknown>)._mood = mood2;
+    }
+
+    const mood = (req as unknown as Record<string, unknown>)._mood as Awaited<ReturnType<typeof checkMood>>;
 
     console.log(`[messages] ✅ ${friend.name}: "${reply.text.slice(0, 60)}" (${reply.inputTokens}→${reply.outputTokens} tokens)`);
     console.log(`[messages] 🎭 Mood: ${mood.mood} intensity=${mood.intensity} alert=${mood.parentAlertNeeded}`);
@@ -227,6 +289,21 @@ export async function sendMessage(req: AuthRequest, res: Response) {
           awardFriendshipXP(childId, friendId, child, friend.name).catch((err: unknown) =>
             console.error('[xp] Award failed:', err),
           );
+
+          // Record learning session for teacher friends
+          if (tutorMeta) {
+            const gradeAtTime = child.schoolGrade ?? tutorMeta.gradeCapture ?? 'unknown';
+            await db('learning_sessions').insert({
+              child_id:         childId,
+              subject:          tutorMeta.detectedSubject ?? 'general',
+              grade_at_time:    gradeAtTime,
+              concepts_covered: JSON.stringify(tutorMeta.conceptsCovered ?? []),
+              mode:             tutorMeta.detectedMode ?? 'learning',
+              confidence_level: tutorMeta.confidenceLevel ?? null,
+              photo_used:       !!imageBase64,
+              created_at:       new Date(),
+            }).catch((err: unknown) => console.error('[luna] Failed to save learning session:', err));
+          }
 
           if (mood.parentAlertNeeded) {
             await db('parent_alerts').insert({

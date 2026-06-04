@@ -1,11 +1,12 @@
 import {
   View, Text, SafeAreaView, FlatList, TextInput,
   TouchableOpacity, KeyboardAvoidingView, Platform,
-  Animated, StyleSheet,
+  Animated, StyleSheet, Modal, Image, ScrollView,
 } from 'react-native';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import { childMessages, childFriends, childAuth } from '@/services/api';
 import { Colors } from '@/constants/theme';
@@ -20,9 +21,12 @@ interface ChatMessage {
   content: string;
   created_at: string;
   conversation_id?: string;
+  localImageUri?: string;
 }
 
 type DisplayItem = ChatMessage | { id: string; sender_type: 'typing' };
+
+const GRADES = ['CP', 'CE1', 'CE2', 'CM1', 'CM2', '6ème', '5ème', '4ème', '3ème'];
 
 function firstEmoji(str: string | null | undefined): string {
   if (!str) return '🌟';
@@ -33,6 +37,17 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('en', {
     hour: '2-digit', minute: '2-digit', hour12: false,
   });
+}
+
+function detectsGradeQuestion(text: string): boolean {
+  const lower = text.toLowerCase();
+  return (
+    text.includes('CP, CE1') ||
+    lower.includes('quelle classe') ||
+    lower.includes('what grade') ||
+    lower.includes('which grade') ||
+    lower.includes('en quelle')
+  );
 }
 
 const FRIEND_BG: Record<string, string> = {
@@ -57,6 +72,10 @@ export default function DMScreen() {
   const [isOnline, setIsOnline]               = useState<boolean | null>(null);
   const [replyTimedOut, setReplyTimedOut]     = useState(false);
   const [countdown, setCountdown]             = useState<number | null>(null);
+  const [isTeacher, setIsTeacher]             = useState(false);
+  const [selectedImage, setSelectedImage]     = useState<{ base64: string; uri: string } | null>(null);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showGradeChips, setShowGradeChips]   = useState(false);
 
   const listRef        = useRef<FlatList<DisplayItem>>(null);
   const inputRef       = useRef<TextInput>(null);
@@ -66,6 +85,7 @@ export default function DMScreen() {
   const countdownRef   = useRef<ReturnType<typeof setInterval> | null>(null);
   const pendingMsgRef  = useRef<ChatMessage | null>(null);
   const isFocusedRef   = useRef(true);
+  const gradeChipsAnim = useRef(new Animated.Value(60)).current;
 
   const showNotification = useNotificationStore((s) => s.showNotification);
 
@@ -88,6 +108,19 @@ export default function DMScreen() {
     const t = setTimeout(() => listRef.current?.scrollToEnd({ animated: false }), 50);
     return () => clearTimeout(t);
   }, [messages, showTyping]);
+
+  function showGradeChipsAnimated() {
+    setShowGradeChips(true);
+    gradeChipsAnim.setValue(60);
+    Animated.spring(gradeChipsAnim, { toValue: 0, useNativeDriver: true, bounciness: 8 }).start();
+  }
+
+  function hideGradeChipsAnimated(onDone?: () => void) {
+    Animated.timing(gradeChipsAnim, { toValue: 60, duration: 200, useNativeDriver: true }).start(() => {
+      setShowGradeChips(false);
+      onDone?.();
+    });
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -122,13 +155,27 @@ export default function DMScreen() {
         const name   = String(friend.name ?? 'Friend');
         const emojis = String(friend.cover_emojis ?? '🌟');
         const emoji  = firstEmoji(emojis);
+        const teacher = Boolean(friend.is_teacher);
 
         if (!cancelled) {
           setFriendName(name);
           setFriendEmoji(emoji);
           setFriendBg(FRIEND_BG[name] ?? '#EEEDFE');
-          setMessages((msgRes.data.messages as ChatMessage[]).reverse());
+          setIsTeacher(teacher);
+
+          const loadedMsgs = (msgRes.data.messages as ChatMessage[]).reverse();
+          setMessages(loadedMsgs);
+
           if (statusRes?.data) setIsOnline(statusRes.data.is_online);
+
+          // Show grade chips if Luna's first message asks for grade
+          if (teacher) {
+            const noChildReplies = !loadedMsgs.some((m) => m.sender_type === 'child');
+            const firstAI = loadedMsgs.find((m) => m.sender_type === 'ai');
+            if (noChildReplies && firstAI && detectsGradeQuestion(firstAI.content)) {
+              showGradeChipsAnimated();
+            }
+          }
         }
       } catch (e) {
         console.error('[dm] init load failed:', e);
@@ -172,20 +219,81 @@ export default function DMScreen() {
     setCountdown(null);
   }, []);
 
-  async function sendMessage() {
-    const text  = inputText.trim();
+  async function handleCamera() {
+    if (Platform.OS !== 'web') {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        // Permission denied — fall back to library
+        await handleLibrary();
+        return;
+      }
+    }
+
+    const launchFn = Platform.OS === 'web'
+      ? ImagePicker.launchImageLibraryAsync
+      : ImagePicker.launchCameraAsync;
+
+    const result = await launchFn({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.7,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets[0] && result.assets[0].base64) {
+      const asset = result.assets[0];
+      setSelectedImage({ base64: asset.base64!, uri: asset.uri });
+
+      const shown = await AsyncStorage.getItem('luna_photo_privacy_shown');
+      if (!shown) setShowPrivacyModal(true);
+    }
+  }
+
+  async function handleLibrary() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.7,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets[0] && result.assets[0].base64) {
+      const asset = result.assets[0];
+      setSelectedImage({ base64: asset.base64!, uri: asset.uri });
+
+      const shown = await AsyncStorage.getItem('luna_photo_privacy_shown');
+      if (!shown) setShowPrivacyModal(true);
+    }
+  }
+
+  async function dismissPrivacyModal() {
+    await AsyncStorage.setItem('luna_photo_privacy_shown', '1');
+    setShowPrivacyModal(false);
+  }
+
+  function handleGradeSelect(grade: string) {
+    hideGradeChipsAnimated();
+    void sendMessage(grade);
+  }
+
+  async function sendMessage(overrideText?: string) {
+    const text  = (overrideText ?? inputText).trim();
     const token = tokenRef.current;
     if (!text || !token || sending) return;
 
-    setInputText('');
+    if (!overrideText) setInputText('');
     setReplyTimedOut(false);
 
-    // Refocus input after clearing
     if (isWeb) {
       setTimeout(() => inputRef.current?.focus(), 50);
     } else {
       inputRef.current?.focus();
     }
+
+    const imageUri    = selectedImage?.uri;
+    const imageB64    = selectedImage?.base64;
+    const imageType   = selectedImage ? 'image/jpeg' : undefined;
+    if (!overrideText) setSelectedImage(null);
 
     const optimistic: ChatMessage = {
       id:          `opt_${Date.now()}`,
@@ -193,13 +301,14 @@ export default function DMScreen() {
       sender_type: 'child',
       content:     text,
       created_at:  new Date().toISOString(),
+      localImageUri: imageUri,
     };
     setMessages((prev) => [optimistic, ...prev]);
     setSending(true);
     setShowTyping(true);
 
     try {
-      const res = await childMessages.send(token, friendId, text);
+      const res = await childMessages.send(token, friendId, text, imageB64, imageType);
       const data = res.data as {
         childMessage: ChatMessage;
         friendReply: ChatMessage | null;
@@ -210,7 +319,8 @@ export default function DMScreen() {
 
       setMessages((prev) => {
         const withoutOpt = prev.filter((m) => m.id !== optimistic.id);
-        return [data.childMessage, ...withoutOpt];
+        const confirmed = { ...data.childMessage, localImageUri: imageUri };
+        return [confirmed, ...withoutOpt];
       });
 
       if (data.status === 'pending') {
@@ -234,7 +344,15 @@ export default function DMScreen() {
               setShowTyping(false);
               setMessages((prev) => [latest, ...prev]);
 
-              // Notify if not focused
+              // Show grade chips if Luna asks for grade (only when no prior child replies)
+              if (isTeacher && detectsGradeQuestion(latest.content)) {
+                setMessages((prev) => {
+                  const hasChildReply = prev.some((m) => m.sender_type === 'child' && m.id !== optimistic.id);
+                  if (!hasChildReply) showGradeChipsAnimated();
+                  return prev;
+                });
+              }
+
               if (!isFocusedRef.current) {
                 showNotification({
                   friendId,
@@ -244,7 +362,6 @@ export default function DMScreen() {
                 });
               }
 
-              // Web notification if tab hidden
               sendWebNotification(
                 `${friendName} replied!`,
                 latest.content.slice(0, 60),
@@ -256,7 +373,6 @@ export default function DMScreen() {
           }
         }, 3000);
 
-        // 2-minute timeout
         timeoutRef.current = setTimeout(() => {
           stopPolling();
           setShowTyping(false);
@@ -269,7 +385,7 @@ export default function DMScreen() {
       }
     } catch (e) {
       console.error('[dm] send error:', e);
-      setInputText(text);
+      if (!overrideText) setInputText(text);
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
       setShowTyping(false);
       showToast('Message failed — tap send to try again');
@@ -291,6 +407,19 @@ export default function DMScreen() {
 
   return (
     <SafeAreaView style={s.screen}>
+      {/* ── Privacy modal (Luna photo) ── */}
+      <Modal visible={showPrivacyModal} transparent animationType="fade">
+        <View style={s.modalOverlay}>
+          <View style={s.privacyModal}>
+            <Text style={s.privacyTitle}>{t('luna.photoPrivacyTitle')}</Text>
+            <Text style={s.privacyText}>{t('luna.photoPrivacyText')}</Text>
+            <TouchableOpacity style={s.privacyBtn} onPress={() => void dismissPrivacyModal()}>
+              <Text style={s.privacyBtnText}>{t('luna.photoPrivacyButton')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* ── Top bar ── */}
       <View style={s.topBar}>
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
@@ -351,10 +480,40 @@ export default function DMScreen() {
           </View>
         )}
 
+        {/* ── Image preview bar (Luna only) ── */}
+        {isTeacher && selectedImage && (
+          <View style={s.imagePreviewBar}>
+            <Image source={{ uri: selectedImage.uri }} style={s.imagePreview} />
+            <Text style={s.imagePreviewLabel}>{t('luna.photoAdded')}</Text>
+            <TouchableOpacity onPress={() => setSelectedImage(null)} style={s.imageRemoveBtn}>
+              <Text style={s.imageRemoveText}>×</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* ── Grade chips (Luna only, Phase 4) ── */}
+        {isTeacher && showGradeChips && (
+          <Animated.View style={[s.gradeChipsBar, { transform: [{ translateY: gradeChipsAnim }] }]}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.gradeChipsScroll}>
+              {GRADES.map((grade) => (
+                <TouchableOpacity key={grade} style={s.gradeChip} onPress={() => handleGradeSelect(grade)}>
+                  <Text style={s.gradeChipText}>{grade}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Animated.View>
+        )}
+
         <View style={s.inputBar}>
-          <TouchableOpacity style={s.voiceBtn} disabled>
-            <Text style={{ fontSize: 18 }}>🎤</Text>
-          </TouchableOpacity>
+          {isTeacher ? (
+            <TouchableOpacity style={s.cameraBtn} onPress={() => void handleCamera()}>
+              <Text style={{ fontSize: 18 }}>📸</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={s.voiceBtn} disabled>
+              <Text style={{ fontSize: 18 }}>🎤</Text>
+            </TouchableOpacity>
+          )}
 
           <TextInput
             ref={inputRef}
@@ -387,6 +546,9 @@ function MessageBubble({ message, friendName }: { message: ChatMessage; friendNa
   return (
     <View style={[s.bubbleRow, isChild ? s.bubbleRowRight : s.bubbleRowLeft]}>
       <View style={[isChild ? s.bubbleChild : s.bubbleAI, isChild ? undefined : s.bubbleAIRow]}>
+        {isChild && message.localImageUri && (
+          <Image source={{ uri: message.localImageUri }} style={s.bubbleImage} resizeMode="cover" />
+        )}
         <Text style={isChild ? s.bubbleTextChild : s.bubbleTextAI}>
           {message.content}
         </Text>
@@ -498,6 +660,7 @@ const s = StyleSheet.create({
   },
   bubbleTextChild: { fontSize: 14, color: '#fff', lineHeight: 20, flex: 1 },
   bubbleTextAI:    { fontSize: 14, color: '#2C2C2A', lineHeight: 20, flex: 1 },
+  bubbleImage:     { width: 160, height: 120, borderRadius: 10, marginBottom: 8 },
 
   timestamp: { fontSize: 10, color: '#B4B2A9', marginTop: 3 },
   tsRight:   { alignSelf: 'flex-end' },
@@ -519,6 +682,8 @@ const s = StyleSheet.create({
                 gap: 10 },
   voiceBtn:   { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.orange + '33',
                 alignItems: 'center', justifyContent: 'center' },
+  cameraBtn:  { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.orange,
+                alignItems: 'center', justifyContent: 'center' },
   textInput:  { flex: 1, backgroundColor: Colors.bg, borderWidth: 1, borderColor: '#E8E6FF',
                 borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10,
                 fontSize: 14, color: '#2C2C2A' },
@@ -539,4 +704,49 @@ const s = StyleSheet.create({
                    backgroundColor: '#F0EFF8', borderRadius: 12,
                    padding: 12, alignItems: 'center' },
   pendingBannerText: { color: '#888780', fontSize: 13 },
+
+  // Image preview bar
+  imagePreviewBar: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 14, paddingVertical: 8,
+    backgroundColor: '#FFF8F0',
+    borderTopWidth: 1, borderTopColor: '#F0EFF8',
+    gap: 10,
+  },
+  imagePreview:     { width: 52, height: 52, borderRadius: 8 },
+  imagePreviewLabel:{ flex: 1, fontSize: 12, color: Colors.orange, fontWeight: '600' },
+  imageRemoveBtn:   { width: 24, height: 24, borderRadius: 12, backgroundColor: '#E8E6FF',
+                      alignItems: 'center', justifyContent: 'center' },
+  imageRemoveText:  { fontSize: 16, color: '#888780', lineHeight: 20 },
+
+  // Grade chips
+  gradeChipsBar: {
+    backgroundColor: '#fff',
+    borderTopWidth: 1, borderTopColor: '#F0EFF8',
+    paddingVertical: 10,
+  },
+  gradeChipsScroll: { paddingHorizontal: 14, gap: 8 },
+  gradeChip: {
+    paddingHorizontal: 16, paddingVertical: 8,
+    borderRadius: 20, backgroundColor: '#fff',
+    borderWidth: 2, borderColor: Colors.purple,
+  },
+  gradeChipText: { fontSize: 13, fontWeight: '700', color: Colors.purple },
+
+  // Privacy modal
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center', alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  privacyModal: {
+    backgroundColor: '#fff', borderRadius: 20,
+    padding: 24, alignItems: 'center', gap: 12,
+    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, elevation: 8,
+  },
+  privacyTitle:   { fontSize: 18, fontWeight: '800', color: '#2C2C2A', textAlign: 'center' },
+  privacyText:    { fontSize: 14, color: '#888780', textAlign: 'center', lineHeight: 22 },
+  privacyBtn:     { backgroundColor: Colors.purple, paddingHorizontal: 28, paddingVertical: 12,
+                    borderRadius: 16, marginTop: 4 },
+  privacyBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 });

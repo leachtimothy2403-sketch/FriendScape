@@ -6,6 +6,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { Child, AIFriend, ChildMemory } from '../../../shared/types';
+import { get as redisGet, set as redisSet } from './redis.service';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -37,6 +38,15 @@ export interface AITokenUsage {
 
 export interface FriendReplyResult extends AITokenUsage {
   text: string;
+}
+
+export interface TutorReply extends AITokenUsage {
+  text: string;
+  detectedSubject?: string;
+  detectedMode?: 'learning' | 'homework_help';
+  conceptsCovered?: string[];
+  confidenceLevel?: 'struggling' | 'getting_it' | 'got_it';
+  gradeCapture?: string;
 }
 
 export interface DailyPost {
@@ -184,7 +194,14 @@ export async function generateFriendReply(
   isCheckIn = false,
 ): Promise<FriendReplyResult> {
   if (friend.isTeacher) {
-    return generateTutorReply(child, friend.subject ?? 'general learning', message, memoryBrief, language);
+    return generateTutorReply(
+      child,
+      friend.subject ?? 'general learning',
+      message,
+      memoryBrief,
+      language as 'en' | 'fr',
+      conversationHistory,
+    );
   }
 
   const friendsContext = childFriendNames
@@ -838,56 +855,310 @@ Pick the 3 best matches.
 }
 
 
-// ── 6. Generate tutor reply ───────────────────────────────────────────────────
+// ── 6a. French curriculum search ─────────────────────────────────────────────
+
+function defaultCurriculumContext(grade: string, subject: string): string {
+  const defaults: Record<string, Record<string, string>> = {
+    maths: {
+      CP:   'Numération jusqu\'à 100, addition, soustraction, formes géométriques simples.',
+      CE1:  'Nombres jusqu\'à 1000, tables de multiplication (×2, ×3, ×5), mesures de longueur.',
+      CE2:  'Multiplication posée, division simple, fractions simples, périmètre.',
+      CM1:  'Fractions et décimaux, multiplication/division posées, aire, angles.',
+      CM2:  'Fractions complexes, pourcentages, proportionnalité, volumes.',
+      '6eme': 'Nombres relatifs, fractions, puissances, géométrie dans l\'espace.',
+      '5eme': 'Calcul littéral, équations simples, triangle, Pythagore.',
+      '4eme': 'Algèbre, statistiques, théorème de Thalès, trigonométrie.',
+      '3eme': 'Fonctions, probabilités, théorème de Pythagore, développements factorisations.',
+    },
+    français: {
+      CP:   'Apprentissage de la lecture et de l\'écriture, phonologie, premiers mots.',
+      CE1:  'Lecture fluide, orthographe des mots courants, phrase simple.',
+      CE2:  'Conjugaison présent/passé/futur, accord sujet-verbe, lecture compréhension.',
+      CM1:  'Grammaire (nature/fonction), conjugaison temps simples, rédaction.',
+      CM2:  'Imparfait/passé composé, discours direct/indirect, argumentation.',
+      '6eme': 'Récit, description, grammaire de la phrase complexe.',
+      '5eme': 'Poésie, théâtre, proposition subordonnée.',
+      '4eme': 'Roman, argumentation, formes de discours.',
+      '3eme': 'Autobiographie, médias, préparation brevet.',
+    },
+  };
+  return defaults[subject]?.[grade] ?? `Programme de ${grade} en ${subject}.`;
+}
+
+async function searchFrenchCurriculum(grade: string, subject: string): Promise<string> {
+  const cacheKey = `curriculum:FR:${grade}:${subject}`;
+  const cached = await redisGet(cacheKey);
+  if (cached) return cached;
+
+  let result: string | null = null;
+
+  try {
+    const userMsg = `Recherche le programme officiel français pour la classe de ${grade} en ${subject}. Sources: eduscol.education.fr ou education.gouv.fr. Résume en 150 mots maximum: concepts clés attendus à ce niveau, compétences principales à développer, sujets typiques couverts. En français.`;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tools: any[] = [{ type: 'web_search_20250305', name: 'web_search' }];
+    let messages: Anthropic.MessageParam[] = [{ role: 'user', content: userMsg }];
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let response = await (client.messages.create as (...a: any[]) => Promise<Anthropic.Message>)({
+      model: MODELS.smart,
+      max_tokens: 600,
+      tools,
+      messages,
+    });
+
+    // Agentic loop for web search tool use
+    for (let turn = 0; turn < 4 && response.stop_reason === 'tool_use'; turn++) {
+      messages = [
+        ...messages,
+        { role: 'assistant', content: response.content as Anthropic.MessageParam['content'] },
+        {
+          role: 'user',
+          content: (response.content as Anthropic.ContentBlock[])
+            .filter((b) => b.type === 'tool_use')
+            .map((b) => ({
+              type: 'tool_result' as const,
+              tool_use_id: (b as Anthropic.ToolUseBlock).id,
+              content: '',
+            })),
+        },
+      ];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      response = await (client.messages.create as (...a: any[]) => Promise<Anthropic.Message>)({
+        model: MODELS.smart,
+        max_tokens: 600,
+        tools,
+        messages,
+      });
+    }
+
+    const text = (response.content as Anthropic.ContentBlock[])
+      .filter((b) => b.type === 'text')
+      .map((b) => (b as Anthropic.TextBlock).text)
+      .join('\n')
+      .trim();
+    if (text) result = text;
+  } catch {
+    // Web search unavailable — fall through to Claude's own knowledge
+  }
+
+  if (!result) {
+    try {
+      const fallback = await client.messages.create({
+        model: MODELS.fast,
+        max_tokens: 350,
+        messages: [{
+          role: 'user',
+          content: `Tu es expert du système éducatif français. Donne un résumé concis (max 120 mots) du programme officiel pour la classe de ${grade} en ${subject}: concepts clés attendus, compétences principales à développer, sujets typiques couverts. En français uniquement.`,
+        }],
+      });
+      result = extractText(fallback);
+    } catch {
+      result = defaultCurriculumContext(grade, subject);
+    }
+  }
+
+  if (result) {
+    await redisSet(cacheKey, result, 7 * 24 * 3600).catch(() => undefined);
+  }
+
+  return result ?? defaultCurriculumContext(grade, subject);
+}
+
+
+// ── 6b. Tutor reply metadata extraction (Haiku) ───────────────────────────────
+
+interface TutorMeta {
+  detectedSubject: string | null;
+  detectedMode: 'learning' | 'homework_help';
+  conceptsCovered: string[];
+  confidenceLevel: 'struggling' | 'getting_it' | 'got_it';
+  gradeCapture: string | null;
+}
+
+async function extractTutorMeta(
+  childMessage: string,
+  history: Array<{ content: string; sender_type: string }>,
+): Promise<TutorMeta> {
+  const GRADES = ['CP', 'CE1', 'CE2', 'CM1', 'CM2', '6ème', '6eme', '5ème', '5eme', '4ème', '4eme', '3ème', '3eme'];
+  const normalise = (s: string) => s.toLowerCase().replace('è', 'e').replace('é', 'e');
+  const gradeCapture =
+    GRADES.find((g) => normalise(childMessage).includes(normalise(g))) ?? null;
+
+  const ctx = history.slice(-3).map((m) => `${m.sender_type}: ${m.content}`).join(' | ');
+
+  try {
+    const res = await client.messages.create({
+      model: MODELS.fast,
+      max_tokens: 180,
+      system: `Analyse this child's message to their tutor Ms. Luna and return ONLY valid JSON, no explanation:
+{
+  "detectedSubject": "maths|français|sciences|histoire|géographie|anglais|null",
+  "detectedMode": "learning|homework_help",
+  "conceptsCovered": [],
+  "confidenceLevel": "struggling|getting_it|got_it"
+}
+Rules: homework_help if child mentions devoirs/test/exercice/demain/prof/homework/exam. struggling if confused/frustrated. got_it if they understood and responded correctly.`,
+      messages: [{ role: 'user', content: `Child message: "${childMessage}"\nContext: ${ctx}` }],
+    });
+
+    const parsed = parseJSON<Omit<TutorMeta, 'gradeCapture'>>(extractText(res), 'tutor meta');
+    if (parsed) {
+      return {
+        ...parsed,
+        detectedSubject: parsed.detectedSubject === 'null' ? null : parsed.detectedSubject,
+        gradeCapture: normaliseGradeCapture(gradeCapture),
+      };
+    }
+  } catch {
+    // silent
+  }
+
+  return {
+    detectedSubject: null,
+    detectedMode: 'learning',
+    conceptsCovered: [],
+    confidenceLevel: 'getting_it',
+    gradeCapture: normaliseGradeCapture(gradeCapture),
+  };
+}
+
+function normaliseGradeCapture(raw: string | null): string | null {
+  if (!raw) return null;
+  const map: Record<string, string> = {
+    '6eme': '6ème', '5eme': '5ème', '4eme': '4ème', '3eme': '3ème',
+    '6ème': '6ème', '5ème': '5ème', '4ème': '4ème', '3ème': '3ème',
+  };
+  return map[raw] ?? raw.toUpperCase();
+}
+
+
+// ── 6c. Generate tutor reply (Ms. Luna) ──────────────────────────────────────
 
 export async function generateTutorReply(
   child: Child,
   subject: string,
   message: string,
   learningProgress: string | null,
-  language = 'en',
-): Promise<FriendReplyResult> {
-  const system = `
-${buildLanguageInstruction(language)}
+  language: 'en' | 'fr' = 'en',
+  conversationHistory: Array<{ content: string; sender_type: string }> = [],
+  imageBase64?: string,
+  imageMediaType?: string,
+  isFirstInteraction?: boolean,
+  sessionMode?: 'learning' | 'homework_help',
+): Promise<TutorReply> {
+  const grade = child.schoolGrade;
 
-You are Ms. Luna, a warm and encouraging teacher friend on Migo for ${child.name} (age ${child.age}).
+  // Fetch curriculum context if grade is known
+  const curriculumContext = grade
+    ? await searchFrenchCurriculum(grade, subject).catch(() => defaultCurriculumContext(grade, subject))
+    : null;
 
-SUBJECT: ${subject}
-LEARNING PROGRESS: ${learningProgress ?? 'Just starting out'}
+  const dyslexia  = child.specialNeeds.includes('dyslexia');
+  const adhd      = child.specialNeeds.includes('adhd');
+  const physical  = child.specialNeeds.includes('physical') || child.specialNeeds.includes('motorNeeds');
+  const learning  = child.specialNeeds.includes('learning');
 
-${buildChildContext(child, null)}
+  const disabilityAdaptations = [
+    dyslexia ? `- Child has dyslexia: Never ask them to spell things out. Use visual/spatial explanations. Short sentences. Celebrate effort, never mention errors directly. No time pressure.` : '',
+    adhd     ? `- Child has ADHD: Keep exchanges very short (2-3 back and forth max before celebrating and moving on). High energy and lots of praise. Gamify everything. Never long explanations.` : '',
+    physical ? `- Child has physical disability: Never assume they can write or draw easily. Be patient with response times. Voice-first approach.` : '',
+    learning ? `- Child has learning differences: Extra patience. Break everything into the smallest possible steps. Never make them feel slow or behind. Celebrate every tiny win loudly.` : '',
+    child.preReader ? `- Child cannot read yet: Use very simple words. Very short sentences. Heavy use of emojis to convey meaning.` : '',
+  ].filter(Boolean).join('\n');
 
-YOUR TEACHING STYLE:
-- Break everything into tiny, manageable steps
-- Celebrate every small win with genuine enthusiasm
-- NEVER say "wrong" or "incorrect" — say "let's try another way!" or "ooh, close!"
-- Use concrete real-world examples the child relates to (food, animals, games)
-- Make learning feel like playing with a friend, not homework
-- Keep each exchange SHORT — max 2–3 sentences
-- Track what worked and reference it: "remember how pizza helped with fractions?"
-- If the child is frustrated, acknowledge it first: "I know this is tricky! You've got this."
-- Suggest a parent celebration when something is mastered: "You should show mum!"
+  const interestsStr = child.interests?.join(', ') ?? '';
+  const lang = language === 'fr' ? 'French' : 'English';
 
-STRICT RULES:
-- Stay focused on learning — gently redirect off-topic messages
-- Never make the child feel stupid or slow
-- Always end with either a question, a mini challenge, or encouragement
-${child.preReader ? '- EXTRA: Very simple words only. Use emojis to help convey meaning.' : ''}
-${child.specialNeeds.includes('adhd') ? '- EXTRA: Very short bursts. Lots of praise. High energy.' : ''}
-${child.specialNeeds.includes('dyslexia') ? '- EXTRA: Short simple words. Avoid reading-heavy explanations.' : ''}
-`.trim();
+  const system = `You are Ms. Luna, a warm and patient teacher friend on Migo for ${child.name} (age ${child.age}, grade ${grade ?? 'unknown'}).
 
-  const response = await client.messages.create({
-    model: MODELS.smart,
-    max_tokens: MAX_TOKENS.tutorReply,
-    system,
-    messages: [{ role: 'user', content: message }],
-  });
+${grade && curriculumContext ? `CURRICULUM CONTEXT (Grade ${grade}, France):\n${curriculumContext}` : 'Grade not yet known — ask at first interaction.'}
+
+${disabilityAdaptations ? `DISABILITY ADAPTATIONS:\n${disabilityAdaptations}` : ''}
+
+YOUR TEACHING PHILOSOPHY:
+1. NEVER give direct answers to homework questions — EVER. Not even if the child begs, says they have no time, or gets frustrated. This is non-negotiable.
+   Instead: guide them to the answer with questions and hints.
+   If asked directly for an answer say: "Je ne peux pas te donner la réponse directement — mais je peux t'aider à la trouver toi-même ! Tu seras tellement fier(e) quand tu y arriveras. Quelle est la première chose que tu remarques dans ce problème ?"
+
+2. Socratic method: answer questions with questions that guide thinking.
+   "Qu'est-ce que tu sais déjà sur ça ?" / "Quelle serait ta première étape ?" / "Si on simplifie le problème..."
+
+3. ALWAYS celebrate progress loudly: "OUIII ! Tu as compris ! 🎉" / "C'est exactement ça ! Tu es trop fort(e) !"
+
+4. Break everything into tiny steps. Never explain more than one concept at a time.
+
+5. Use concrete real-world examples: food, animals, sports${interestsStr ? `, things ${child.name} likes: ${interestsStr}` : ''}.
+
+6. If child seems frustrated acknowledge first then redirect: "Je comprends que c'est dur 💛 On va y aller doucement ensemble."
+
+7. Keep responses SHORT — max 3 sentences plus one guiding question.
+
+8. Detect the MODE from context:
+   homework_help: child mentions test, devoirs, exercice, demain, prof
+   learning: child wants to understand something, asks why/how
+
+9. At the end of each exchange assess confidence: is the child struggling, getting it, or got it?
+
+10. Respond in ${lang} always.
+${sessionMode === 'homework_help' ? '\n11. HOMEWORK HELP MODE active — be extra careful never to give direct answers.' : ''}
+${isFirstInteraction ? `
+FIRST INTERACTION SPECIAL INSTRUCTION:
+This is the very first time ${child.name} is talking to you.
+Greet them warmly and ask what grade they are in using these exact options:
+CP, CE1, CE2, CM1, CM2, 6ème, 5ème, 4ème, 3ème
+Say: "En quelle classe es-tu ? CP, CE1, CE2, CM1, CM2, 6ème, 5ème, 4ème ou 3ème ?"
+Do nothing else until you have the grade.` : ''}`.trim();
+
+  // Build messages array
+  const historyMessages: Anthropic.MessageParam[] = conversationHistory.map((msg) => ({
+    role: msg.sender_type === 'child' ? 'user' as const : 'assistant' as const,
+    content: msg.content,
+  }));
+
+  // Last user message — with optional image
+  let lastContent: Anthropic.MessageParam['content'];
+  if (imageBase64 && imageMediaType) {
+    lastContent = [
+      {
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: imageMediaType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+          data: imageBase64,
+        },
+      },
+      { type: 'text', text: message || (language === 'fr' ? 'Peux-tu m\'aider avec ça ?' : 'Can you help me with this?') },
+    ];
+  } else {
+    lastContent = message || (language === 'fr' ? 'Peux-tu m\'aider avec ça ?' : 'Can you help me with this?');
+  }
+
+  const messages: Anthropic.MessageParam[] = [
+    ...historyMessages,
+    { role: 'user', content: lastContent },
+  ];
+
+  // Run main Luna call + metadata extraction in parallel
+  const [response, meta] = await Promise.all([
+    client.messages.create({
+      model: MODELS.smart,
+      max_tokens: MAX_TOKENS.tutorReply,
+      system,
+      messages,
+    }),
+    extractTutorMeta(message, conversationHistory),
+  ]);
 
   return {
     text: extractText(response),
-    inputTokens: response.usage.input_tokens,
-    outputTokens: response.usage.output_tokens,
+    detectedSubject:  meta.detectedSubject   ?? undefined,
+    detectedMode:     meta.detectedMode,
+    conceptsCovered:  meta.conceptsCovered,
+    confidenceLevel:  meta.confidenceLevel,
+    gradeCapture:     meta.gradeCapture      ?? undefined,
+    inputTokens:      response.usage.input_tokens,
+    outputTokens:     response.usage.output_tokens,
   };
 }
 
