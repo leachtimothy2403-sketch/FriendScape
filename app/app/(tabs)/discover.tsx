@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import {
   friends as allFriendsApi,
-  myFriendsApi, friendNetwork,
+  myFriendsApi, friendNetwork, childProfileApi,
   MyChildFriend, AiFriendRecord, FriendWithRelationship,
 } from '@/services/api';
 import { Colors } from '@/constants/theme';
@@ -135,6 +135,46 @@ function StarCard({
   );
 }
 
+// ── Ms. Luna discovery card ────────────────────────────────────────────────────
+function LunaCard({ luna, onAdd }: { luna: AiFriendRecord; onAdd: () => Promise<void> }) {
+  const { t } = useTranslation();
+  const [adding, setAdding] = useState(false);
+
+  async function handleMeet() {
+    if (adding) return;
+    setAdding(true);
+    try {
+      await onAdd();
+    } finally {
+      setAdding(false);
+    }
+    router.push(`/dm/${luna.id}` as never);
+  }
+
+  return (
+    <TouchableOpacity
+      onPress={() => router.push(`/friend/${luna.id}` as never)}
+      activeOpacity={0.9}
+      style={s.lunaCard}
+    >
+      <View style={s.lunaAvatar}>
+        <Text style={{ fontSize: 26 }}>{firstEmoji(luna.cover_emojis)}</Text>
+      </View>
+      <View style={{ flex: 1, marginLeft: 12 }}>
+        <Text style={s.lunaName}>{luna.name}</Text>
+        <Text style={s.lunaTagline}>{t('discover.lunaTagline')}</Text>
+        <Text style={s.lunaDesc}>{t('discover.lunaDesc')}</Text>
+      </View>
+      <TouchableOpacity style={s.meetBtn} onPress={() => void handleMeet()} disabled={adding}>
+        {adding
+          ? <ActivityIndicator size="small" color="#fff" />
+          : <Text style={s.meetBtnText}>{t('discover.meetLunaButton')}</Text>}
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+}
+
+
 // ── Main screen ────────────────────────────────────────────────────────────────
 export default function DiscoverScreen() {
   const { t } = useTranslation();
@@ -145,6 +185,7 @@ export default function DiscoverScreen() {
   const [networks,    setNetworks]    = useState<Record<string, FriendWithRelationship[]>>({});
   const [search,      setSearch]      = useState('');
   const [loading,     setLoading]     = useState(true);
+  const [childAge,    setChildAge]    = useState<number>(10);
 
   useEffect(() => {
     let cancelled = false;
@@ -153,9 +194,10 @@ export default function DiscoverScreen() {
       if (!cancelled) setToken(tok);
 
       try {
-        const [allRes, myRes] = await Promise.all([
+        const [allRes, myRes, profileRes] = await Promise.all([
           allFriendsApi.list(),
           tok ? myFriendsApi.list(tok) : Promise.resolve(null),
+          tok ? childProfileApi.getProfile(tok).catch(() => null) : Promise.resolve(null),
         ]);
 
         const all  = (allRes.data.friends   as AiFriendRecord[]);
@@ -164,6 +206,7 @@ export default function DiscoverScreen() {
         if (!cancelled) {
           setAllFriends(all);
           setMyFriends(mine);
+          if (profileRes?.data?.age) setChildAge(profileRes.data.age);
         }
 
         // Fetch networks for each of child's friends in parallel
@@ -198,6 +241,9 @@ export default function DiscoverScreen() {
   }, [token]);
 
   const myFriendIds = new Set(myFriends.map(f => f.id));
+
+  const msLuna = allFriends.find(f => f.is_teacher && f.name === 'Ms. Luna') ?? null;
+  const showLunaCard = !!msLuna && !myFriendIds.has(msLuna.id) && !!token && childAge >= 6;
 
   const starFriends = allFriends.filter(
     f => f.is_star_friend && !myFriendIds.has(f.id),
@@ -284,6 +330,14 @@ export default function DiscoverScreen() {
           </View>
         )}
 
+        {/* Ms. Luna discovery card */}
+        {showLunaCard && msLuna && (
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>{t('discover.meetLuna')}</Text>
+            <LunaCard luna={msLuna} onAdd={() => addFriend(msLuna.id)} />
+          </View>
+        )}
+
         {/* Star friends */}
         {starFriends.length > 0 && token && (
           <View style={s.section}>
@@ -339,4 +393,27 @@ const s = StyleSheet.create({
 
   emptyState: { alignItems: 'center', paddingVertical: 40 },
   emptyText:  { fontSize: 14, color: Colors.gray[400], textAlign: 'center' },
+
+  // Ms. Luna card
+  lunaCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 16, padding: 16, marginBottom: 4,
+    borderLeftWidth: 4, borderLeftColor: Colors.purple,
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+  },
+  lunaAvatar: {
+    width: 52, height: 52, borderRadius: 26,
+    backgroundColor: Colors.purple + '22',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  lunaName:    { fontSize: 15, fontWeight: '800', color: '#2C2C2A', marginBottom: 2 },
+  lunaTagline: { fontSize: 12, color: Colors.purple, fontWeight: '600', marginBottom: 4 },
+  lunaDesc:    { fontSize: 12, color: '#888780', lineHeight: 17 },
+  meetBtn: {
+    backgroundColor: Colors.green, borderRadius: 99,
+    paddingHorizontal: 10, paddingVertical: 7,
+    alignItems: 'center', minWidth: 72, marginLeft: 10,
+  },
+  meetBtnText: { fontSize: 11, color: '#fff', fontWeight: '800' },
 });

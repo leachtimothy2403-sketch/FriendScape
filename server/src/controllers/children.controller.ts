@@ -221,6 +221,24 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
     }
 
     // 7. Generate 2 personalised AI friends via Claude
+    // Guard: if friends already exist (double-fire from React strict mode), return them immediately
+    const existingFriendsCheck = await db('child_friends')
+      .where({ child_id: child.id })
+      .count('* as count') as Array<{ count: string }>;
+
+    if (Number(existingFriendsCheck[0].count) > 0) {
+      const friends = await db('child_friends')
+        .where({ child_id: child.id })
+        .join('ai_friends', 'ai_friends.id', 'child_friends.friend_id')
+        .select('ai_friends.*');
+      return res.json({
+        childId:         child.id,
+        name:            child.name,
+        mascotId:        child.mascot,
+        assignedFriends: friends,
+      });
+    }
+
     const childObj = toChildType(child);
     const lang     = (child.language as string) || 'en';
 
@@ -356,6 +374,26 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
         }
       }
       console.log(`[friends] ✅ Network: ${networkCount} connections created for ${gf.name}`);
+
+      // Connect Ms. Luna to any friend with learning-related interests
+      const LEARNING_INTERESTS = ['learning', 'school', 'science', 'reading', 'math', 'histoire', 'français'];
+      const friendInterestsLower = gf.interests.map((i) => i.toLowerCase());
+      if (friendInterestsLower.some((i) => LEARNING_INTERESTS.includes(i))) {
+        const msLunaRow = await db('ai_friends')
+          .where({ name: 'Ms. Luna', is_teacher: true })
+          .first();
+        if (msLunaRow) {
+          await db('ai_friend_network')
+            .insert({
+              ai_friend_id:             newFriend.id,
+              connected_friend_id:      msLunaRow.id,
+              relationship_type:        'close_friend',
+              relationship_description: `${gf.name} always goes to Ms. Luna when stuck on homework — she is the best!`,
+            })
+            .onConflict(['ai_friend_id', 'connected_friend_id']).ignore();
+          console.log(`[luna] 📚 Added Ms. Luna to ${gf.name}'s network`);
+        }
+      }
     }
 
     // 8. Auto-select 1 star friend based on interests
@@ -415,6 +453,23 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
       mascotId:       child.mascot,
       assignedFriends,
     });
+
+    // Delayed Miga DM introducing Ms. Luna (non-blocking — response already sent)
+    const childLang     = (child.language as string) || 'en';
+    const childIdStr    = String(child.id);
+    const lunaIntroMsg  = childLang === 'fr'
+      ? "Oh, encore une chose ! 🌟 Tu as rencontré Mme Luna ? C'est une amie spéciale qui aide avec les devoirs — les maths, la lecture, les sciences, tout ce dont tu as besoin. Elle rend l'apprentissage vraiment amusant ! Tu peux la trouver dans l'onglet Découvrir 📚"
+      : "Oh, one more thing! 🌟 Have you met Ms. Luna yet? She's a special friend who helps with school stuff — maths, reading, science, whatever you need. She makes learning actually fun! You can find her in the Discover tab 📚";
+    const introDelay    = process.env.NODE_ENV === 'development' ? 30_000 : 5 * 60 * 1000;
+
+    setTimeout(() => {
+      void import('../services/migaDM').then(({ sendMigaDM }) =>
+        sendMigaDM(childIdStr, lunaIntroMsg)
+          .then(() => console.log(`[luna] 📬 Miga intro DM sent to ${String(child.name)}`))
+          .catch((e: unknown) => console.error('[luna] Miga intro DM failed:', e)),
+      );
+    }, introDelay);
+
   } catch (err) {
     console.error('createChildFromOnboarding error:', err);
     res.status(500).json({ error: 'Failed to create child profile. Please try again.' });

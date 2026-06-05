@@ -5,6 +5,10 @@ import { AuthRequest } from '../middleware/auth';
 import {
   generateFriendReply,
   generateTutorReply,
+  generateRPSMove,
+  generateTicTacToeMove,
+  generateStoryContribution,
+  checkTTTBoard,
   checkMood,
   buildMemoryBrief,
   type TutorReply,
@@ -352,6 +356,160 @@ export async function getLatestMessage(req: AuthRequest, res: Response) {
   } catch (err) {
     console.error('[messages] getLatestMessage error:', err);
     res.status(500).json({ error: 'Failed to fetch latest message' });
+  }
+}
+
+// ─── POST /api/messages/:friendId/game/start ─────────────────────────────────
+export async function startGame(req: AuthRequest, res: Response) {
+  const childId = req.childId;
+  if (!childId) { res.status(401).json({ error: 'Child authentication required' }); return; }
+
+  const { friendId } = req.params;
+  const { gameType } = req.body as { gameType: 'rps' | 'tictactoe' | 'story' };
+
+  try {
+    const [childRow, friendRow] = await Promise.all([
+      db('children').where({ id: childId }).first(),
+      db('ai_friends').where({ id: friendId }).first(),
+    ]);
+    if (!childRow || !friendRow) { res.status(404).json({ error: 'Not found' }); return; }
+
+    const child  = toChildType(childRow);
+    const friend = toFriendType(friendRow);
+    const lang   = (childRow.language as string) || 'en';
+    const fr     = lang === 'fr';
+
+    let conversation = await db('conversations').where({ child_id: childId, friend_id: friendId }).first();
+    if (!conversation) {
+      [conversation] = await db('conversations').insert({ child_id: childId, friend_id: friendId }).returning('*');
+    }
+
+    let content = '';
+    let gameState: Record<string, unknown> = { type: gameType };
+
+    if (gameType === 'rps') {
+      content = fr
+        ? `✊ Pierre Feuille Ciseaux ! À toi de jouer, ${child.name} — tu choisis !`
+        : `✊ Rock Paper Scissors! Your move, ${child.name} — you choose first!`;
+    } else if (gameType === 'tictactoe') {
+      const board = ['','','','','','','','',''];
+      gameState = { type: 'tictactoe', board };
+      content = fr
+        ? `❌ Morpion ! Tu es ❌ et je suis ⭕. À toi de commencer — choisis une case !`
+        : `❌ Tic-Tac-Toe! You're ❌ and I'm ⭕. Your turn — pick a square!`;
+    } else if (gameType === 'story') {
+      const opening = await generateStoryContribution(friend, child, [], 0, lang);
+      content   = opening.contribution;
+      gameState = { type: 'story', storyHistory: [opening.contribution], round: 1 };
+    }
+
+    const [message] = await db('messages').insert({
+      conversation_id: String(conversation.id),
+      sender_id:       friendId,
+      sender_type:     'ai',
+      content,
+      message_type:    'game_start',
+      game_state:      JSON.stringify(gameState),
+    }).returning('*');
+
+    await db('conversations').where({ id: String(conversation.id) }).update({ updated_at: new Date() });
+    res.json({ message, gameState });
+
+  } catch (err) {
+    console.error('[game] startGame error:', err);
+    res.status(500).json({ error: 'Failed to start game' });
+  }
+}
+
+// ─── POST /api/messages/:friendId/game/move ──────────────────────────────────
+export async function makeGameMove(req: AuthRequest, res: Response) {
+  const childId = req.childId;
+  if (!childId) { res.status(401).json({ error: 'Child authentication required' }); return; }
+
+  const { friendId } = req.params;
+  const { gameType, move, gameState: clientState, childMessage } = req.body as {
+    gameType:     'rps' | 'tictactoe' | 'story';
+    move:         string | number;
+    gameState:    Record<string, unknown>;
+    childMessage?: string;
+  };
+
+  try {
+    const [childRow, friendRow] = await Promise.all([
+      db('children').where({ id: childId }).first(),
+      db('ai_friends').where({ id: friendId }).first(),
+    ]);
+    if (!childRow || !friendRow) { res.status(404).json({ error: 'Not found' }); return; }
+
+    const child  = toChildType(childRow);
+    const friend = toFriendType(friendRow);
+    const lang   = (childRow.language as string) || 'en';
+
+    let conversation = await db('conversations').where({ child_id: childId, friend_id: friendId }).first();
+    if (!conversation) {
+      [conversation] = await db('conversations').insert({ child_id: childId, friend_id: friendId }).returning('*');
+    }
+
+    let content                              = '';
+    let newGameState: Record<string, unknown> = { ...clientState };
+    let gameOver                             = false;
+    let winner: string | null                = null;
+
+    if (gameType === 'rps') {
+      const result = await generateRPSMove(friend, child, String(move), lang);
+      content      = result.reaction;
+      newGameState = { ...clientState, friendChoice: result.friendChoice, winner: result.winner };
+      gameOver     = true;
+      winner       = result.winner;
+
+    } else if (gameType === 'tictactoe') {
+      const board      = (clientState.board as string[]) ?? Array(9).fill('');
+      const square     = Number(move);
+      const updated    = [...board];
+      if (updated[square] === '') updated[square] = 'X';
+
+      const childWon = checkTTTBoard(updated);
+      if (childWon) {
+        content = lang === 'fr'
+          ? (childWon === 'X' ? `Tu gagnes ! 🎉 Trois à la suite !` : `Égalité ! 🤝`)
+          : (childWon === 'X' ? `You win! 🎉 Three in a row!` : `It's a draw! 🤝`);
+        newGameState = { ...clientState, board: updated, winner: childWon };
+        gameOver = true; winner = childWon;
+      } else {
+        const result = await generateTicTacToeMove(updated, friend, child, lang);
+        content      = result.reaction;
+        newGameState = { ...clientState, board: result.board, winner: result.winner };
+        gameOver     = result.winner !== null;
+        winner       = result.winner;
+      }
+
+    } else if (gameType === 'story') {
+      const history = (clientState.storyHistory as string[]) ?? [];
+      const round   = (clientState.round as number) ?? 1;
+      if (childMessage) history.push(childMessage);
+      const result  = await generateStoryContribution(friend, child, history, round, lang);
+      content       = result.contribution;
+      history.push(content);
+      newGameState  = { ...clientState, storyHistory: history, round: round + 1 };
+      gameOver      = result.isEnding;
+    }
+
+    const msgType = gameOver ? 'game_end' : 'game_move';
+    const [message] = await db('messages').insert({
+      conversation_id: String(conversation.id),
+      sender_id:       friendId,
+      sender_type:     'ai',
+      content,
+      message_type:    msgType,
+      game_state:      JSON.stringify(newGameState),
+    }).returning('*');
+
+    await db('conversations').where({ id: String(conversation.id) }).update({ updated_at: new Date() });
+    res.json({ message, gameState: newGameState, gameOver, winner });
+
+  } catch (err) {
+    console.error('[game] makeGameMove error:', err);
+    res.status(500).json({ error: 'Failed to process game move' });
   }
 }
 

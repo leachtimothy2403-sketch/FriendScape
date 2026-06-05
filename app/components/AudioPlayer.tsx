@@ -16,8 +16,6 @@ function nameToCharacterId(name: string): string {
     .replace(/\s+(.)/g, (_, c: string) => c.toUpperCase());
 }
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001';
-
 type Size = 'sm' | 'md';
 type PlayerState = 'idle' | 'loading' | 'playing';
 
@@ -90,7 +88,7 @@ export default function AudioPlayer({ text, characterId, messageId, size = 'sm' 
 
         url = res.data.audioUrl.startsWith('http')
           ? res.data.audioUrl
-          : `${API_URL}${res.data.audioUrl}`;
+          : `${api.defaults.baseURL ?? ''}${res.data.audioUrl}`;
 
         setAudioUrl(url);
       } catch {

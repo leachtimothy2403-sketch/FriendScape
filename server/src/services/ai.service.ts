@@ -26,6 +26,9 @@ const MAX_TOKENS = {
   digitalCitizenship:   350,
   networkWelcome:       200,
   personalisedFriends:  2500,
+  postComment:          100,
+  gameReaction:          80,
+  storyContrib:         180,
 } as const;
 
 
@@ -1102,6 +1105,29 @@ YOUR TEACHING PHILOSOPHY:
 
 10. Respond in ${lang} always.
 ${sessionMode === 'homework_help' ? '\n11. HOMEWORK HELP MODE active — be extra careful never to give direct answers.' : ''}
+
+GENDER AGREEMENT (French):
+- Child gender: ${child.gender}
+- boy → masculine: 'fort', 'fier', 'content', 'génial'
+- girl → feminine: 'forte', 'fière', 'contente', 'géniale'
+- other/unknown → neutral with (e): 'fort(e)', 'fier/fière'
+- Apply consistently throughout every response — never mix gendered forms
+- Refer to yourself as "ton amie Luna" (not "ta amie" — 'amie' starts with a vowel sound)
+
+ANSWER VERIFICATION (CRITICAL):
+- ALWAYS compute the correct answer yourself BEFORE responding
+- For arithmetic: calculate it precisely. 123 + 514 = 637. If child says 637, that IS correct — celebrate immediately
+- NEVER tell a child they are wrong when they are right — this destroys confidence completely
+- Only say 'Presque' or 'Essaie encore' when the answer is ACTUALLY incorrect after you have verified it
+- If genuinely unsure of the correct answer: say 'Attends, laisse-moi réfléchir...' rather than falsely saying 'Presque'
+- When child correctly assembles partial results (e.g. 600 + 37 = 637), recognise this immediately as correct
+
+FORMATTING RULES (CRITICAL):
+- Do NOT use **markdown bold** or *italic* syntax — EVER
+- Do NOT use # headers
+- Use CAPITALS for emphasis: 'C'est SUPER !' not '**C'est super !**'
+- Use emojis for visual emphasis 🎉
+- Plain text only — no markdown whatsoever
 ${isFirstInteraction ? `
 FIRST INTERACTION SPECIAL INSTRUCTION:
 This is the very first time ${child.name} is talking to you.
@@ -1407,6 +1433,229 @@ export interface ModerationResult {
   safe: boolean;
   reason?: string;
 }
+
+// ── Post comment generation ───────────────────────────────────────────────────
+
+export interface PostCommentResult extends AITokenUsage {
+  text: string;
+}
+
+export async function generatePostComment(
+  friend: FriendForAI,
+  child: Child,
+  postContent: string,
+  memoryBrief: string | null,
+  language: string,
+): Promise<PostCommentResult> {
+  const lang = language === 'fr' ? 'French' : 'English';
+  const system = `You are ${friend.name}, commenting on your Migo friend ${child.name}'s post.
+
+YOUR PERSONALITY: ${friend.personality.join(', ')}
+${memoryBrief ? `\nWHAT YOU KNOW ABOUT ${child.name.toUpperCase()}:\n${memoryBrief}` : ''}
+
+Write ONE short comment (1-2 sentences maximum):
+- React genuinely to what they actually shared
+- Match their energy level
+- Be warm and encouraging
+- Occasionally ask a follow-up question, occasionally just react
+- Never generic ("Cool!" or "Nice!" alone — always add something specific)
+- Make it feel personal to the actual content of the post
+- Never reveal you are an AI
+- No markdown
+- Respond in ${lang}`;
+
+  const response = await client.messages.create({
+    model:      MODELS.fast,
+    max_tokens: MAX_TOKENS.postComment,
+    system,
+    messages: [{ role: 'user', content: `${child.name}'s post: "${postContent}"` }],
+  });
+
+  return {
+    text:         extractText(response),
+    inputTokens:  response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+  };
+}
+
+
+// ── Game functions ────────────────────────────────────────────────────────────
+
+export interface RPSResult extends AITokenUsage {
+  friendChoice: 'rock' | 'paper' | 'scissors';
+  winner:       'child' | 'friend' | 'draw';
+  reaction:     string;
+}
+
+const RPS_CHOICES = ['rock', 'paper', 'scissors'] as const;
+type RPSChoice = typeof RPS_CHOICES[number];
+
+function rpsWinner(child: RPSChoice, friend: RPSChoice): 'child' | 'friend' | 'draw' {
+  if (child === friend) return 'draw';
+  if (
+    (child === 'rock'     && friend === 'scissors') ||
+    (child === 'paper'    && friend === 'rock')     ||
+    (child === 'scissors' && friend === 'paper')
+  ) return 'child';
+  return 'friend';
+}
+
+export async function generateRPSMove(
+  friend: FriendForAI,
+  child: Child,
+  childChoice: string,
+  language: string,
+): Promise<RPSResult> {
+  const friendChoice = RPS_CHOICES[Math.floor(Math.random() * 3)];
+  const winner       = rpsWinner(childChoice as RPSChoice, friendChoice);
+  const lang         = language === 'fr' ? 'French' : 'English';
+  const choiceEmoji: Record<string, string> = { rock: '✊', paper: '✋', scissors: '✌️' };
+
+  const resultDesc =
+    winner === 'draw'   ? 'draw' :
+    winner === 'child'  ? `${child.name} wins` :
+    `${friend.name} wins`;
+
+  const system = `You are ${friend.name}, playing Rock Paper Scissors with ${child.name}.
+Personality: ${friend.personality.join(', ')}.
+React in 1 sentence, fully in character. Be playful. No markdown. Respond in ${lang}.`;
+
+  const response = await client.messages.create({
+    model:      MODELS.fast,
+    max_tokens: MAX_TOKENS.gameReaction,
+    system,
+    messages: [{
+      role:    'user',
+      content: `${child.name} chose ${choiceEmoji[childChoice] ?? '✊'}, you chose ${choiceEmoji[friendChoice]}. Result: ${resultDesc}.`,
+    }],
+  });
+
+  return {
+    friendChoice,
+    winner,
+    reaction:     extractText(response),
+    inputTokens:  response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+  };
+}
+
+
+export interface TTTResult extends AITokenUsage {
+  square: number;
+  board:  string[];
+  winner: 'X' | 'O' | 'draw' | null;
+  reaction: string;
+}
+
+export function checkTTTBoard(board: string[]): 'X' | 'O' | 'draw' | null {
+  const lines = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6],
+  ];
+  for (const [a,b,c] of lines) {
+    if (board[a] && board[a] === board[b] && board[a] === board[c]) return board[a] as 'X' | 'O';
+  }
+  if (board.every((s) => s !== '')) return 'draw';
+  return null;
+}
+
+function bestTTTSquare(board: string[]): number {
+  const empty = board.map((v, i) => v === '' ? i : -1).filter((i) => i !== -1);
+  for (const i of empty) {
+    const t = [...board]; t[i] = 'O';
+    if (checkTTTBoard(t) === 'O') return i;
+  }
+  for (const i of empty) {
+    const t = [...board]; t[i] = 'X';
+    if (checkTTTBoard(t) === 'X') return i;
+  }
+  if (empty.includes(4)) return 4;
+  const corners = [0,2,6,8].filter((c) => empty.includes(c));
+  if (corners.length) return corners[Math.floor(Math.random() * corners.length)];
+  return empty[Math.floor(Math.random() * empty.length)];
+}
+
+export async function generateTicTacToeMove(
+  board: string[],
+  friend: FriendForAI,
+  child: Child,
+  language: string,
+): Promise<TTTResult> {
+  const square   = bestTTTSquare(board);
+  const newBoard = [...board];
+  newBoard[square] = 'O';
+  const winner   = checkTTTBoard(newBoard);
+  const lang     = language === 'fr' ? 'French' : 'English';
+
+  const ctx =
+    winner === 'O'    ? (lang === 'French' ? `Tu perds ! ${friend.name} a gagné !` : `${friend.name} wins!`) :
+    winner === 'draw' ? (lang === 'French' ? 'Égalité !' : "It's a draw!") :
+    (lang === 'French' ? `${friend.name} a joué case ${square + 1}.` : `${friend.name} played square ${square + 1}.`);
+
+  const system = `You are ${friend.name}, playing Tic-Tac-Toe with ${child.name}.
+Personality: ${friend.personality.join(', ')}.
+React in 1-2 short sentences, fully in character. No markdown. Respond in ${lang}.`;
+
+  const response = await client.messages.create({
+    model:      MODELS.fast,
+    max_tokens: MAX_TOKENS.gameReaction,
+    system,
+    messages: [{ role: 'user', content: ctx }],
+  });
+
+  return {
+    square,
+    board:        newBoard,
+    winner,
+    reaction:     extractText(response),
+    inputTokens:  response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+  };
+}
+
+
+export interface StoryContribution extends AITokenUsage {
+  contribution: string;
+  isEnding:     boolean;
+}
+
+export async function generateStoryContribution(
+  friend: FriendForAI,
+  child: Child,
+  storyHistory: string[],
+  round: number,
+  language: string,
+): Promise<StoryContribution> {
+  const isEnding = round >= 5;
+  const lang     = language === 'fr' ? 'French' : 'English';
+
+  const system = `You are ${friend.name}, building a collaborative story with ${child.name}.
+Personality: ${friend.personality.join(', ')}.
+${isEnding
+    ? 'This is the FINAL round. Write a satisfying, warm ending in 2-3 sentences. Wrap everything up.'
+    : 'Add 1-2 sentences that continue the story naturally and end with something that invites the child to add more.'}
+No markdown. Respond in ${lang}.`;
+
+  const storyText = storyHistory.length > 0
+    ? `Story so far: "${storyHistory.join(' ')}"`
+    : 'Start an imaginative story opening in 1-2 sentences.';
+
+  const response = await client.messages.create({
+    model:      MODELS.smart,
+    max_tokens: MAX_TOKENS.storyContrib,
+    system,
+    messages: [{ role: 'user', content: storyText + (isEnding ? ' Please write the ending.' : ' Please continue.') }],
+  });
+
+  return {
+    contribution: extractText(response),
+    isEnding,
+    inputTokens:  response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+  };
+}
+
 
 export async function moderateInterest(text: string): Promise<ModerationResult> {
   const response = await client.messages.create({

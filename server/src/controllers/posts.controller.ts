@@ -3,9 +3,15 @@ import db from '../db';
 import { AuthRequest } from '../middleware/auth';
 import {
   generateDailyPosts as generateDailyPostsAI,
+  generatePostComment,
   buildMemoryBrief,
 } from '../services/ai.service';
 import { toChildType, toFriendType, toMemoryType } from '../utils/db-mappers';
+
+function firstEmoji(str: string | null | undefined): string {
+  if (!str) return '🌟';
+  return [...str][0] ?? '🌟';
+}
 
 // ─── POST /posts/generate-daily ──────────────────────────────────────────────
 export async function generateDailyPosts(req: AuthRequest, res: Response) {
@@ -119,9 +125,36 @@ export async function getFeed(req: AuthRequest, res: Response) {
       reactionMap[r.post_id][r.emoji] = r.count;
     }
 
+    // Fetch comments for all posts
+    const commentRows = postIds.length
+      ? await db('post_comments as pc')
+          .join('ai_friends as af', 'af.id', 'pc.author_id')
+          .whereIn('pc.post_id', postIds)
+          .select(
+            'pc.post_id', 'pc.content',
+            'pc.created_at as comment_at',
+            'af.name as author_name',
+            'af.cover_emojis as author_emojis',
+          )
+          .orderBy('pc.created_at', 'asc')
+      : [];
+
+    const commentsMap: Record<string, Array<{ authorName: string; authorEmoji: string; content: string; createdAt: string }>> = {};
+    for (const c of commentRows as Record<string, unknown>[]) {
+      const pid = c.post_id as string;
+      if (!commentsMap[pid]) commentsMap[pid] = [];
+      commentsMap[pid].push({
+        authorName:  String(c.author_name ?? ''),
+        authorEmoji: firstEmoji(c.author_emojis ? String(c.author_emojis) : null),
+        content:     String(c.content ?? ''),
+        createdAt:   String(c.comment_at ?? ''),
+      });
+    }
+
     const enriched = (posts as Record<string, unknown>[]).map((p) => ({
       ...p,
       reactions: reactionMap[p.id as string] || {},
+      comments:  commentsMap[p.id as string] || [],
     }));
 
     res.json({ posts: enriched });
@@ -148,6 +181,56 @@ export async function createPost(req: AuthRequest, res: Response) {
       .returning('*');
 
     res.status(201).json({ post });
+
+    // Schedule friend comments (non-blocking — response already sent)
+    const postId      = String((post as Record<string, unknown>).id);
+    const postContent = content.trim();
+    const childIdStr  = childId;
+    const isDev       = process.env.NODE_ENV === 'development';
+
+    setTimeout(() => void (async () => {
+      try {
+        const childRow = await db('children').where({ id: childIdStr }).first();
+        if (!childRow) return;
+
+        const friendRows = await db('child_friends')
+          .join('ai_friends', 'ai_friends.id', 'child_friends.friend_id')
+          .where({ 'child_friends.child_id': childIdStr, 'ai_friends.is_teacher': false })
+          .select('ai_friends.*') as Record<string, unknown>[];
+
+        if (!friendRows.length) return;
+
+        const child   = toChildType(childRow);
+        const lang    = (childRow.language as string) || 'en';
+        const shuffled = [...friendRows].sort(() => Math.random() - 0.5);
+        const commenters = shuffled.filter(() => Math.random() < 0.6).slice(0, 2);
+        const delays = isDev
+          ? [5000 + Math.random() * 10000, 15000 + Math.random() * 5000]
+          : [30000 + Math.random() * 90000, 60000 + Math.random() * 120000];
+
+        for (let i = 0; i < commenters.length; i++) {
+          const fr     = commenters[i];
+          const friend = toFriendType(fr);
+          await new Promise((r) => setTimeout(r, delays[i]));
+
+          console.log(`[posts] 💬 Generating comment from ${friend.name}...`);
+          const memoryRow  = await db('child_memories').where({ child_id: childIdStr, friend_id: String(fr.id) }).first();
+          const memoryBrief = memoryRow ? buildMemoryBrief(toMemoryType(memoryRow)) : null;
+
+          const comment = await generatePostComment(friend, child, postContent, memoryBrief, lang);
+          await db('post_comments').insert({
+            post_id:     postId,
+            author_id:   String(fr.id),
+            author_type: 'ai',
+            content:     comment.text,
+          });
+          console.log(`[posts] ✅ Comment saved from ${friend.name}`);
+        }
+      } catch (err) {
+        console.error('[posts] comment generation failed:', err);
+      }
+    })(), 500);
+
   } catch (err) {
     console.error('[posts] createPost error:', err);
     res.status(500).json({ error: 'Failed to create post' });

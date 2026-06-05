@@ -1,5 +1,7 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 interface OnboardingState {
   // Data
@@ -59,28 +61,41 @@ const DEFAULTS = {
   personalityFreeText: '',
 };
 
-export const useOnboardingStore = create<OnboardingState>((set) => ({
-  ...DEFAULTS,
+// Use localStorage on web so data survives page reloads; AsyncStorage on native.
+const storage = Platform.OS === 'web'
+  ? createJSONStorage(() => localStorage)
+  : createJSONStorage(() => AsyncStorage);
 
-  initParentEmail: async () => {
-    const email = await AsyncStorage.getItem('pendingParentEmail');
-    if (email) set({ parentEmail: email });
-  },
+export const useOnboardingStore = create<OnboardingState>()(
+  persist(
+    (set) => ({
+      ...DEFAULTS,
 
-  setChildName:           (v) => set({ childName: v }),
-  setAge:                 (v) => set({ age: v }),
-  setGender:              (v) => set({ gender: v }),
-  setLanguage:            (v) => set({ language: v }),
-  setSpecialNeeds:        (v) => set({ specialNeeds: v }),
-  setPreReader:           (v) => set({ preReader: v }),
-  setSpecialNeedsDetails: (v) => set({ specialNeedsDetails: v }),
-  setAvatarTheme:         (v) => set({ avatarTheme: v }),
-  setMascotId:            (v) => set({ mascotId: v }),
-  setInterests:           (v) => set({ interests: v }),
-  setFreeInterest:        (v) => set({ freeInterest: v }),
-  setAvatarPack:          (v) => set({ avatarPack: v }),
-  setSelectedFriendId:    (v) => set({ selectedFriendId: v }),
-  setPersonalityTraits:   (v) => set({ personalityTraits: v }),
-  setPersonalityFreeText: (v) => set({ personalityFreeText: v }),
-  resetStore:             ()  => set(DEFAULTS),
-}));
+      initParentEmail: async () => {
+        const email = await AsyncStorage.getItem('pendingParentEmail');
+        if (email) set({ parentEmail: email });
+      },
+
+      setChildName:           (v) => set({ childName: v }),
+      setAge:                 (v) => set({ age: v }),
+      setGender:              (v) => set({ gender: v }),
+      setLanguage:            (v) => set({ language: v }),
+      setSpecialNeeds:        (v) => set({ specialNeeds: v }),
+      setPreReader:           (v) => set({ preReader: v }),
+      setSpecialNeedsDetails: (v) => set({ specialNeedsDetails: v }),
+      setAvatarTheme:         (v) => set({ avatarTheme: v }),
+      setMascotId:            (v) => set({ mascotId: v }),
+      setInterests:           (v) => set({ interests: v }),
+      setFreeInterest:        (v) => set({ freeInterest: v }),
+      setAvatarPack:          (v) => set({ avatarPack: v }),
+      setSelectedFriendId:    (v) => set({ selectedFriendId: v }),
+      setPersonalityTraits:   (v) => set({ personalityTraits: v }),
+      setPersonalityFreeText: (v) => set({ personalityFreeText: v }),
+      resetStore:             ()  => set(DEFAULTS),
+    }),
+    {
+      name:    'persist:onboarding',
+      storage,
+    },
+  ),
+);

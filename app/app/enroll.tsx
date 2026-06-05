@@ -24,6 +24,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { auth } from '@/services/api';
 import { useLanguageStore } from '@/store/languageStore';
+import DevResetButton from '@/components/DevResetButton';
 
 export default function EnrollScreen() {
   const { t } = useTranslation();
@@ -331,6 +332,9 @@ export default function EnrollScreen() {
                 <Text style={{ color: '#BDBDBD', fontSize: 11 }}>Skip to celebration (dev only)</Text>
               </TouchableOpacity>
             )}
+
+            {/* Dev-only reset tools */}
+            {__DEV__ && <DevResetButton />}
 
           </View>
         </ScrollView>

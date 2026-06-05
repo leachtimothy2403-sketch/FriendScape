@@ -341,3 +341,65 @@ function declinedHtml(): string {
     <p>No problem — this request has been cancelled. If you change your mind, ask your child to open the Migo app and try again.</p>
   `);
 }
+
+// ─── DEV ONLY ────────────────────────────────────────────────────────────────
+
+export async function devReset(req: Request, res: Response) {
+  if (process.env.NODE_ENV !== 'development') {
+    res.status(403).json({ error: 'This endpoint is only available in development' });
+    return;
+  }
+
+  try {
+    // Delete in FK-safe order
+    await db('child_sessions').del();
+    await db('child_badges').del();
+    await db('learning_sessions').del();
+    await db('post_comments').del();
+    await db('post_reactions').del();
+    await db('parent_alerts').del();
+    await db('messages').del();
+    await db('conversations').del();
+    await db('posts').del();
+    await db('child_memories').del();
+    await db('child_friends').del();
+
+    const childCount = await db('children').count('id as n').first();
+    const nChildren  = Number((childCount as { n: string } | undefined)?.n ?? 0);
+    await db('children').del();
+
+    const enrollCount = await db('enrollments').count('id as n').first();
+    const nEnrollments = Number((enrollCount as { n: string } | undefined)?.n ?? 0);
+    await db('enrollments').del();
+
+    // Remove generated AI friends (preserve seeded ones)
+    const genIds = await db('ai_friends').where({ is_generated: true }).select('id') as { id: string }[];
+    const genIdList = genIds.map((r) => r.id);
+
+    let nGeneratedFriends = 0;
+    if (genIdList.length > 0) {
+      await db('ai_friend_network')
+        .whereIn('ai_friend_id', genIdList)
+        .orWhereIn('connected_friend_id', genIdList)
+        .del();
+      nGeneratedFriends = await db('ai_friends').where({ is_generated: true }).delete();
+    }
+
+    console.log(`[dev] 🗑️  Database reset — ${nChildren} children, ${nGeneratedFriends} generated friends deleted`);
+
+    res.json({
+      success: true,
+      message: 'Database reset complete',
+      deleted: {
+        children:         nChildren,
+        enrollments:      nEnrollments,
+        generatedFriends: nGeneratedFriends,
+        posts:            0,
+        messages:         0,
+      },
+    });
+  } catch (err) {
+    console.error('[dev] devReset error:', err);
+    res.status(500).json({ error: 'Reset failed', detail: String(err) });
+  }
+}

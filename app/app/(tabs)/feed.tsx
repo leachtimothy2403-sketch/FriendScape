@@ -13,6 +13,13 @@ import { Colors, Mascots } from '@/constants/theme';
 import AudioPlayer from '@/components/AudioPlayer';
 import { requestPermission } from '@/utils/webNotifications';
 
+interface PostComment {
+  authorName:  string;
+  authorEmoji: string;
+  content:     string;
+  createdAt:   string;
+}
+
 interface FeedPost {
   id: string;
   author_id: string;
@@ -24,6 +31,7 @@ interface FeedPost {
   friend_name: string | null;
   friend_cover_emojis: string | null;
   reactions: Record<string, number>;
+  comments: PostComment[];
 }
 
 const THEME_EMOJI: Record<string, string> = {
@@ -457,6 +465,26 @@ function PostCard({
 
       <Text style={s.postContent}>{post.content}</Text>
 
+      {post.comments && post.comments.length > 0 && (
+        <View style={s.commentsSection}>
+          {post.comments.slice(0, 2).map((c, i) => (
+            <View key={i} style={s.commentRow}>
+              <View style={s.commentAvatar}>
+                <Text style={{ fontSize: 13 }}>{c.authorEmoji}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.commentName}>{c.authorName}</Text>
+                <Text style={s.commentText}>{c.content}</Text>
+              </View>
+              <Text style={s.commentTime}>{relativeTime(c.createdAt)}</Text>
+            </View>
+          ))}
+          {post.comments.length > 2 && (
+            <Text style={s.commentMore}>+{post.comments.length - 2} more</Text>
+          )}
+        </View>
+      )}
+
       <View style={s.reactRow}>
         <View style={{ flexDirection: 'row', gap: 4 }}>
           {REACT_EMOJIS.map((em) => {
@@ -553,6 +581,14 @@ const s = StyleSheet.create({
   sceneStrip:    { height: 120, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   postContent:   { fontSize: 14, color: '#2C2C2A', lineHeight: 22,
                    paddingHorizontal: 14, paddingVertical: 10 },
+
+  commentsSection: { backgroundColor: '#F8F7FF', borderTopWidth: 1, borderTopColor: '#F0EFF8', paddingHorizontal: 14, paddingVertical: 8, gap: 6 },
+  commentRow:    { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  commentAvatar: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#EEEDFE', alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+  commentName:   { fontSize: 11, fontWeight: '700', color: Colors.purple, marginBottom: 1 },
+  commentText:   { fontSize: 12, color: '#2C2C2A', lineHeight: 17 },
+  commentTime:   { fontSize: 10, color: '#B4B2A9', marginTop: 2 },
+  commentMore:   { fontSize: 11, color: Colors.purple, fontStyle: 'italic', marginTop: 2 },
 
   reactRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
                    paddingHorizontal: 14, paddingVertical: 9,

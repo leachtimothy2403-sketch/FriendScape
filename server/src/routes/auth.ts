@@ -13,6 +13,7 @@ import {
   decline,
   enrollmentStatus,
   simulateApprove,
+  devReset,
 } from '../controllers/auth.controller';
 import { requireAuth } from '../middleware/auth';
 
@@ -33,5 +34,8 @@ router.get('/approve', approve);
 router.get('/decline', decline);
 router.get('/enrollment-status', enrollmentStatus);
 router.post('/simulate-approve', simulateApprove);
+
+// DEV ONLY — remove before production deploy
+router.post('/dev-reset', devReset);
 
 export default router;

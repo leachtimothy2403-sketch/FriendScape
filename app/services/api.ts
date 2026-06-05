@@ -1,11 +1,12 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001';
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.1.15:3001';
+console.log('API_URL:', API_URL);
 
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 15000,
+  timeout: 30000,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -52,7 +53,7 @@ export const children = {
       name: string;
       mascotId: string;
       assignedFriends: { id: string; name: string; coverEmojis: string; matchReason: string }[];
-    }>('/children/onboarding', data),
+    }>('/children/onboarding', data, { timeout: 120000 }),
 };
 
 export const friends = {
@@ -310,6 +311,36 @@ export const childSession = {
     api.post<{ sessionId: string }>('/children/session/start', {}, withToken(token)),
   end: (token: string) =>
     api.post<{ ended: number }>('/children/session/end', {}, withToken(token)),
+};
+
+export const devApi = {
+  reset: () => api.post<{
+    success: boolean;
+    message: string;
+    deleted: { children: number; enrollments: number; generatedFriends: number; posts: number; messages: number };
+  }>('/auth/dev-reset'),
+};
+
+export const gameApi = {
+  start: (token: string, friendId: string, gameType: 'rps' | 'tictactoe' | 'story') =>
+    api.post<{ message: unknown; gameState: Record<string, unknown> }>(
+      `/messages/${friendId}/game/start`,
+      { gameType },
+      withToken(token),
+    ),
+  move: (
+    token: string,
+    friendId: string,
+    gameType: 'rps' | 'tictactoe' | 'story',
+    move: string | number,
+    gameState: Record<string, unknown>,
+    childMessage?: string,
+  ) =>
+    api.post<{ message: unknown; gameState: Record<string, unknown>; gameOver: boolean; winner: string | null }>(
+      `/messages/${friendId}/game/move`,
+      { gameType, move, gameState, childMessage },
+      withToken(token),
+    ),
 };
 
 export const childBadges = {

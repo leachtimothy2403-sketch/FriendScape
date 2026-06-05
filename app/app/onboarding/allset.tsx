@@ -78,7 +78,7 @@ export default function AllSetScreen() {
   const calledRef  = useRef(false);
 
   useEffect(() => {
-    console.log('[allset] 🟡 mounted');
+    console.log('[allset] 🟡 mounted, calledRef:', calledRef.current);
     floatY.value = withRepeat(
       withSequence(
         withTiming(-10, { duration: 1400, easing: Easing.inOut(Easing.sin) }),
@@ -86,8 +86,16 @@ export default function AllSetScreen() {
       ),
       -1, false,
     );
+    if (calledRef.current) {
+    console.log('[allset] ⛔ blocked by calledRef');
+    return;
+	}
+    calledRef.current = true;
     void createChild();
-    return () => { calledRef.current = false; };
+    return () => { 
+    console.log('[allset] 🔴 cleanup');
+    calledRef.current = false; 
+  };
   }, []);
 
   useEffect(() => {
@@ -103,8 +111,8 @@ export default function AllSetScreen() {
   const celebStyle = useAnimatedStyle(() => ({ transform: [{ scale: celebScale.value }] }));
 
   async function createChild() {
-    if (calledRef.current) return;
-    calledRef.current = true;
+    console.log('[allset] calling createChild...');
+    console.log('[allset] store:', JSON.stringify(store));
 
     const payload = {
       parentEmail:         store.parentEmail,
@@ -145,8 +153,12 @@ export default function AllSetScreen() {
 
       setStatus('success');
     } catch (err: unknown) {
+      console.error('[allset] createChild error:', err);
       const e = err as { message?: string; response?: { status?: number; data?: { error?: string } } };
-      const msg = e?.response?.data?.error ?? t('common.error');
+      const serverMsg = e?.response?.data?.error;
+      const msg = __DEV__
+        ? (serverMsg ?? e?.message ?? t('common.error'))
+        : t('common.error');
       setErrorMsg(msg);
       calledRef.current = false;
       setStatus('error');

@@ -192,6 +192,33 @@
     "cameraButton": "📸 Take a photo",
     "libraryButton": "📂 Choose a photo"
   },
+  "discover": {
+    "meetLuna": "🌙 Meet Ms. Luna",
+    "lunaTagline": "Your learning friend 🌙",
+    "lunaDesc": "She helps with maths, reading, science and more — in your own time, your own way.",
+    "meetLunaButton": "+ Meet her!",
+    "chatLunaButton": "💬 Chat with Luna →"
+  },
+  "games": {
+    "playGame": "🎮 Play a game!",
+    "rps": "✊ Rock Paper Scissors",
+    "ttt": "❌ Tic-Tac-Toe",
+    "story": "📖 Story Builder",
+    "cancel": "Cancel",
+    "rpsChoose": "Choose your move!",
+    "rock": "✊ Rock",
+    "paper": "✋ Paper",
+    "scissors": "✌️ Scissors",
+    "youWin": "You win! 🎉",
+    "friendWins": "{{name}} wins! 😄",
+    "draw": "It's a draw! 🤝",
+    "tttTitle": "Tic-Tac-Toe — your turn!",
+    "tttWin": "You win! 🎉 Three in a row!",
+    "tttLose": "{{name}} wins this time! 😄",
+    "tttDraw": "It's a draw! 🤝",
+    "storyTitle": "Let's build a story together!",
+    "storyYourTurn": "Your turn — add to the story!"
+  },
   "friends": {
     "yourFriends": "Your friends",
     "exploreWorlds": "Explore your friends' worlds 🌍",

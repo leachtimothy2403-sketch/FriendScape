@@ -192,6 +192,33 @@
     "cameraButton": "📸 Prendre une photo",
     "libraryButton": "📂 Choisir une photo"
   },
+  "discover": {
+    "meetLuna": "🌙 Rencontre Mme Luna",
+    "lunaTagline": "Ton amie pour apprendre 🌙",
+    "lunaDesc": "Elle aide avec les maths, la lecture, les sciences et plus encore — à ton rythme, à ta façon.",
+    "meetLunaButton": "+ La rencontrer !",
+    "chatLunaButton": "💬 Tchatter avec Luna →"
+  },
+  "games": {
+    "playGame": "🎮 Jouer !",
+    "rps": "✊ Pierre Feuille Ciseaux",
+    "ttt": "❌ Morpion",
+    "story": "📖 Histoire collaborative",
+    "cancel": "Annuler",
+    "rpsChoose": "Choisis ton coup !",
+    "rock": "✊ Pierre",
+    "paper": "✋ Feuille",
+    "scissors": "✌️ Ciseaux",
+    "youWin": "Tu gagnes ! 🎉",
+    "friendWins": "{{name}} gagne ! 😄",
+    "draw": "Égalité ! 🤝",
+    "tttTitle": "Morpion — à toi !",
+    "tttWin": "Tu gagnes ! 🎉 Trois à la suite !",
+    "tttLose": "{{name}} gagne cette fois ! 😄",
+    "tttDraw": "Égalité ! 🤝",
+    "storyTitle": "Construisons une histoire ensemble !",
+    "storyYourTurn": "À toi — continue l'histoire !"
+  },
   "friends": {
     "yourFriends": "Tes amis",
     "exploreWorlds": "Explore le monde de tes amis 🌍",
