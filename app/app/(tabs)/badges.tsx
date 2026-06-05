@@ -11,6 +11,7 @@ import {
 } from '@/services/api';
 import AudioPlayer from '@/components/AudioPlayer';
 import { Colors } from '@/constants/theme';
+import MigoLogo from '@/components/MigoLogo';
 
 // ── Level data matching the backend ──────────────────────────────────────────
 const LEVEL_THRESHOLDS: number[] = [0, 100, 300, 600, 1000, 1500];
@@ -271,7 +272,7 @@ export default function BadgesScreen() {
     return (
       <SafeAreaView style={s.screen}>
         <View style={s.topBar}>
-          <View style={s.logoRow}><Text style={s.logoMi}>Mi</Text><Text style={s.logoGo}>go</Text></View>
+          <MigoLogo size="sm" />
           <Text style={s.topTitle}>{t('badges.title')}</Text>
           <View style={{ width: 40 }} />
         </View>

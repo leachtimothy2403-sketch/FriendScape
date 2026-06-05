@@ -67,7 +67,7 @@ export default function AllSetScreen() {
   const packName  = PACK_NAME[store.avatarPack] ?? store.avatarPack;
   const childName = store.childName.trim() || 'you';
 
-  type AssignedFriend = { id: string; name: string; coverEmojis: string; matchReason: string };
+  type AssignedFriend = { id: string; name: string; coverEmojis: string; introMessage: string };
 
   const [status, setStatus]               = useState<Status>('loading');
   const [errorMsg, setErrorMsg]           = useState('');
@@ -76,6 +76,19 @@ export default function AllSetScreen() {
   const floatY     = useSharedValue(0);
   const celebScale = useSharedValue(0);
   const calledRef  = useRef(false);
+
+  const card0Opacity = useSharedValue(0);
+  const card0TransY  = useSharedValue(20);
+  const card1Opacity = useSharedValue(0);
+  const card1TransY  = useSharedValue(20);
+  const card2Opacity = useSharedValue(0);
+  const card2TransY  = useSharedValue(20);
+
+  const cardAnimStyles = [
+    useAnimatedStyle(() => ({ opacity: card0Opacity.value, transform: [{ translateY: card0TransY.value }] })),
+    useAnimatedStyle(() => ({ opacity: card1Opacity.value, transform: [{ translateY: card1TransY.value }] })),
+    useAnimatedStyle(() => ({ opacity: card2Opacity.value, transform: [{ translateY: card2TransY.value }] })),
+  ];
 
   useEffect(() => {
     console.log('[allset] 🟡 mounted, calledRef:', calledRef.current);
@@ -104,6 +117,17 @@ export default function AllSetScreen() {
         withTiming(1.25, { duration: 280, easing: Easing.out(Easing.cubic) }),
         withTiming(1.0,  { duration: 180 }),
       );
+
+      const cardEasing = Easing.out(Easing.back(1.2));
+      const delays     = [300, 500, 700];
+      const opacities  = [card0Opacity, card1Opacity, card2Opacity];
+      const transYs    = [card0TransY,  card1TransY,  card2TransY];
+      opacities.forEach((op, i) => {
+        op.value = withDelay(delays[i], withTiming(1, { duration: 400, easing: cardEasing }));
+      });
+      transYs.forEach((ty, i) => {
+        ty.value = withDelay(delays[i], withTiming(0, { duration: 400, easing: cardEasing }));
+      });
     }
   }, [status]);
 
@@ -254,23 +278,66 @@ export default function AllSetScreen() {
           )}
         </View>
 
-        {/* Friend match reasons */}
+        {/* Friend speech bubbles */}
         {assignedFriends.length > 0 && (
-          <View style={{ marginBottom: 20, gap: 8 }}>
-            {assignedFriends.map((f) => (
-              <View key={f.id} style={{
-                backgroundColor: '#fff', borderRadius: 12,
-                borderWidth: 1, borderColor: '#E8E6FF',
-                paddingHorizontal: 14, paddingVertical: 10,
-                flexDirection: 'row', alignItems: 'center', gap: 10,
-              }}>
-                <Text style={{ fontSize: 22 }}>{[...(f.coverEmojis || '')][0] ?? '🌟'}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#2C2C2A' }}>{f.name}</Text>
-                  <Text style={{ fontSize: 12, color: '#888780', marginTop: 1 }}>{f.matchReason}</Text>
-                </View>
-              </View>
-            ))}
+          <View style={{ marginBottom: 20 }}>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: '#2C2C2A', textAlign: 'center', marginBottom: 16 }}>
+              {t('onboarding.allset.friendsWaiting')}
+            </Text>
+            {assignedFriends.map((f, idx) => {
+              const avatarColors = [
+                { bg: '#EEEDFE', border: '#7F77DD' },
+                { bg: '#E1F5EE', border: '#5DCAA5' },
+                { bg: '#FAEEDA', border: '#EF9F27' },
+              ];
+              const colors = avatarColors[idx % avatarColors.length];
+              return (
+                <Animated.View
+                  key={f.id}
+                  style={[{
+                    backgroundColor: '#fff',
+                    borderRadius: 20,
+                    padding: 16,
+                    borderWidth: 1,
+                    borderColor: '#E8E6FF',
+                    marginBottom: 12,
+                    elevation: 2,
+                    shadowColor: '#7F77DD',
+                    shadowOpacity: 0.08,
+                    shadowRadius: 8,
+                  }, cardAnimStyles[idx]]}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                    <View style={{
+                      width: 56, height: 56, borderRadius: 28,
+                      alignItems: 'center', justifyContent: 'center',
+                      backgroundColor: colors.bg,
+                      borderWidth: 2, borderColor: colors.border,
+                    }}>
+                      <Text style={{ fontSize: 24, textAlign: 'center' }}>
+                        {[...(f.coverEmojis || '')][0] ?? '🌟'}
+                      </Text>
+                    </View>
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={{ fontSize: 15, fontWeight: '700', color: '#2C2C2A', marginBottom: 8 }}>
+                        {f.name}
+                      </Text>
+                      <View style={{
+                        backgroundColor: '#EEEDFE',
+                        borderRadius: 16,
+                        borderTopLeftRadius: 4,
+                        paddingHorizontal: 14,
+                        paddingVertical: 10,
+                      }}>
+                        <Text style={{ fontSize: 13, color: '#534AB7', lineHeight: 20, flexShrink: 1 }}>
+                          {f.introMessage}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                </Animated.View>
+              );
+            })}
           </View>
         )}
 

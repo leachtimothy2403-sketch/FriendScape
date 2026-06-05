@@ -30,7 +30,7 @@ interface AssignedFriend {
   id: string;
   name: string;
   coverEmojis: string;
-  matchReason: string;
+  introMessage: string;
 }
 
 const MASCOT_EMOJI: Record<string, string> = {
@@ -277,7 +277,7 @@ export default function FriendsScreen() {
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 15, fontWeight: '700', color: '#2C2C2A' }}>{f.name}</Text>
-                      <Text style={{ fontSize: 12, color: '#888780', marginTop: 2 }}>{f.matchReason}</Text>
+                      <Text style={{ fontSize: 12, color: '#888780', marginTop: 2 }}>{f.introMessage}</Text>
                     </View>
                   </View>
                 ))}

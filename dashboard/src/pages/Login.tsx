@@ -31,8 +31,11 @@ export default function Login() {
     <div className="min-h-screen bg-bg flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
-          <div className="text-6xl mb-4">🌈</div>
-          <h1 className="text-3xl font-bold text-purple">Migo</h1>
+          <img
+            src="/migo-logo.jpg"
+            alt="Migo"
+            style={{ width: 200, height: 80, objectFit: 'contain', margin: '0 auto 8px' }}
+          />
           <p className="text-gray-500 mt-2">Parent Dashboard — your child's world, at a glance</p>
         </div>
 

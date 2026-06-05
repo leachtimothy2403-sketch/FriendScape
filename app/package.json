@@ -4,6 +4,7 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
+    "start:local": "cross-env REACT_NATIVE_PACKAGER_HOSTNAME=192.168.1.15 expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web"
@@ -16,6 +17,7 @@
     "expo": "~54.0.0",
     "expo-av": "~16.0.8",
     "expo-font": "~14.0.12",
+    "expo-image-manipulator": "~14.0.8",
     "expo-image-picker": "~17.0.11",
     "expo-linking": "~8.0.12",
     "expo-router": "~6.0.24",
@@ -41,6 +43,7 @@
     "@babel/core": "^7.24.0",
     "@types/react": "~19.1.10",
     "babel-plugin-transform-import-meta": "^2.3.3",
+    "cross-env": "^10.1.0",
     "typescript": "~5.8.3"
   }
 }

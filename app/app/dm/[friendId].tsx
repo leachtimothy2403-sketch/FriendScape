@@ -8,6 +8,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { useTranslation } from 'react-i18next';
 import { childMessages, childFriends, childAuth, gameApi } from '@/services/api';
 import { Colors } from '@/constants/theme';
@@ -81,6 +82,7 @@ export default function DMScreen() {
   const [toast, setToast]                     = useState('');
   const [isOnline, setIsOnline]               = useState<boolean | null>(null);
   const [replyTimedOut, setReplyTimedOut]     = useState(false);
+  const [retryContent, setRetryContent]       = useState<{ text: string; imageB64?: string; imageType?: string } | null>(null);
   const [countdown, setCountdown]             = useState<number | null>(null);
   const [isTeacher, setIsTeacher]             = useState(false);
   const [selectedImage, setSelectedImage]     = useState<{ base64: string; uri: string } | null>(null);
@@ -89,6 +91,7 @@ export default function DMScreen() {
   const [showGameModal, setShowGameModal]     = useState(false);
   const [activeGame, setActiveGame]           = useState<ActiveGame | null>(null);
   const [gameLoading, setGameLoading]         = useState(false);
+  const [lastMessageHadPhoto, setLastMessageHadPhoto] = useState(false);
 
   const listRef        = useRef<FlatList<DisplayItem>>(null);
   const inputRef       = useRef<TextInput>(null);
@@ -101,7 +104,9 @@ export default function DMScreen() {
   const gradeChipsAnim = useRef(new Animated.Value(60)).current;
 
   const showNotification = useNotificationStore((s) => s.showNotification);
-  const isWeb = Platform.OS === 'web';
+  const isWeb   = Platform.OS === 'web';
+  const isIPad  = Platform.OS === 'ios' && Platform.isPad;
+  const useInverted = !isWeb && !isIPad;
 
   useFocusEffect(
     useCallback(() => {
@@ -113,10 +118,10 @@ export default function DMScreen() {
   const baseData: DisplayItem[] = showTyping
     ? [{ id: '__typing__', sender_type: 'typing' }, ...messages]
     : [...messages];
-  const displayData = isWeb ? [...baseData].reverse() : baseData;
+  const displayData = useInverted ? baseData : [...baseData].reverse();
 
   useEffect(() => {
-    if (!isWeb) return;
+    if (useInverted) return;
     const t = setTimeout(() => listRef.current?.scrollToEnd({ animated: false }), 50);
     return () => clearTimeout(t);
   }, [messages, showTyping]);
@@ -232,6 +237,15 @@ export default function DMScreen() {
 
   // ── Camera / image picker ─────────────────────────────────────────────────────
 
+  async function compressImage(uri: string): Promise<{ base64: string; uri: string }> {
+    const manipResult = await ImageManipulator.manipulateAsync(
+      uri,
+      [{ resize: { width: 800 } }],
+      { compress: 0.4, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+    );
+    return { base64: manipResult.base64!, uri: manipResult.uri };
+  }
+
   async function handleCamera() {
     if (Platform.OS !== 'web') {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -241,18 +255,20 @@ export default function DMScreen() {
       }
     }
     const launchFn = Platform.OS === 'web' ? ImagePicker.launchImageLibraryAsync : ImagePicker.launchCameraAsync;
-    const result = await launchFn({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 0.7, base64: true });
-    if (!result.canceled && result.assets[0] && result.assets[0].base64) {
-      setSelectedImage({ base64: result.assets[0].base64!, uri: result.assets[0].uri });
+    const result = await launchFn({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [4, 3], quality: 0.3, base64: false });
+    if (!result.canceled && result.assets[0]) {
+      const compressed = await compressImage(result.assets[0].uri);
+      setSelectedImage(compressed);
       const shown = await AsyncStorage.getItem('luna_photo_privacy_shown');
       if (!shown) setShowPrivacyModal(true);
     }
   }
 
   async function handleLibrary() {
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 0.7, base64: true });
-    if (!result.canceled && result.assets[0] && result.assets[0].base64) {
-      setSelectedImage({ base64: result.assets[0].base64!, uri: result.assets[0].uri });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 0.3, base64: false });
+    if (!result.canceled && result.assets[0]) {
+      const compressed = await compressImage(result.assets[0].uri);
+      setSelectedImage(compressed);
       const shown = await AsyncStorage.getItem('luna_photo_privacy_shown');
       if (!shown) setShowPrivacyModal(true);
     }
@@ -379,7 +395,10 @@ export default function DMScreen() {
     const imageUri  = selectedImage?.uri;
     const imageB64  = selectedImage?.base64;
     const imageType = selectedImage ? 'image/jpeg' : undefined;
-    if (!overrideText) setSelectedImage(null);
+    if (!overrideText) {
+      setLastMessageHadPhoto(!!selectedImage);
+      setSelectedImage(null);
+    }
 
     const optimistic: ChatMessage = {
       id:          `opt_${Date.now()}`,
@@ -392,6 +411,8 @@ export default function DMScreen() {
     setMessages((prev) => [optimistic, ...prev]);
     setSending(true);
     setShowTyping(true);
+
+    setRetryContent(null);
 
     try {
       const res = await childMessages.send(token, friendId, text, imageB64, imageType);
@@ -424,6 +445,7 @@ export default function DMScreen() {
             ) {
               stopPolling();
               setShowTyping(false);
+              setLastMessageHadPhoto(false);
               setMessages((prev) => [latest, ...prev]);
 
               if (isTeacher && detectsGradeQuestion(latest.content)) {
@@ -451,20 +473,21 @@ export default function DMScreen() {
       } else if (data.friendReply) {
         setMessages((prev) => [data.friendReply!, ...prev]);
         setShowTyping(false);
+        setLastMessageHadPhoto(false);
       }
     } catch (e) {
       console.error('[dm] send error:', e);
       if (!overrideText) setInputText(text);
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
       setShowTyping(false);
-      showToast('Message failed — tap send to try again');
+      setRetryContent({ text, imageB64: imageB64 ?? undefined, imageType: imageType ?? undefined });
     } finally {
       setSending(false);
     }
   }
 
   const renderItem = ({ item }: { item: DisplayItem }) => {
-    if (item.sender_type === 'typing') return <TypingBubble countdown={countdown} />;
+    if (item.sender_type === 'typing') return <TypingBubble countdown={countdown} lookingAtPhoto={lastMessageHadPhoto && isTeacher} />;
     return <MessageBubble message={item as ChatMessage} friendName={friendName} />;
   };
 
@@ -534,11 +557,18 @@ export default function DMScreen() {
           ref={listRef}
           data={displayData}
           keyExtractor={(item) => item.id}
-          inverted={!isWeb}
+          inverted={useInverted}
           renderItem={renderItem}
-          contentContainerStyle={[s.messagesList, isWeb && { flexGrow: 1, justifyContent: 'flex-end' }]}
+          contentContainerStyle={[s.messagesList, { flexGrow: 1 }]}
           showsVerticalScrollIndicator={false}
-          ListEmptyComponent={<GreetingCard name={friendName} emoji={friendEmoji} bg={friendBg} />}
+          ListEmptyComponent={
+            <GreetingCard
+              name={friendName}
+              emoji={friendEmoji}
+              bg={friendBg}
+              inverted={useInverted}
+            />
+          }
         />
 
         {toast !== '' && (
@@ -547,6 +577,23 @@ export default function DMScreen() {
 
         {replyTimedOut && (
           <View style={s.pendingBanner}><Text style={s.pendingBannerText}>Reply on its way... check back soon!</Text></View>
+        )}
+
+        {retryContent && (
+          <View style={s.retryBanner}>
+            <Text style={s.retryBannerText}>{t('luna.retryMessage')}</Text>
+            <TouchableOpacity
+              style={s.retryBtn}
+              onPress={() => {
+                const { text: rText, imageB64: rB64, imageType: rType } = retryContent;
+                setRetryContent(null);
+                if (rB64) setSelectedImage({ base64: rB64, uri: '' });
+                void sendMessage(rText);
+              }}
+            >
+              <Text style={s.retryBtnText}>{t('luna.retryButton')}</Text>
+            </TouchableOpacity>
+          </View>
         )}
 
         {/* Image preview (Luna only) */}
@@ -679,23 +726,25 @@ function MessageBubble({ message, friendName }: { message: ChatMessage; friendNa
   };
 
   return (
-    <View style={[s.bubbleRow, isChild ? s.bubbleRowRight : s.bubbleRowLeft]}>
-      <View style={[isChild ? s.bubbleChild : s.bubbleAI, isChild ? undefined : s.bubbleAIRow]}>
-        {isChild && message.localImageUri && (
-          <Image source={{ uri: message.localImageUri }} style={s.bubbleImage} resizeMode="cover" />
-        )}
-        <View style={{ flex: 1 }}>
-          <Markdown style={mdStyles}>{message.content}</Markdown>
-        </View>
-        {!isChild && (
-          <View style={s.bubbleAudioBtn}>
-            <AudioPlayer text={message.content} characterId={friendName} messageId={message.id} size="sm" />
+    <View style={isChild ? s.bubbleRowRight : s.bubbleRowLeft}>
+      <View style={isChild ? s.bubbleChildOuter : s.bubbleAIOuter}>
+        <View style={[isChild ? s.bubbleChild : s.bubbleAI, !isChild ? s.bubbleAIRow : undefined]}>
+          {isChild && message.localImageUri && (
+            <Image source={{ uri: message.localImageUri }} style={s.bubbleImage} resizeMode="cover" />
+          )}
+          <View style={{ flexShrink: 1, minWidth: 0 }}>
+            <Markdown style={mdStyles}>{message.content}</Markdown>
           </View>
-        )}
+          {!isChild && (
+            <View style={s.bubbleAudioBtn}>
+              <AudioPlayer text={message.content} characterId={friendName} messageId={message.id} size="sm" />
+            </View>
+          )}
+        </View>
+        <Text style={[s.timestamp, isChild ? s.tsRight : s.tsLeft]}>
+          {formatTime(message.created_at)}
+        </Text>
       </View>
-      <Text style={[s.timestamp, isChild ? s.tsRight : s.tsLeft]}>
-        {formatTime(message.created_at)}
-      </Text>
     </View>
   );
 }
@@ -716,27 +765,30 @@ function TypingDot({ delay }: { delay: number }) {
   return <Animated.View style={[s.typingDot, { opacity }]} />;
 }
 
-function TypingBubble({ countdown }: { countdown: number | null }) {
+function TypingBubble({ countdown, lookingAtPhoto }: { countdown: number | null; lookingAtPhoto?: boolean }) {
+  const { t } = useTranslation();
   return (
     <View style={s.bubbleRowLeft}>
-      <View style={[s.bubbleAI, s.typingBubble]}>
-        <TypingDot delay={0} />
-        <TypingDot delay={200} />
-        <TypingDot delay={400} />
-      </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-        <Text style={s.typingText}>typing...</Text>
-        {countdown !== null && countdown > 5 && (
-          <Text style={s.countdownText}>~{countdown}s</Text>
-        )}
+      <View style={s.bubbleAIOuter}>
+        <View style={[s.bubbleAI, s.typingBubble]}>
+          <TypingDot delay={0} />
+          <TypingDot delay={200} />
+          <TypingDot delay={400} />
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Text style={s.typingText}>{lookingAtPhoto ? t('dm.lookingAtPhoto') : t('dm.typing')}</Text>
+          {countdown !== null && countdown > 5 && (
+            <Text style={s.countdownText}>~{countdown}s</Text>
+          )}
+        </View>
       </View>
     </View>
   );
 }
 
-function GreetingCard({ name, emoji, bg }: { name: string; emoji: string; bg: string }) {
+function GreetingCard({ name, emoji, bg, inverted }: { name: string; emoji: string; bg: string; inverted: boolean }) {
   return (
-    <View style={s.greeting}>
+    <View style={[s.greeting, inverted && { transform: [{ scaleY: -1 }] }]}>
       <View style={[s.greetingAvatar, { backgroundColor: bg }]}>
         <Text style={{ fontSize: 40 }}>{emoji}</Text>
       </View>
@@ -759,11 +811,13 @@ const s = StyleSheet.create({
   onlineText:     { fontSize: 12, color: '#5DCAA5', fontWeight: '600', marginTop: 1 },
   offlineText:    { fontSize: 12, color: '#B4B2A9', marginTop: 1 },
 
-  messagesList: { paddingHorizontal: 16, paddingVertical: 12 },
+  messagesList: { paddingVertical: 8 },
 
-  bubbleRow:      { marginBottom: 14, maxWidth: '80%' },
-  bubbleRowRight: { alignSelf: 'flex-end', alignItems: 'flex-end' },
-  bubbleRowLeft:  { alignSelf: 'flex-start', alignItems: 'flex-start' },
+  bubbleRowRight: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 14, paddingVertical: 4, width: '100%', marginBottom: 10 },
+  bubbleRowLeft:  { flexDirection: 'row', justifyContent: 'flex-start', paddingHorizontal: 14, paddingVertical: 4, width: '100%', marginBottom: 10 },
+
+  bubbleChildOuter: { alignSelf: 'flex-end', flexShrink: 1, maxWidth: '80%', minWidth: 0, alignItems: 'flex-end' },
+  bubbleAIOuter:    { alignSelf: 'flex-start', flexShrink: 1, maxWidth: '80%', minWidth: 0, alignItems: 'flex-start' },
 
   bubbleChild: { backgroundColor: Colors.purple, paddingHorizontal: 16, paddingVertical: 12,
                  borderRadius: 18, borderBottomRightRadius: 4 },
@@ -789,6 +843,14 @@ const s = StyleSheet.create({
   pendingBanner:     { position: 'absolute', bottom: 90, left: 24, right: 24, backgroundColor: '#F0EFF8',
                        borderRadius: 12, padding: 12, alignItems: 'center' },
   pendingBannerText: { color: '#888780', fontSize: 13 },
+
+  retryBanner:   { position: 'absolute', bottom: 90, left: 24, right: 24, backgroundColor: '#FFF4E6',
+                   borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'center',
+                   justifyContent: 'space-between', borderWidth: 1, borderColor: '#FFD9A0' },
+  retryBannerText: { color: '#888780', fontSize: 13, flex: 1 },
+  retryBtn:      { backgroundColor: Colors.orange, paddingHorizontal: 14, paddingVertical: 7,
+                   borderRadius: 10, marginLeft: 10 },
+  retryBtnText:  { color: '#fff', fontSize: 13, fontWeight: '700' },
 
   inputBar:  { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingTop: 10,
                paddingBottom: 22, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#F0EFF8', gap: 8 },

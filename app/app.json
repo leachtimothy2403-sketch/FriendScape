@@ -6,10 +6,10 @@
     "scheme": "migo",
     "platforms": ["ios", "android", "web"],
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/images/migo-logo.jpg",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/images/migo-logo.jpg",
       "resizeMode": "contain",
       "backgroundColor": "#F8F7FF"
     },
@@ -20,7 +20,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/images/migo-logo.jpg",
         "backgroundColor": "#F8F7FF"
       },
       "package": "com.migo.app"

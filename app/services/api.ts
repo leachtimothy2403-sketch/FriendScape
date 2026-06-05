@@ -52,7 +52,7 @@ export const children = {
       childId: string;
       name: string;
       mascotId: string;
-      assignedFriends: { id: string; name: string; coverEmojis: string; matchReason: string }[];
+      assignedFriends: { id: string; name: string; coverEmojis: string; introMessage: string }[];
     }>('/children/onboarding', data, { timeout: 120000 }),
 };
 
@@ -301,7 +301,7 @@ export const childProfileApi = {
     api.post<ModerationResult>('/children/me/interests/validate', { text }, withToken(token)),
   regenerateFriends: (token: string) =>
     api.post<{
-      assignedFriends: { id: string; name: string; coverEmojis: string; matchReason: string }[];
+      assignedFriends: { id: string; name: string; coverEmojis: string; introMessage: string }[];
       regenerationCount: number;
     }>('/children/me/regenerate-friends', {}, withToken(token)),
 };

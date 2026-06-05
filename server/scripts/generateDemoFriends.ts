@@ -120,7 +120,7 @@ async function run() {
         console.log(`      Bio:          ${f.bio}`);
         console.log(`      Personality:  ${f.personality.join(', ')}`);
         console.log(`      Interests:    ${f.interests.join(', ')}`);
-        console.log(`      Match reason: ${f.matchReason}`);
+        console.log(`      Intro message: ${f.introMessage}`);
         console.log(`      Quirk:        ${f.quirk}`);
         console.log(`      Rel type:     ${f.relationshipType}`);
 

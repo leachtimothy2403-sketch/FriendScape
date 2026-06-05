@@ -12,6 +12,7 @@ import {
   MyChildFriend, AiFriendRecord, FriendWithRelationship,
 } from '@/services/api';
 import { Colors } from '@/constants/theme';
+import MigoLogo from '@/components/MigoLogo';
 
 const COVER_COLOR: Record<string, string> = {
   Mia: '#EEEDFE', Jake: '#E1F5EE', Zara: '#FAECE7',
@@ -259,7 +260,7 @@ export default function DiscoverScreen() {
   if (loading) {
     return (
       <SafeAreaView style={s.screen}>
-        <View style={s.topBar}><Text style={s.title}>Find Friends 👥</Text></View>
+        <View style={s.topBar}><MigoLogo size="sm" /></View>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator size="large" color={Colors.purple} />
         </View>
@@ -270,7 +271,7 @@ export default function DiscoverScreen() {
   return (
     <SafeAreaView style={s.screen}>
       <View style={s.topBar}>
-        <Text style={s.title}>Find Friends 👥</Text>
+        <MigoLogo size="sm" />
       </View>
 
       <TextInput

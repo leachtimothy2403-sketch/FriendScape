@@ -8,6 +8,7 @@ import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { childAuth, childPosts, childSession } from '@/services/api';
+import MigoLogo from '@/components/MigoLogo';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { Colors, Mascots } from '@/constants/theme';
 import AudioPlayer from '@/components/AudioPlayer';
@@ -271,10 +272,7 @@ export default function FeedScreen() {
     <SafeAreaView style={s.screen}>
       {/* ── Top bar ── */}
       <View style={s.topBar}>
-        <View style={{ flexDirection: 'row' }}>
-          <Text style={s.logoFriend}>Mi</Text>
-          <Text style={s.logoScape}>go</Text>
-        </View>
+        <MigoLogo size="sm" />
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
           {__DEV__ && (
             <TouchableOpacity onPress={() => void devReset()} style={s.devResetBtn}>
@@ -544,8 +542,6 @@ const s = StyleSheet.create({
   topBar:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
                    paddingHorizontal: 16, paddingVertical: 12,
                    backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#F0EFF8' },
-  logoFriend:    { fontSize: 20, fontWeight: '700', color: '#2C2C2A' },
-  logoScape:     { fontSize: 20, fontWeight: '700', color: Colors.purple },
   redDot:        { position: 'absolute', top: -2, right: -2, width: 8, height: 8,
                    borderRadius: 4, backgroundColor: Colors.red },
   avatarCircle:  { width: 36, height: 36, borderRadius: 18, backgroundColor: '#EAE8FF',

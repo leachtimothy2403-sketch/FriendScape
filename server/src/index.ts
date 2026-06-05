@@ -11,6 +11,7 @@ process.on('unhandledRejection', (reason, promise) => {
   process.exit(1);
 });
 
+import { execSync } from 'child_process';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -74,13 +75,27 @@ async function startServer() {
       });
       server.on('error', (err) => {
         if ((err as NodeJS.ErrnoException).code === 'EADDRINUSE') {
-          console.error(`❌ Port ${PORT} is already in use. Kill the other process first:`);
-          console.error(`   netstat -ano | findstr :${PORT}`);
-          console.error(`   then: taskkill /F /PID <pid>`);
+          console.log(`⚠️  Port ${PORT} in use — killing stale process and retrying...`);
+          try {
+            const result = execSync(`netstat -ano | findstr :${PORT}`).toString();
+            const pid = result.match(/LISTENING\s+(\d+)/)?.[1];
+            if (pid) {
+              execSync(`taskkill /F /PID ${pid}`);
+              console.log(`[dev] ✅ Killed PID ${pid} — restarting in 1s...`);
+              setTimeout(() => void startServer(), 1000);
+            } else {
+              reject(err);
+            }
+          } catch {
+            console.error('❌ Port 3001 is already in use. Kill manually:');
+            console.error(`   netstat -ano | findstr :${PORT}`);
+            console.error(`   then: taskkill /F /PID <pid>`);
+            process.exit(1);
+          }
         } else {
           console.error('❌ Server listen error:', err);
+          reject(err);
         }
-        reject(err);
       });
     });
 

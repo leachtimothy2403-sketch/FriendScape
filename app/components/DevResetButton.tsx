@@ -8,9 +8,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { devApi } from '@/services/api';
 
 export default function DevResetButton() {
-  const [resetting, setResetting]   = useState(false);
-  const [clearing, setClearing]     = useState(false);
-  const [result, setResult]         = useState<{ text: string; color: string } | null>(null);
+  const [resetting, setResetting] = useState(false);
+  const [clearing, setClearing]   = useState(false);
+  const [result, setResult]       = useState<{ text: string; color: string } | null>(null);
 
   function confirmReset() {
     Alert.alert(
@@ -30,17 +30,11 @@ export default function DevResetButton() {
       const res = await devApi.reset();
       const { deleted } = res.data;
       await AsyncStorage.clear();
-      setResult({
-        text:  `✅ Reset complete — ${deleted.children} children deleted`,
-        color: '#2D7D46',
-      });
-      setTimeout(() => {
-        setResetting(false);
-        router.replace('/enroll' as never);
-      }, 2000);
+      setResult({ text: `✅ ${deleted.children} children deleted`, color: '#2D7D46' });
+      setTimeout(() => { setResetting(false); router.replace('/enroll' as never); }, 2000);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? String(err);
-      setResult({ text: `❌ Reset failed: ${msg}`, color: '#C0392B' });
+      setResult({ text: `❌ ${msg}`, color: '#C0392B' });
       setResetting(false);
     }
   }
@@ -51,41 +45,32 @@ export default function DevResetButton() {
     try {
       await AsyncStorage.clear();
       setResult({ text: '✅ Cache cleared', color: '#2D7D46' });
-      setTimeout(() => {
-        setClearing(false);
-        router.replace('/enroll' as never);
-      }, 1000);
+      setTimeout(() => { setClearing(false); router.replace('/enroll' as never); }, 1000);
     } catch {
       setResult({ text: '❌ Clear failed', color: '#C0392B' });
       setClearing(false);
     }
   }
 
+  const busy = resetting || clearing;
+
   return (
-    <View style={s.card}>
-      <Text style={s.header}>🛠️ DEV TOOLS</Text>
+    <View style={s.container}>
+      <View style={s.row}>
+        <Text style={s.label}>🛠️ dev</Text>
 
-      {resetting ? (
-        <View style={s.loadingRow}>
-          <ActivityIndicator size="small" color="#888780" />
-          <Text style={s.loadingText}>Resetting...</Text>
-        </View>
-      ) : (
-        <TouchableOpacity style={s.btn} onPress={confirmReset} disabled={clearing}>
-          <Text style={s.btnText}>🗑️ Reset Database</Text>
+        <TouchableOpacity style={s.pill} onPress={confirmReset} disabled={busy}>
+          {resetting
+            ? <ActivityIndicator size="small" color="#888780" />
+            : <Text style={s.pillText}>🗑️ DB</Text>}
         </TouchableOpacity>
-      )}
 
-      {clearing ? (
-        <View style={s.loadingRow}>
-          <ActivityIndicator size="small" color="#888780" />
-          <Text style={s.loadingText}>Clearing cache...</Text>
-        </View>
-      ) : (
-        <TouchableOpacity style={[s.btn, s.btnSecondary]} onPress={() => void clearCache()} disabled={resetting}>
-          <Text style={s.btnText}>🧹 Clear App Cache</Text>
+        <TouchableOpacity style={s.pill} onPress={() => void clearCache()} disabled={busy}>
+          {clearing
+            ? <ActivityIndicator size="small" color="#888780" />
+            : <Text style={s.pillText}>🧹 Cache</Text>}
         </TouchableOpacity>
-      )}
+      </View>
 
       {result && (
         <Text style={[s.result, { color: result.color }]}>{result.text}</Text>
@@ -95,56 +80,53 @@ export default function DevResetButton() {
 }
 
 const s = StyleSheet.create({
-  card: {
-    marginTop: 24,
-    marginBottom: 20,
-    marginHorizontal: 4,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: '#D3D1C7',
-    borderRadius: 12,
-    padding: 14,
+  container: {
+    position: 'absolute',
+    bottom:   20,
+    left:     16,
+    right:    16,
+    zIndex:   999,
     alignItems: 'center',
-    gap: 10,
+    gap: 6,
   },
-  header: {
-    fontSize: 11,
+  row: {
+    flexDirection:  'row',
+    alignItems:     'center',
+    gap:            8,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderWidth:    1,
+    borderStyle:    'dashed',
+    borderColor:    '#D3D1C7',
+    borderRadius:   20,
+    paddingVertical:  6,
+    paddingHorizontal: 12,
+  },
+  label: {
+    fontSize:   11,
     fontWeight: '700',
-    color: '#B4B2A9',
-    letterSpacing: 1,
-    marginBottom: 2,
+    color:      '#B4B2A9',
+    marginRight: 2,
   },
-  btn: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#D3D1C7',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 9,
+  pill: {
+    backgroundColor: '#F0EFF8',
+    borderRadius:    99,
+    paddingHorizontal: 10,
+    paddingVertical:   5,
+    minWidth: 44,
     alignItems: 'center',
-    width: '100%',
   },
-  btnSecondary: {
-    backgroundColor: '#F8F7F5',
-  },
-  btnText: {
-    fontSize: 13,
-    color: '#888780',
+  pillText: {
+    fontSize:   12,
+    color:      '#888780',
     fontWeight: '600',
-  },
-  loadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 9,
-  },
-  loadingText: {
-    fontSize: 13,
-    color: '#888780',
   },
   result: {
-    fontSize: 12,
-    textAlign: 'center',
+    fontSize:   11,
     fontWeight: '600',
+    textAlign:  'center',
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    paddingHorizontal: 10,
+    paddingVertical:    4,
+    borderRadius: 8,
   },
 });

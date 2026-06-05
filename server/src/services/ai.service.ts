@@ -297,7 +297,7 @@ export interface GeneratedFriend {
   coverEmojis: string;
   personalityPrompt: string;
   relationshipType: string;
-  matchReason: string;
+  introMessage: string;
   quirk: string;
 }
 
@@ -387,7 +387,7 @@ Return ONLY valid JSON array — no markdown, no explanation:
     "coverEmojis": "emoji1emoji2emoji3",
     "personalityPrompt": "string (full prompt for Claude to play this friend)",
     "relationshipType": "close_friend|interesting_different",
-    "matchReason": "one sentence why this friend suits this child",
+    "introMessage": "A warm first hello from this friend TO the child, written in first person. Reference 1-2 specific shared interests and show genuine excitement about becoming friends. Sound like a real child talking, not a formal description. Max 2 sentences. Good examples — EN: 'Hi Emma! I heard you love drawing cats and I have THREE cats at home — I think we were meant to be friends! I cannot wait to see your drawings 🎨🐱' / FR: 'Salut Morgan ! Moi aussi j\\'adore le foot et le PSG — on va tellement bien s\\'entendre ! J\\'espère qu\\'on pourra parler de nos équipes préférées 😄'. Rules: write in the child\\'s language (fr if language=fr, en if language=en), use the child\\'s name once at the start, reference 1-2 specific shared interests, show genuine excitement, sound like a child not a description, never use third-person references, max 2 sentences.",
     "quirk": "one memorable detail"
   }
 ]`.trim();
@@ -1049,11 +1049,12 @@ export async function generateTutorReply(
   imageMediaType?: string,
   isFirstInteraction?: boolean,
   sessionMode?: 'learning' | 'homework_help',
+  isPhotoMode = false,
 ): Promise<TutorReply> {
   const grade = child.schoolGrade;
 
-  // Fetch curriculum context if grade is known
-  const curriculumContext = grade
+  // Skip curriculum fetch in photo mode — saves tokens and latency
+  const curriculumContext = (!isPhotoMode && grade)
     ? await searchFrenchCurriculum(grade, subject).catch(() => defaultCurriculumContext(grade, subject))
     : null;
 
@@ -1075,7 +1076,9 @@ export async function generateTutorReply(
 
   const system = `You are Ms. Luna, a warm and patient teacher friend on Migo for ${child.name} (age ${child.age}, grade ${grade ?? 'unknown'}).
 
-${grade && curriculumContext ? `CURRICULUM CONTEXT (Grade ${grade}, France):\n${curriculumContext}` : 'Grade not yet known — ask at first interaction.'}
+${isPhotoMode
+    ? `PHOTO MODE: The child has sent you an image. Look at it carefully and help them understand what they see, step by step. Guide them with questions rather than giving direct answers. Be warm, encouraging, and focus entirely on what's in the photo.`
+    : (grade && curriculumContext ? `CURRICULUM CONTEXT (Grade ${grade}, France):\n${curriculumContext}` : 'Grade not yet known — ask at first interaction.')}
 
 ${disabilityAdaptations ? `DISABILITY ADAPTATIONS:\n${disabilityAdaptations}` : ''}
 

@@ -17,7 +17,26 @@ import {
 import { toChildType, toFriendType, toMemoryType } from '../utils/db-mappers';
 import type { Child } from '../../../shared/types';
 
-function calculateTypingDelay(wordCount: number, isOnline: boolean): number {
+async function callClaudeWithRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (err: unknown) {
+      const status = (err as Record<string, unknown>)?.status;
+      if (status === 429 && i < maxRetries - 1) {
+        const waitMs = (i + 1) * 15000;
+        console.log(`[claude] Rate limited — waiting ${waitMs / 1000}s before retry ${i + 1}...`);
+        await new Promise((r) => setTimeout(r, waitMs));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error('callClaudeWithRetry: unreachable');
+}
+
+function calculateTypingDelay(wordCount: number, isOnline: boolean, hasImage: boolean = false): number {
+  if (hasImage) return 2000;
   let delay = 0;
   for (let i = 0; i < wordCount; i++) {
     if (i < 5)       delay += 800;
@@ -193,10 +212,12 @@ export async function sendMessage(req: AuthRequest, res: Response) {
       .first();
     const memoryBrief = memoryRow ? buildMemoryBrief(toMemoryType(memoryRow)) : null;
 
+    const hasImage   = !!imageBase64;
+    const historyLimit = hasImage ? 3 : 15;
     const recentMessages = await db('messages')
       .where({ conversation_id: conversation.id })
       .orderBy('created_at', 'asc')
-      .limit(15)
+      .limit(historyLimit)
       .select('content', 'sender_type') as Array<{ content: string; sender_type: string }>;
 
     const childFriendRows = await db('child_friends')
@@ -212,41 +233,69 @@ export async function sendMessage(req: AuthRequest, res: Response) {
 
     let reply: FriendReplyResult;
     let tutorMeta: TutorReply | null = null;
+    let rateLimitFallback = false;
 
     if (isTeacher) {
       const tutorLang = (lang === 'fr' ? 'fr' : 'en') as 'en' | 'fr';
       const isFirstInteraction = !child.schoolGrade;
 
-      const [tutorReply, mood2] = await Promise.all([
-        generateTutorReply(
-          child,
-          (friendRow.subject as string | undefined) ?? 'general',
-          content.trim(),
-          memoryBrief,
-          tutorLang,
-          recentMessages,
-          imageBase64,
-          imageMediaType,
-          isFirstInteraction,
-        ),
-        checkMood(content.trim(), child.name, child.age),
-      ]);
-
-      reply     = tutorReply;
-      tutorMeta = tutorReply;
-
-      // Grade capture
-      if (tutorMeta.gradeCapture) {
-        await db('children').where({ id: childId }).update({ school_grade: tutorMeta.gradeCapture });
-        console.log(`[luna] 📚 Grade captured: ${tutorMeta.gradeCapture} for ${child.name}`);
+      let tutorReply: TutorReply;
+      try {
+        const [resolved, mood2] = await Promise.all([
+          callClaudeWithRetry(() =>
+            generateTutorReply(
+              child,
+              (friendRow.subject as string | undefined) ?? 'general',
+              content.trim(),
+              memoryBrief,
+              tutorLang,
+              recentMessages,
+              imageBase64,
+              imageMediaType,
+              isFirstInteraction,
+              undefined,
+              hasImage,
+            ),
+          ),
+          checkMood(content.trim(), child.name, child.age),
+        ]);
+        tutorReply = resolved;
+        (req as unknown as Record<string, unknown>)._mood = mood2;
+      } catch (err: unknown) {
+        const status = (err as Record<string, unknown>)?.status;
+        if (status === 429) {
+          console.warn('[claude] All retries exhausted — returning friendly fallback');
+          const fallbackText = lang === 'fr'
+            ? "Je suis un peu occupée là — attends un moment et réessaie ! 🌟"
+            : "I'm a little busy right now — give me a moment and try again! 🌟";
+          tutorReply = { text: fallbackText, inputTokens: 0, outputTokens: 0 };
+          rateLimitFallback = true;
+          (req as unknown as Record<string, unknown>)._mood = await checkMood(content.trim(), child.name, child.age).catch(() => ({
+            mood: 'neutral' as const, intensity: 'low' as const, crisisFlag: false, crisisReason: null,
+            parentAlertNeeded: false, parentAlertReason: null, suggestParentTalk: false, inputTokens: 0, outputTokens: 0,
+          }));
+        } else {
+          throw err;
+        }
       }
 
-      // Subject tracking + session count
-      if (tutorMeta.detectedSubject) {
-        const isNewSubject = tutorMeta.detectedSubject !== child.lastSubject;
-        await db('children').where({ id: childId }).update({ last_subject: tutorMeta.detectedSubject });
-        if (isNewSubject) {
-          await db('children').where({ id: childId }).increment('learning_sessions_count', 1);
+      reply     = tutorReply;
+      tutorMeta = rateLimitFallback ? null : tutorReply as TutorReply;
+
+      if (!rateLimitFallback) {
+        // Grade capture
+        if ((tutorReply as TutorReply).gradeCapture) {
+          await db('children').where({ id: childId }).update({ school_grade: (tutorReply as TutorReply).gradeCapture });
+          console.log(`[luna] 📚 Grade captured: ${(tutorReply as TutorReply).gradeCapture} for ${child.name}`);
+        }
+
+        // Subject tracking + session count
+        if ((tutorReply as TutorReply).detectedSubject) {
+          const isNewSubject = (tutorReply as TutorReply).detectedSubject !== child.lastSubject;
+          await db('children').where({ id: childId }).update({ last_subject: (tutorReply as TutorReply).detectedSubject });
+          if (isNewSubject) {
+            await db('children').where({ id: childId }).increment('learning_sessions_count', 1);
+          }
         }
       }
 
@@ -254,12 +303,11 @@ export async function sendMessage(req: AuthRequest, res: Response) {
         console.log(`[luna] 📸 Image received, processed by Claude, not stored`);
       }
 
-      // Stash mood for use below
-      (req as unknown as Record<string, unknown>)._mood = mood2;
-
     } else {
       const [friendReply, mood2] = await Promise.all([
-        generateFriendReply(friend, child, content.trim(), memoryBrief, lang, recentMessages, friendNames),
+        callClaudeWithRetry(() =>
+          generateFriendReply(friend, child, content.trim(), memoryBrief, lang, recentMessages, friendNames),
+        ),
         checkMood(content.trim(), child.name, child.age),
       ]);
       reply = friendReply;
@@ -273,7 +321,7 @@ export async function sendMessage(req: AuthRequest, res: Response) {
 
     // e. Calculate delay based on actual word count
     const wordCount  = reply.text.split(' ').length;
-    const delayMs    = calculateTypingDelay(wordCount, isOnline);
+    const delayMs    = calculateTypingDelay(wordCount, isOnline, hasImage);
     const delaySeconds = Math.round(delayMs / 1000);
 
     // f. Return immediately — app polls for the reply

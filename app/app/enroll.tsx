@@ -25,6 +25,7 @@ import { useTranslation } from 'react-i18next';
 import { auth } from '@/services/api';
 import { useLanguageStore } from '@/store/languageStore';
 import DevResetButton from '@/components/DevResetButton';
+import MigoLogo from '@/components/MigoLogo';
 
 export default function EnrollScreen() {
   const { t } = useTranslation();
@@ -134,9 +135,8 @@ export default function EnrollScreen() {
           <View className="flex-1 items-center justify-center px-8 py-12">
 
             {/* Logo */}
-            <View style={{ flexDirection: 'row', marginBottom: 16 }}>
-              <Text style={{ fontSize: 32, fontWeight: 'bold', color: '#2C2C2A' }}>Mi</Text>
-              <Text style={{ fontSize: 32, fontWeight: 'bold', color: '#7F77DD' }}>go</Text>
+            <View style={{ marginBottom: 16 }}>
+              <MigoLogo size="lg" />
             </View>
 
             {/* Language picker */}

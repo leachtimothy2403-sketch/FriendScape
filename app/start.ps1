@@ -1,0 +1,2 @@
+$env:REACT_NATIVE_PACKAGER_HOSTNAME="192.168.1.15"
+npx expo start

@@ -4,7 +4,7 @@
   "description": "Migo API server",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "nodemon --watch src --ext ts,json --exec \"ts-node -r dotenv/config src/index.ts\"",
+    "dev": "node -e \"const {execSync} = require('child_process'); try { const pid = execSync('netstat -ano | findstr :3001').toString().match(/LISTENING\\s+(\\d+)/)?.[1]; if (pid) { execSync('taskkill /F /PID ' + pid); console.log('[dev] Killed stale process on port 3001'); } } catch(e) {} \" && nodemon --watch src --ext ts,json --exec \"ts-node -r dotenv/config src/index.ts\"",
     "build": "tsc",
     "start": "node dist/index.js",
     "migrate": "npx knex --knexfile src/db/knexfile.ts migrate:latest",

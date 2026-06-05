@@ -245,7 +245,7 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
     console.log(`[friends] 🤖 Generating personalised friends for ${childObj.name}...`);
     const genResult = await generatePersonalisedFriends(childObj, lang, 2);
 
-    const assignedFriends: { id: string; name: string; coverEmojis: string; matchReason: string }[] = [];
+    const assignedFriends: { id: string; name: string; coverEmojis: string; introMessage: string }[] = [];
 
     for (const gf of genResult.friends) {
       const voiceId = selectVoiceId(gf.gender, lang, gf.personality);
@@ -292,13 +292,13 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
       }).onConflict(['child_id', 'friend_id']).ignore();
 
       assignedFriends.push({
-        id:          newFriend.id as string,
-        name:        gf.name,
-        coverEmojis: gf.coverEmojis,
-        matchReason: gf.matchReason,
+        id:           newFriend.id as string,
+        name:         gf.name,
+        coverEmojis:  gf.coverEmojis,
+        introMessage: gf.introMessage,
       });
 
-      console.log(`[friends] ✅ Generated: ${gf.name} — "${gf.matchReason}" (voice: ${voiceId})`);
+      console.log(`[friends] ✅ Generated: ${gf.name} — "${gf.introMessage?.slice(0, 80)}" (voice: ${voiceId})`);
 
       // Generate friend network connections
       console.log(`[friends] 🌐 Generating network for ${gf.name}...`);
@@ -428,10 +428,10 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
       }).onConflict(['child_id', 'friend_id']).ignore();
 
       assignedFriends.push({
-        id:          starFriend.id as string,
-        name:        starFriend.name as string,
-        coverEmojis: (starFriend.cover_emojis as string) || '🌟',
-        matchReason: 'A special star friend picked just for you!',
+        id:           starFriend.id as string,
+        name:         starFriend.name as string,
+        coverEmojis:  (starFriend.cover_emojis as string) || '🌟',
+        introMessage: `Hi ${childObj.name}! I'm so excited you joined Migo — I think we're going to have so much fun together! 🌟`,
       });
 
       // Connect each generated friend to the star friend via network
@@ -921,7 +921,7 @@ export async function regenerateFriends(req: AuthRequest, res: Response) {
     console.log(`[friends] 🔄 Regenerating friends for ${child.name} (attempt ${regenCount + 1})`);
     const genResult = await generatePersonalisedFriends(child, lang, 2);
 
-    const assignedFriends: { id: string; name: string; coverEmojis: string; matchReason: string }[] = [];
+    const assignedFriends: { id: string; name: string; coverEmojis: string; introMessage: string }[] = [];
 
     for (const gf of genResult.friends) {
       const voiceId = selectVoiceId(gf.gender, lang, gf.personality);
@@ -968,10 +968,10 @@ export async function regenerateFriends(req: AuthRequest, res: Response) {
       }).onConflict(['child_id', 'friend_id']).ignore();
 
       assignedFriends.push({
-        id:          newFriend.id as string,
-        name:        gf.name,
-        coverEmojis: gf.coverEmojis,
-        matchReason: gf.matchReason,
+        id:           newFriend.id as string,
+        name:         gf.name,
+        coverEmojis:  gf.coverEmojis,
+        introMessage: gf.introMessage,
       });
 
       console.log(`[friends] ✅ Regenerated: ${gf.name}`);

@@ -13,6 +13,7 @@ import {
   childProfileApi,
   ChildProfile, MemoryItem, FriendWithStats, ProfilePost, ModerationResult,
 } from '@/services/api';
+import MigoLogo from '@/components/MigoLogo';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -370,7 +371,7 @@ export default function ProfileScreen() {
     return (
       <SafeAreaView style={s.screen}>
         <View style={s.topBar}>
-          <View style={s.logoRow}><Text style={s.logoMi}>Mi</Text><Text style={s.logoGo}>go</Text></View>
+          <MigoLogo size="sm" />
           <Text style={s.topTitle}>{t('profile.title')}</Text>
           <View style={{ width: 40 }} />
         </View>

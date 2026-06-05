@@ -165,6 +165,7 @@
     "allset": {
       "title": "You're all set, {{name}}! 🎊",
       "subtitle": "{{mascot}} and {{friend}} are already waiting for you!",
+      "friendsWaiting": "Your new friends are waiting! 🎉",
       "parentNote": "Parents — your dashboard is ready",
       "parentNoteDesc": "You can see everything {{name}} does, manage friends, set screen time limits, and get instant safety alerts — anytime.",
       "goButton": "Go to Migo! 🌟"
@@ -181,7 +182,9 @@
   },
   "dm": {
     "online": "Online now",
-    "inputPlaceholder": "Message {{name}}…"
+    "inputPlaceholder": "Message {{name}}…",
+    "typing": "typing...",
+    "lookingAtPhoto": "Luna looks at your photo... 👀"
   },
   "luna": {
     "photoAdded": "📸 Photo added — Luna can see it",
@@ -190,7 +193,10 @@
     "photoPrivacyButton": "Got it ✓",
     "photoHelpPrompt": "Can you help me with this?",
     "cameraButton": "📸 Take a photo",
-    "libraryButton": "📂 Choose a photo"
+    "libraryButton": "📂 Choose a photo",
+    "lunabusy": "I'm a little busy right now — give me a moment and try again! 🌟",
+    "retryMessage": "Taking longer than usual...",
+    "retryButton": "Retry →"
   },
   "discover": {
     "meetLuna": "🌙 Meet Ms. Luna",
