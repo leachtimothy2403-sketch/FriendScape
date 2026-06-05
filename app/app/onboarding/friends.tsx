@@ -116,7 +116,6 @@ export default function FriendsScreen() {
   const [loading, setLoading]               = useState(true);
   const [error, setError]                   = useState('');
   const [cards, setCards]                   = useState<ApiFriend[]>([]);
-  const [selected, setSelected]             = useState(selectedFriendId);
   const [regenCount, setRegenCount]         = useState(0);
   const [regenLoading, setRegenLoading]     = useState(false);
   const [showConfirm, setShowConfirm]       = useState(false);
@@ -146,8 +145,7 @@ export default function FriendsScreen() {
         const all: ApiFriend[] = res.data?.friends ?? [];
         const top = scoreAndRank(all, interests, childAge);
         setCards(top);
-        const initial = selectedFriendId || top[0]?.id || '';
-        setSelected(initial);
+        const initial = top[0]?.id || '';
         setSelectedFriendId(initial);
       } catch {
         setError(t('common.error'));
@@ -156,11 +154,6 @@ export default function FriendsScreen() {
       }
     })();
   }, []);
-
-  function handleSelect(id: string) {
-    setSelected(id);
-    setSelectedFriendId(id);
-  }
 
   async function handleRegenerate() {
     setShowConfirm(false);
@@ -181,7 +174,9 @@ export default function FriendsScreen() {
 
       const newCount = data.regenerationCount ?? regenCount + 1;
       setRegenCount(newCount);
-      setAssignedCards(data.assignedFriends);
+      const newAssigned: AssignedFriend[] = data.assignedFriends;
+      setAssignedCards(newAssigned);
+      if (newAssigned[0]) setSelectedFriendId(newAssigned[0].id);
 
       if (newCount >= 3) setRegenMaxed(true);
 
@@ -199,11 +194,7 @@ export default function FriendsScreen() {
     }
   }
 
-  const activeFriend = assignedCards
-    ? null
-    : cards.find((c) => c.id === selected);
-
-  const canContinue = !!selected || !!assignedCards;
+  const canContinue = cards.length > 0 || !!assignedCards;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F7FF' }}>
@@ -232,7 +223,7 @@ export default function FriendsScreen() {
             <Text style={{ fontSize: 13, color: '#2C2C2A', lineHeight: 20 }}>
               {regenLoading
                 ? t('onboarding.friends.regenLoading')
-                : t('onboarding.friends.subtitle', { name: displayName })}
+                : t('onboarding.friends.meetYourFriends')}
             </Text>
           </View>
         </View>
@@ -284,88 +275,31 @@ export default function FriendsScreen() {
               </Animated.View>
             )}
 
-            {/* Original cards (pre-regen) */}
+            {/* Original cards (pre-regen) — preview only, no selection */}
             {!assignedCards && cards.length > 0 && (
-              <Animated.View style={cardsStyle}>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: GAP, marginBottom: 16 }}>
-                  {cards.map((friend, idx) => {
-                    const isSel    = selected === friend.id;
-                    const avatarBg = AVATAR_BG[idx % AVATAR_BG.length];
-                    const emoji    = firstEmoji(friend.cover_emojis);
-                    const tags     = (friend.interests as string[] | undefined || []).slice(0, 2);
-
-                    return (
-                      <TouchableOpacity
-                        key={friend.id}
-                        onPress={() => handleSelect(friend.id)}
-                        style={{
-                          width: cardW, backgroundColor: '#fff',
-                          borderRadius: 20, borderWidth: 2.5,
-                          borderColor: isSel ? '#7F77DD' : '#E8E6FF',
-                          padding: 12, alignItems: 'center',
-                          transform: [{ scale: isSel ? 1.04 : 1 }],
-                          shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-                          shadowOpacity: isSel ? 0.12 : 0.05, shadowRadius: 8,
-                          elevation: isSel ? 5 : 2,
-                        }}
-                        activeOpacity={0.75}
-                      >
-                        <View style={{
-                          width: 60, height: 60, borderRadius: 30,
-                          backgroundColor: avatarBg,
-                          alignItems: 'center', justifyContent: 'center', marginBottom: 8,
-                        }}>
-                          <Text style={{ fontSize: 30 }}>{emoji}</Text>
-                        </View>
-                        {isSel && (
-                          <View style={{
-                            position: 'absolute', top: 6, right: 6,
-                            width: 20, height: 20, borderRadius: 10,
-                            backgroundColor: '#7F77DD', alignItems: 'center', justifyContent: 'center',
-                          }}>
-                            <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>✓</Text>
-                          </View>
-                        )}
-                        <Text style={{ fontSize: 13, fontWeight: 'bold', color: isSel ? '#7F77DD' : '#2C2C2A', textAlign: 'center', marginBottom: 4 }}>
-                          {friend.name}
-                        </Text>
-                        {friend.age != null && (
-                          <Text style={{ fontSize: 10, color: '#888780', marginBottom: 6 }}>Age {friend.age}</Text>
-                        )}
-                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, justifyContent: 'center' }}>
-                          {tags.map((tag) => (
-                            <View key={tag} style={{ backgroundColor: isSel ? '#EEEDFE' : '#F5F5F5', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}>
-                              <Text style={{ fontSize: 9, color: isSel ? '#7F77DD' : '#888780', fontWeight: '600' }}>{tag}</Text>
-                            </View>
-                          ))}
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-
-                {activeFriend && (
-                  <View style={{
-                    backgroundColor: '#fff', borderRadius: 16, padding: 14,
-                    marginBottom: 16, borderWidth: 1.5, borderColor: '#E8E6FF',
-                    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+              <Animated.View style={[cardsStyle, { marginBottom: 16 }]}>
+                {cards.map((friend, idx) => (
+                  <View key={friend.id} style={{
+                    backgroundColor: '#fff', borderRadius: 16,
+                    borderWidth: 2, borderColor: '#7F77DD',
+                    padding: 14, marginBottom: 10,
+                    flexDirection: 'row', alignItems: 'center', gap: 12,
                   }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                      <View style={{
-                        width: 36, height: 36, borderRadius: 18,
-                        backgroundColor: AVATAR_BG[cards.findIndex(c => c.id === activeFriend.id) % AVATAR_BG.length],
-                        alignItems: 'center', justifyContent: 'center', marginRight: 10,
-                      }}>
-                        <Text style={{ fontSize: 18 }}>{firstEmoji(activeFriend.cover_emojis)}</Text>
-                      </View>
-                      <Text style={{ fontSize: 15, fontWeight: '700', color: '#2C2C2A' }}>{activeFriend.name}</Text>
+                    <View style={{
+                      width: 50, height: 50, borderRadius: 25,
+                      backgroundColor: AVATAR_BG[idx % AVATAR_BG.length],
+                      alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <Text style={{ fontSize: 26 }}>{firstEmoji(friend.cover_emojis)}</Text>
                     </View>
-                    <Text style={{ fontSize: 13, color: '#888780', lineHeight: 20 }}>
-                      {activeFriend.bio || 'A wonderful friend waiting to meet you!'}
-                    </Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 15, fontWeight: '700', color: '#2C2C2A' }}>{friend.name}</Text>
+                      <Text style={{ fontSize: 12, color: '#888780', marginTop: 2 }}>
+                        {friend.bio || 'A wonderful friend waiting to meet you!'}
+                      </Text>
+                    </View>
                   </View>
-                )}
+                ))}
               </Animated.View>
             )}
 
@@ -437,11 +371,7 @@ export default function FriendsScreen() {
               activeOpacity={0.85}
             >
               <Text style={{ color: canContinue ? '#fff' : '#BDBDBD', fontSize: 17, fontWeight: 'bold' }}>
-                {assignedCards
-                  ? `Let's go! →`
-                  : activeFriend
-                    ? t('onboarding.friends.continueButton', { name: activeFriend.name })
-                    : 'Choose a friend first'}
+                {t('onboarding.friends.cantWait')}
               </Text>
             </TouchableOpacity>
 

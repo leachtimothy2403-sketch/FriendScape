@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, SafeAreaView, ScrollView, TouchableOpacity,
   TextInput, Modal, ActivityIndicator, StyleSheet,
-  Dimensions,
+  Dimensions, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
@@ -401,6 +401,11 @@ export default function ProfileScreen() {
         </View>
       )}
 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+      >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
 
         {/* ── Profile card ── */}
@@ -521,6 +526,7 @@ export default function ProfileScreen() {
         {activeTab === 'memories' && <MemoriesTab memories={memories} t={t} />}
 
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* ── Settings modal ── */}
       <Modal

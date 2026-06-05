@@ -1,6 +1,7 @@
 import db from '../db';
 import { generateReferralExcitement, generateNewFriendIntro } from './ai.service';
 import { toChildType, toFriendType } from '../utils/db-mappers';
+import { get as redisGet, set as redisSet, del as redisDel } from './redis.service';
 
 async function findOrCreateConversation(childId: string, friendId: string): Promise<string> {
   let conv = await db('conversations').where({ child_id: childId, friend_id: friendId }).first();
@@ -27,6 +28,15 @@ export async function triggerWelcomeFlow(
   newFriendId:      string,
   referringFriendId: string,
 ): Promise<void> {
+  const lockKey = `welcome_lock:${childId}:${newFriendId}`;
+  const locked  = await redisGet(lockKey);
+  if (locked) {
+    console.log('[friends] Welcome flow already running, skipping');
+    return;
+  }
+  await redisSet(lockKey, '1', 30);
+
+  try {
   const [childRow, newFriendRow, referringFriendRow, existingFriendRows] = await Promise.all([
     db('children').where({ id: childId }).first(),
     db('ai_friends').where({ id: newFriendId }).first(),
@@ -66,4 +76,7 @@ export async function triggerWelcomeFlow(
   ]);
 
   console.log(`[welcome] 🎉 ${referringFriend.name} reacted + ${newFriend.name} introduced to ${child.name}`);
+  } finally {
+    await redisDel(lockKey);
+  }
 }

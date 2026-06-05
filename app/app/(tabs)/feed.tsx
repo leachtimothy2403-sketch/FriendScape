@@ -1,13 +1,13 @@
 import {
   View, Text, SafeAreaView, ScrollView, FlatList, TouchableOpacity,
   Modal, TextInput, RefreshControl, ActivityIndicator, Animated,
-  AppState, AppStateStatus, StyleSheet, Platform,
+  AppState, AppStateStatus, StyleSheet, Platform, KeyboardAvoidingView,
 } from 'react-native';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
-import { childAuth, childPosts, childSession } from '@/services/api';
+import { childAuth, childPosts, childSession, childProfileApi, FriendWithStats } from '@/services/api';
 import MigoLogo from '@/components/MigoLogo';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { Colors, Mascots } from '@/constants/theme';
@@ -77,6 +77,7 @@ function relativeTime(iso: string): string {
 export default function FeedScreen() {
   const { t } = useTranslation();
   const [posts, setPosts]             = useState<FeedPost[]>([]);
+  const [friendsList, setFriendsList] = useState<FriendWithStats[]>([]);
   const [loading, setLoading]         = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
   const [reloading, setReloading]     = useState(false);
@@ -163,10 +164,14 @@ export default function FeedScreen() {
     if (!silent) setLoading(true);
     try {
       await childPosts.generateDaily(token).catch(() => {});
-      const res = await childPosts.feed(token);
-      const loaded = res.data.posts as FeedPost[];
+      const [postsRes, friendsRes] = await Promise.all([
+        childPosts.feed(token),
+        childProfileApi.getFriendsList(token).catch(() => null),
+      ]);
+      const loaded = postsRes.data.posts as FeedPost[];
       console.log('[feed] posts loaded:', loaded.length);
       setPosts(loaded);
+      if (friendsRes) setFriendsList(friendsRes.data.friends);
     } catch (e) {
       console.error('[feed] loadFeed error:', e);
     } finally {
@@ -246,14 +251,20 @@ export default function FeedScreen() {
     }
   }
 
-  const storyFriends = posts
-    .filter((p) => p.author_type === 'ai' && p.friend_name)
-    .reduce<{ id: string; name: string; emojis: string }[]>((acc, p) => {
-      if (!acc.find((f) => f.id === p.author_id)) {
-        acc.push({ id: p.author_id, name: p.friend_name!, emojis: p.friend_cover_emojis ?? '🌟' });
-      }
-      return acc;
-    }, []);
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const postedTodayIds = new Set(
+    posts
+      .filter(p => p.author_type === 'ai' && new Date(p.created_at) >= todayStart)
+      .map(p => p.author_id),
+  );
+  const storyFriends = [...friendsList]
+    .filter(f => !f.is_teacher)
+    .sort((a, b) => {
+      const aScore = postedTodayIds.has(a.id) ? 0 : 1;
+      const bScore = postedTodayIds.has(b.id) ? 0 : 1;
+      return aScore - bScore;
+    })
+    .map(f => ({ id: f.id, name: f.name, emojis: f.cover_emojis ?? '🌟' }));
 
   const renderPost = useCallback(
     ({ item }: { item: FeedPost }) => (
@@ -353,7 +364,10 @@ export default function FeedScreen() {
 
       {/* ── New Post Modal ── */}
       <Modal visible={showNewPost} transparent animationType="slide">
-        <View style={s.modalOverlay}>
+        <KeyboardAvoidingView
+          style={s.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
           <View style={s.modalSheet}>
             <Text style={s.modalTitle}>New post</Text>
 
@@ -399,7 +413,7 @@ export default function FeedScreen() {
               <Text style={{ color: '#888', fontSize: 15 }}>Cancel</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

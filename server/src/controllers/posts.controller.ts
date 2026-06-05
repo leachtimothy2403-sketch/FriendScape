@@ -7,6 +7,7 @@ import {
   buildMemoryBrief,
 } from '../services/ai.service';
 import { toChildType, toFriendType, toMemoryType } from '../utils/db-mappers';
+import { checkBadgesForChild } from './badges.controller';
 
 function firstEmoji(str: string | null | undefined): string {
   if (!str) return '🌟';
@@ -182,6 +183,9 @@ export async function createPost(req: AuthRequest, res: Response) {
 
     res.status(201).json({ post });
 
+    checkBadgesForChild(childId, 'first_post').catch(console.error);
+    checkBadgesForChild(childId, 'total_posts').catch(console.error);
+
     // Schedule friend comments (non-blocking — response already sent)
     const postId      = String((post as Record<string, unknown>).id);
     const postContent = content.trim();
@@ -265,6 +269,10 @@ export async function reactToPost(req: AuthRequest, res: Response) {
 
     const reactionMap: Record<string, number> = {};
     for (const r of reactions as { emoji: string; count: number }[]) reactionMap[r.emoji] = r.count;
+
+    if (!existing) {
+      checkBadgesForChild(childId, 'total_reactions').catch(console.error);
+    }
 
     res.json({ reactions: reactionMap, toggled: !existing });
   } catch (err) {

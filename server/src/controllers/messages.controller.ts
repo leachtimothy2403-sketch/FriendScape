@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import db from '../db';
 import { AuthRequest } from '../middleware/auth';
+import { checkBadgesForChild } from './badges.controller';
 import {
   generateFriendReply,
   generateTutorReply,
@@ -36,6 +37,11 @@ async function callClaudeWithRetry<T>(fn: () => Promise<T>, maxRetries = 3): Pro
 }
 
 function calculateTypingDelay(wordCount: number, isOnline: boolean, hasImage: boolean = false): number {
+  if (process.env.NODE_ENV === 'development') {
+    if (hasImage) return 2000;
+    if (isOnline) return Math.floor(Math.random() * 3000) + 3000;  // 3-6s
+    return Math.floor(Math.random() * 4000) + 8000;                 // 8-12s
+  }
   if (hasImage) return 2000;
   let delay = 0;
   for (let i = 0; i < wordCount; i++) {
@@ -44,9 +50,6 @@ function calculateTypingDelay(wordCount: number, isOnline: boolean, hasImage: bo
     else             delay += 200;
   }
   if (!isOnline) delay *= 2;
-  if (process.env.NODE_ENV === 'development') {
-    delay = Math.min(delay, 15000);
-  }
   return Math.max(delay, 2000);
 }
 
@@ -189,6 +192,8 @@ export async function sendMessage(req: AuthRequest, res: Response) {
       .returning('*');
 
     await db('conversations').where({ id: conversation.id }).update({ updated_at: new Date() });
+
+    checkBadgesForChild(childId, 'total_messages').catch(console.error);
 
     // c. Fetch child profile + friend (parallel)
     const [childRow, friendRow] = await Promise.all([

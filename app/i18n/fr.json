@@ -154,6 +154,8 @@
     "friends": {
       "title": "Une surprise ! 🎁",
       "subtitle": "J'ai trouvé 3 amis qui te correspondent parfaitement, {{name}} !",
+      "meetYourFriends": "Rencontre tes nouveaux amis !",
+      "cantWait": "J'ai hâte de les rencontrer ! →",
       "continueButton": "Je choisis {{name}} ! C'est parti ! →",
       "tryDifferent": "Pas convaincu(e) ? Essaie d'autres amis →",
       "confirmRegen": "Tu es sûr(e) ? Tu vas rencontrer 2 nouveaux amis mais dire au revoir à ceux-ci.",

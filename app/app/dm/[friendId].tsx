@@ -83,7 +83,6 @@ export default function DMScreen() {
   const [isOnline, setIsOnline]               = useState<boolean | null>(null);
   const [replyTimedOut, setReplyTimedOut]     = useState(false);
   const [retryContent, setRetryContent]       = useState<{ text: string; imageB64?: string; imageType?: string } | null>(null);
-  const [countdown, setCountdown]             = useState<number | null>(null);
   const [isTeacher, setIsTeacher]             = useState(false);
   const [selectedImage, setSelectedImage]     = useState<{ base64: string; uri: string } | null>(null);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -212,27 +211,11 @@ export default function DMScreen() {
     setTimeout(() => setToast(''), 2500);
   }
 
-  function startCountdown(seconds: number) {
-    if (seconds <= 5) return;
-    setCountdown(seconds);
-    if (countdownRef.current) clearInterval(countdownRef.current);
-    countdownRef.current = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev === null || prev <= 1) {
-          if (countdownRef.current) clearInterval(countdownRef.current);
-          return null;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  }
-
   const stopPolling = useCallback(() => {
     if (pollRef.current)      { clearInterval(pollRef.current);  pollRef.current    = null; }
     if (timeoutRef.current)   { clearTimeout(timeoutRef.current); timeoutRef.current = null; }
     if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
     pendingMsgRef.current = null;
-    setCountdown(null);
   }, []);
 
   // ── Camera / image picker ─────────────────────────────────────────────────────
@@ -431,7 +414,6 @@ export default function DMScreen() {
 
       if (data.status === 'pending') {
         pendingMsgRef.current = data.childMessage;
-        if (data.estimatedReplySeconds) startCountdown(data.estimatedReplySeconds);
 
         pollRef.current = setInterval(async () => {
           try {
@@ -487,7 +469,7 @@ export default function DMScreen() {
   }
 
   const renderItem = ({ item }: { item: DisplayItem }) => {
-    if (item.sender_type === 'typing') return <TypingBubble countdown={countdown} lookingAtPhoto={lastMessageHadPhoto && isTeacher} />;
+    if (item.sender_type === 'typing') return <TypingBubble lookingAtPhoto={lastMessageHadPhoto && isTeacher} />;
     return <MessageBubble message={item as ChatMessage} friendName={friendName} />;
   };
 
@@ -551,7 +533,7 @@ export default function DMScreen() {
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <FlatList
           ref={listRef}
@@ -765,7 +747,7 @@ function TypingDot({ delay }: { delay: number }) {
   return <Animated.View style={[s.typingDot, { opacity }]} />;
 }
 
-function TypingBubble({ countdown, lookingAtPhoto }: { countdown: number | null; lookingAtPhoto?: boolean }) {
+function TypingBubble({ lookingAtPhoto }: { lookingAtPhoto?: boolean }) {
   const { t } = useTranslation();
   return (
     <View style={s.bubbleRowLeft}>
@@ -775,12 +757,7 @@ function TypingBubble({ countdown, lookingAtPhoto }: { countdown: number | null;
           <TypingDot delay={200} />
           <TypingDot delay={400} />
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          <Text style={s.typingText}>{lookingAtPhoto ? t('dm.lookingAtPhoto') : t('dm.typing')}</Text>
-          {countdown !== null && countdown > 5 && (
-            <Text style={s.countdownText}>~{countdown}s</Text>
-          )}
-        </View>
+        <Text style={s.typingText}>{lookingAtPhoto ? t('dm.lookingAtPhoto') : t('dm.typing')}</Text>
       </View>
     </View>
   );

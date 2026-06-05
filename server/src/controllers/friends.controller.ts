@@ -130,8 +130,21 @@ export async function addFriendForChild(req: AuthRequest, res: Response) {
       .onConflict(['child_id', 'friend_id']).ignore();
 
     if (referringFriendId) {
-      triggerWelcomeFlow(childId, friendId, referringFriendId)
-        .catch(e => console.error('[friends] welcome flow failed:', e));
+      const existingWelcome = await db('messages')
+        .join('conversations', 'conversations.id', 'messages.conversation_id')
+        .where({
+          'conversations.child_id':  childId,
+          'conversations.friend_id': friendId,
+          'messages.sender_type':    'ai',
+        })
+        .first();
+
+      if (existingWelcome) {
+        console.log('[friends] Welcome already sent, skipping duplicate');
+      } else {
+        triggerWelcomeFlow(childId, friendId, referringFriendId)
+          .catch(e => console.error('[friends] welcome flow failed:', e));
+      }
     }
 
     console.log(`[friends] ✅ Child ${childId} added ${String(friend.name)}`);

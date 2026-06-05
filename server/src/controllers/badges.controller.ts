@@ -193,3 +193,53 @@ export async function checkBadges(req: AuthRequest, res: Response) {
     res.status(500).json({ error: 'Failed to check badges' });
   }
 }
+
+// ── Internal helper — fire-and-forget badge check after key actions ───────────
+export async function checkBadgesForChild(childId: string, trigger: string): Promise<void> {
+  try {
+    const childRow = await db('children').where({ id: childId }).first();
+    const lang = (childRow?.language as string) === 'fr' ? 'fr' : 'en';
+
+    const progress = await fetchAllProgress(childId);
+    const val = progress[trigger] ?? 0;
+
+    const earnedBadgeIds = await db('child_badges')
+      .where({ child_id: childId })
+      .pluck('badge_id') as string[];
+
+    const candidates = await db('badge_definitions')
+      .where({ trigger_type: trigger })
+      .whereNotIn('id', earnedBadgeIds.length ? earnedBadgeIds : ['00000000-0000-0000-0000-000000000000'])
+      .select('*') as Record<string, unknown>[];
+
+    for (const badge of candidates) {
+      const threshold = badge.xp_required as number | null;
+      if (threshold !== null && val < threshold) continue;
+
+      await db('child_badges')
+        .insert({ child_id: childId, badge_id: badge.id as string })
+        .onConflict(['child_id', 'badge_id'])
+        .ignore();
+
+      const lumiMsg = lang === 'fr'
+        ? (badge.lumi_message_fr ?? badge.lumi_message) as string | null
+        : badge.lumi_message as string | null;
+
+      await db('parent_alerts').insert({
+        child_id: childId,
+        type:     'milestone',
+        message:  `${String(childRow?.name ?? 'Your child')} earned the "${badge.name as string}" badge! ${badge.icon as string}`,
+        severity: 'info',
+      }).catch((e: unknown) => console.error('[badges] alert insert failed:', e));
+
+      if (lumiMsg) {
+        await sendMigaDM(childId, lumiMsg)
+          .catch((e: unknown) => console.error('[badges] Miga DM failed:', e));
+      }
+
+      console.log(`[badges] 🏅 ${String(childRow?.name ?? childId)} earned "${badge.name as string}" ${badge.icon as string}`);
+    }
+  } catch (err) {
+    console.error('[badges] checkBadgesForChild error:', err);
+  }
+}
