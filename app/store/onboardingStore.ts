@@ -18,7 +18,6 @@ interface OnboardingState {
   interests: string[];
   freeInterest: string;
   avatarPack: string;
-  selectedFriendId: string;
   personalityTraits: string[];
   personalityFreeText: string;
 
@@ -36,7 +35,6 @@ interface OnboardingState {
   setInterests: (v: string[]) => void;
   setFreeInterest: (v: string) => void;
   setAvatarPack: (v: string) => void;
-  setSelectedFriendId: (v: string) => void;
   setPersonalityTraits: (v: string[]) => void;
   setPersonalityFreeText: (v: string) => void;
   resetStore: () => void;
@@ -56,7 +54,6 @@ const DEFAULTS = {
   interests:           [] as string[],
   freeInterest:        '',
   avatarPack:          '',
-  selectedFriendId:    '',
   personalityTraits:   [] as string[],
   personalityFreeText: '',
 };
@@ -88,7 +85,6 @@ export const useOnboardingStore = create<OnboardingState>()(
       setInterests:           (v) => set({ interests: v }),
       setFreeInterest:        (v) => set({ freeInterest: v }),
       setAvatarPack:          (v) => set({ avatarPack: v }),
-      setSelectedFriendId:    (v) => set({ selectedFriendId: v }),
       setPersonalityTraits:   (v) => set({ personalityTraits: v }),
       setPersonalityFreeText: (v) => set({ personalityFreeText: v }),
       resetStore:             ()  => set(DEFAULTS),

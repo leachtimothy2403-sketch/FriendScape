@@ -43,9 +43,9 @@ export default function NeedsScreen() {
 
         {/* Progress bar */}
         <View style={{ height: 6, backgroundColor: '#E0E0E0', borderRadius: 3, marginBottom: 8 }}>
-          <View style={{ width: '20%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
+          <View style={{ width: '22%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
         </View>
-        <Text style={{ fontSize: 13, color: '#888780', marginBottom: 16 }}>Step 2 of 10 · Together 👨‍👩‍👧</Text>
+        <Text style={{ fontSize: 13, color: '#888780', marginBottom: 16 }}>Step 2 of 9 · Together 👨‍👩‍👧</Text>
 
         {/* Together badge */}
         <View style={{ backgroundColor: '#E8F8F3', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, alignSelf: 'flex-start', marginBottom: 20 }}>

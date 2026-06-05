@@ -169,10 +169,10 @@ export default function PersonalityScreen() {
       >
         {/* Progress */}
         <View style={{ height: 6, backgroundColor: '#E0E0E0', borderRadius: 3, marginBottom: 8 }}>
-          <View style={{ width: '70%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
+          <View style={{ width: '77%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
         </View>
         <Text style={{ fontSize: 13, color: '#888780', marginBottom: 16 }}>
-          Step 7 of 10 · Just for you!
+          Step 7 of 9 · Just for you!
         </Text>
 
         {/* Badge */}

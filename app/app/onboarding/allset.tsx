@@ -152,7 +152,6 @@ export default function AllSetScreen() {
       interests:           store.interests,
       freeInterest:        store.freeInterest,
       avatarPack:          store.avatarPack,
-      selectedFriendId:    store.selectedFriendId,
       personalityTraits:   store.personalityTraits,
       personalityFreeText: store.personalityFreeText,
     };

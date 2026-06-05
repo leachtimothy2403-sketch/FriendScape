@@ -99,7 +99,7 @@ function scoreAndRank(allFriends: ApiFriend[], interests: string[], childAge?: n
 export default function FriendsScreen() {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
-  const { childName, mascotId, interests, age, selectedFriendId, setSelectedFriendId } =
+  const { childName, mascotId, interests, age } =
     useOnboardingStore();
 
   const displayName = childName.trim() || 'you';
@@ -145,8 +145,6 @@ export default function FriendsScreen() {
         const all: ApiFriend[] = res.data?.friends ?? [];
         const top = scoreAndRank(all, interests, childAge);
         setCards(top);
-        const initial = top[0]?.id || '';
-        setSelectedFriendId(initial);
       } catch {
         setError(t('common.error'));
       } finally {
@@ -176,7 +174,7 @@ export default function FriendsScreen() {
       setRegenCount(newCount);
       const newAssigned: AssignedFriend[] = data.assignedFriends;
       setAssignedCards(newAssigned);
-      if (newAssigned[0]) setSelectedFriendId(newAssigned[0].id);
+
 
       if (newCount >= 3) setRegenMaxed(true);
 

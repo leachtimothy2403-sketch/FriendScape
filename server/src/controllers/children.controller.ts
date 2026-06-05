@@ -141,7 +141,7 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
       parentEmail, name, age, gender, language,
       specialNeeds, specialNeedsDetails, preReader,
       avatarTheme, mascotId, interests, freeInterest,
-      avatarPack, selectedFriendId,
+      avatarPack,
       personalityTraits, personalityFreeText,
     } = req.body as Record<string, unknown>;
 

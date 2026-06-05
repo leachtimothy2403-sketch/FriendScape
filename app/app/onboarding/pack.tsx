@@ -45,10 +45,10 @@ export default function PackScreen() {
 
         {/* Progress */}
         <View style={{ height: 6, backgroundColor: '#E0E0E0', borderRadius: 3, marginBottom: 8 }}>
-          <View style={{ width: '80%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
+          <View style={{ width: '88%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
         </View>
         <Text style={{ fontSize: 13, color: '#888780', marginBottom: 16 }}>
-          Step 8 of 10 · {t('onboarding.pack.title', { name: displayName })}
+          Step 8 of 9 · {t('onboarding.pack.title', { name: displayName })}
         </Text>
 
         {/* Badge */}
@@ -128,7 +128,7 @@ export default function PackScreen() {
 
         {/* Buttons */}
         <TouchableOpacity
-          onPress={() => router.push('/onboarding/friends')}
+          onPress={() => router.push('/onboarding/allset')}
           style={{ backgroundColor: '#7F77DD', borderRadius: 9999, paddingVertical: 16, alignItems: 'center', marginBottom: 12 }}
           activeOpacity={0.85}
         >

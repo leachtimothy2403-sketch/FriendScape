@@ -58,9 +58,9 @@ export default function PhotoScreen() {
 
         {/* Progress bar */}
         <View style={{ height: 6, backgroundColor: '#E0E0E0', borderRadius: 3, marginBottom: 8 }}>
-          <View style={{ width: '30%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
+          <View style={{ width: '33%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
         </View>
-        <Text style={{ fontSize: 13, color: '#888780', marginBottom: 16 }}>Step 3 of 10 · Parents 👨‍👩‍👧</Text>
+        <Text style={{ fontSize: 13, color: '#888780', marginBottom: 16 }}>Step 3 of 9 · Parents 👨‍👩‍👧</Text>
 
         {/* Orange parent badge */}
         <View style={{ backgroundColor: '#FFF3DC', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, alignSelf: 'flex-start', marginBottom: 20 }}>

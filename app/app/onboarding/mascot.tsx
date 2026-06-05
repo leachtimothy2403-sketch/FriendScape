@@ -238,7 +238,7 @@ export default function MascotScreen() {
       <View style={{ paddingHorizontal: 24, paddingTop: 20 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <View style={{ flex: 1, height: 6, backgroundColor: '#E0E0E0', borderRadius: 3, marginRight: 12 }}>
-            <View style={{ width: '40%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
+            <View style={{ width: '44%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
           </View>
           {!introComplete && (
             <TouchableOpacity onPress={skipIntro} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -246,7 +246,7 @@ export default function MascotScreen() {
             </TouchableOpacity>
           )}
         </View>
-        <Text style={{ fontSize: 13, color: '#888780' }}>Step 4 of 10 · Child 🧒</Text>
+        <Text style={{ fontSize: 13, color: '#888780' }}>Step 4 of 9 · Child 🧒</Text>
       </View>
 
       <ScrollView
