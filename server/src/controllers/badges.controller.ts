@@ -194,6 +194,67 @@ export async function checkBadges(req: AuthRequest, res: Response) {
   }
 }
 
+// ── POST /api/badges/recalculate — awards any missed badges across all triggers ─
+export async function recalculateBadges(req: AuthRequest, res: Response) {
+  const childId = req.childId;
+  if (!childId) { res.status(401).json({ error: 'Child authentication required' }); return; }
+
+  try {
+    const childRow = await db('children').where({ id: childId }).first();
+    const lang = (childRow?.language as string) === 'fr' ? 'fr' : 'en';
+
+    const progress = await fetchAllProgress(childId);
+
+    const earnedBadgeIds = await db('child_badges')
+      .where({ child_id: childId })
+      .pluck('badge_id') as string[];
+
+    const allDefs = await db('badge_definitions')
+      .whereNotIn('id', earnedBadgeIds.length ? earnedBadgeIds : ['00000000-0000-0000-0000-000000000000'])
+      .select('*') as Record<string, unknown>[];
+
+    const newlyAwarded: Record<string, unknown>[] = [];
+
+    for (const badge of allDefs) {
+      const trigger = badge.trigger_type as string;
+      if (trigger === 'graduation') continue;
+
+      const val = progress[trigger] ?? 0;
+      const threshold = badge.xp_required as number | null;
+      if (threshold !== null && val < threshold) continue;
+
+      await db('child_badges')
+        .insert({ child_id: childId, badge_id: badge.id as string })
+        .onConflict(['child_id', 'badge_id'])
+        .ignore();
+
+      const lumiMsg = lang === 'fr'
+        ? (badge.lumi_message_fr ?? badge.lumi_message) as string | null
+        : badge.lumi_message as string | null;
+
+      await db('parent_alerts').insert({
+        child_id: childId,
+        type:     'milestone',
+        message:  `${String(childRow?.name ?? 'Your child')} earned the "${badge.name as string}" badge! ${badge.icon as string}`,
+        severity: 'info',
+      }).catch((e: unknown) => console.error('[badges] alert insert failed:', e));
+
+      if (lumiMsg) {
+        await sendMigaDM(childId, lumiMsg)
+          .catch((e: unknown) => console.error('[badges] Miga DM failed:', e));
+      }
+
+      newlyAwarded.push({ ...badge, lumi_message: lumiMsg, earned: true, earned_at: new Date().toISOString() });
+      console.log(`[badges] 🏅 recalculate: ${String(childRow?.name ?? childId)} earned "${badge.name as string}" ${badge.icon as string}`);
+    }
+
+    res.json({ newlyAwarded });
+  } catch (err) {
+    console.error('[badges] recalculateBadges error:', err);
+    res.status(500).json({ error: 'Failed to recalculate badges' });
+  }
+}
+
 // ── Internal helper — fire-and-forget badge check after key actions ───────────
 export async function checkBadgesForChild(childId: string, trigger: string): Promise<void> {
   try {

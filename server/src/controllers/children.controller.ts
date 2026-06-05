@@ -243,7 +243,7 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
     const lang     = (child.language as string) || 'en';
 
     console.log(`[friends] 🤖 Generating personalised friends for ${childObj.name}...`);
-    const genResult = await generatePersonalisedFriends(childObj, lang, 2);
+    const genResult = await generatePersonalisedFriends(childObj, lang, 3);
 
     const assignedFriends: { id: string; name: string; coverEmojis: string; introMessage: string }[] = [];
 
@@ -393,57 +393,6 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
             .onConflict(['ai_friend_id', 'connected_friend_id']).ignore();
           console.log(`[luna] 📚 Added Ms. Luna to ${gf.name}'s network`);
         }
-      }
-    }
-
-    // 8. Auto-select 1 star friend based on interests
-    const interestsList = Array.isArray(interests) ? (interests as string[]).map((i) => String(i).toLowerCase()) : [];
-    const hasSports = interestsList.some((i) => ['sports', 'soccer', 'football', 'basketball', 'swimming'].includes(i));
-    const hasDrama  = interestsList.some((i) => ['drama', 'art', 'stories', 'theatre', 'theatre', 'theater', 'music', 'dance'].includes(i));
-
-    let starFriendName = 'Zara';
-    if (hasSports) starFriendName = 'Jake';
-
-    const starFriend = await db('ai_friends')
-      .where({ is_star_friend: true, name: starFriendName })
-      .first()
-      ?? await db('ai_friends').where({ is_star_friend: true }).first();
-
-    if (starFriend) {
-      await db('child_friends').insert({
-        child_id:         child.id,
-        friend_id:        starFriend.id,
-        activated_at:     new Date(),
-        friendship_level: 1,
-        friendship_xp:    0,
-      }).onConflict(['child_id', 'friend_id']).ignore();
-
-      await db('child_memories').insert({
-        child_id:          child.id,
-        friend_id:         starFriend.id,
-        facts:             JSON.stringify([]),
-        emotional_history: JSON.stringify([]),
-        milestones:        JSON.stringify(['Joined Migo!']),
-        last_updated:      new Date(),
-      }).onConflict(['child_id', 'friend_id']).ignore();
-
-      assignedFriends.push({
-        id:           starFriend.id as string,
-        name:         starFriend.name as string,
-        coverEmojis:  (starFriend.cover_emojis as string) || '🌟',
-        introMessage: `Hi ${childObj.name}! I'm so excited you joined Migo — I think we're going to have so much fun together! 🌟`,
-      });
-
-      // Connect each generated friend to the star friend via network
-      for (const gf of assignedFriends.slice(0, -1)) {
-        await db('ai_friend_network')
-          .insert({
-            ai_friend_id:             gf.id,
-            connected_friend_id:      starFriend.id,
-            relationship_type:        'close_friend',
-            relationship_description: `They both know ${String(child.name)} through Migo`,
-          })
-          .onConflict(['ai_friend_id', 'connected_friend_id']).ignore();
       }
     }
 

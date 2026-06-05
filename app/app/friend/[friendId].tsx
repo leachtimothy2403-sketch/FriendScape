@@ -78,13 +78,14 @@ export default function FriendProfileScreen() {
   const { t } = useTranslation();
   const { friendId, via } = useLocalSearchParams<{ friendId: string; via?: string }>();
 
-  const [friend,     setFriend]     = useState<FriendWithStatus | null>(null);
-  const [network,    setNetwork]    = useState<FriendWithRelationship[]>([]);
-  const [posts,      setPosts]      = useState<FriendPost[]>([]);
-  const [token,      setToken]      = useState<string | null>(null);
-  const [loading,    setLoading]    = useState(true);
-  const [adding,     setAdding]     = useState(false);
-  const [isAdded,    setIsAdded]    = useState(false);
+  const [friend,              setFriend]             = useState<FriendWithStatus | null>(null);
+  const [network,             setNetwork]            = useState<FriendWithRelationship[]>([]);
+  const [posts,               setPosts]              = useState<FriendPost[]>([]);
+  const [token,               setToken]              = useState<string | null>(null);
+  const [loading,             setLoading]            = useState(true);
+  const [adding,              setAdding]             = useState(false);
+  const [isAdded,             setIsAdded]            = useState(false);
+  const [referringFriendName, setReferringFriendName] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -103,8 +104,10 @@ export default function FriendProfileScreen() {
           : { ...(friendRes as Awaited<ReturnType<typeof friendNetwork.getPublic>>).data.friend, is_added: false };
 
         if (!cancelled) {
-          setFriend(fr as FriendWithStatus);
-          setIsAdded(fr.is_added ?? false);
+          const frTyped = fr as FriendWithStatus;
+          setFriend(frTyped);
+          setIsAdded(frTyped.is_added ?? false);
+          setReferringFriendName(frTyped.referringFriendName ?? null);
           setNetwork(netRes.data.friends);
         }
 
@@ -188,7 +191,7 @@ export default function FriendProfileScreen() {
 
           <View style={s.badgeRow}>
             {isAdded && <RelBadge type="your_friend" />}
-            {via && !isAdded && <RelBadge via={via} />}
+            {referringFriendName && !isAdded && <RelBadge via={referringFriendName} />}
             {friend.is_star_friend && <RelBadge type="star" />}
             <View style={s.aiBadge}><Text style={s.aiBadgeText}>AI friend</Text></View>
           </View>

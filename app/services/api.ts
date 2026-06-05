@@ -215,8 +215,10 @@ export interface FriendshipRecord {
 }
 
 export interface FriendWithStatus extends AiFriendRecord {
-  is_added:   boolean;
-  friendship?: FriendshipRecord;
+  is_added:              boolean;
+  friendship?:           FriendshipRecord;
+  referringFriendName?:  string | null;
+  referringFriendId?:    string | null;
 }
 
 export interface FriendPost {
@@ -348,6 +350,8 @@ export const childBadges = {
     api.get<{ badges: BadgeDefinition[] }>('/badges', withToken(token)),
   check: (token: string, trigger: string, value: number) =>
     api.post<{ newBadges: BadgeDefinition[] }>('/badges/check', { trigger, value }, withToken(token)),
+  recalculate: (token: string) =>
+    api.post<{ newlyAwarded: BadgeDefinition[] }>('/badges/recalculate', {}, withToken(token)),
 };
 
 export const childXP = {

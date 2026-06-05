@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, SafeAreaView,
-  ScrollView, TextInput,
+  ScrollView, TextInput, Platform, KeyboardAvoidingView,
 } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle,
@@ -104,7 +104,8 @@ export default function PersonalityScreen() {
     return init;
   });
 
-  const soundRef = useRef<Audio.Sound | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const soundRef  = useRef<Audio.Sound | null>(null);
   const floatY   = useSharedValue(0);
 
   useEffect(() => {
@@ -156,7 +157,13 @@ export default function PersonalityScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F7FF' }}>
       <StatusBar style="dark" />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 20, paddingBottom: 40 }}
         keyboardShouldPersistTaps="handled"
       >
@@ -268,6 +275,7 @@ export default function PersonalityScreen() {
             onChangeText={handleFreeText}
             placeholder={t('onboarding.personality.freeTextPlaceholder')}
             placeholderTextColor="#BDBDBD"
+            onFocus={() => { setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100); }}
             style={{
               fontSize: 14, color: '#2C2C2A',
               minHeight: 80, textAlignVertical: 'top',
@@ -300,6 +308,7 @@ export default function PersonalityScreen() {
           <Text style={{ color: '#BDBDBD', fontSize: 14 }}>← Back</Text>
         </TouchableOpacity>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

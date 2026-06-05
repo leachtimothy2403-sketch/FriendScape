@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, SafeAreaView,
   ScrollView, TextInput, Platform, useWindowDimensions,
+  KeyboardAvoidingView,
 } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle,
@@ -50,6 +51,8 @@ export default function InterestsScreen() {
 
   const displayName = childName.trim() || 'you';
   const mascot      = MASCOT_MAP[mascotId] ?? MASCOT_MAP.miga;
+
+  const scrollRef = useRef<ScrollView>(null);
 
   const [isRecording, setIsRecording]     = useState(false);
   const [voiceRecorded, setVoiceRecorded] = useState(false);
@@ -133,7 +136,13 @@ export default function InterestsScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F7FF' }}>
       <StatusBar style="dark" />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={{ paddingHorizontal: HPAD, paddingTop: 20, paddingBottom: 40 }}
         keyboardShouldPersistTaps="handled"
       >
@@ -241,6 +250,7 @@ export default function InterestsScreen() {
             placeholderTextColor="#BDBDBD"
             value={freeInterest}
             onChangeText={setFreeInterest}
+            onFocus={() => { setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100); }}
             multiline
           />
           {Platform.OS !== 'web' && (
@@ -287,6 +297,7 @@ export default function InterestsScreen() {
         </TouchableOpacity>
 
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

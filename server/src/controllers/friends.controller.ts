@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import db from '../db';
 import { AuthRequest } from '../middleware/auth';
 import { triggerWelcomeFlow } from '../services/friendWelcome';
+import { checkBadgesForChild } from './badges.controller';
 
 export async function listFriends(_req: Request, res: Response) {
   try {
@@ -46,7 +47,22 @@ export async function getFriend(req: AuthRequest, res: Response) {
       }
     }
 
-    res.json({ friend: { ...friend, is_added, friendship } });
+    // Resolve the referring friend's name so the app can show "Friend of Mia" not a UUID
+    const referrer = await db('ai_friend_network')
+      .where({ connected_friend_id: req.params.friendId })
+      .join('ai_friends', 'ai_friends.id', 'ai_friend_network.ai_friend_id')
+      .select('ai_friends.name as referring_friend_name', 'ai_friends.id as referring_friend_id')
+      .first() as { referring_friend_name: string; referring_friend_id: string } | undefined;
+
+    res.json({
+      friend: {
+        ...friend,
+        is_added,
+        friendship,
+        referringFriendName: referrer?.referring_friend_name ?? null,
+        referringFriendId:   referrer?.referring_friend_id   ?? null,
+      },
+    });
   } catch {
     res.status(500).json({ error: 'Failed to fetch friend' });
   }
@@ -146,6 +162,8 @@ export async function addFriendForChild(req: AuthRequest, res: Response) {
           .catch(e => console.error('[friends] welcome flow failed:', e));
       }
     }
+
+    checkBadgesForChild(childId, 'friends_added').catch(console.error);
 
     console.log(`[friends] ✅ Child ${childId} added ${String(friend.name)}`);
     res.json({ success: true, friend });

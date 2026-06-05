@@ -2,7 +2,7 @@ import {
   View, Text, SafeAreaView, ScrollView, TouchableOpacity,
   Modal, ActivityIndicator, StyleSheet,
 } from 'react-native';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import {
@@ -225,6 +225,7 @@ export default function BadgesScreen() {
   const [token,      setToken]      = useState<string | null>(null);
   const [selected,   setSelected]   = useState<BadgeDefinition | null>(null);
   const [modalMode,  setMode]       = useState<'earned' | 'locked'>('earned');
+  const recalcDone = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -235,6 +236,12 @@ export default function BadgesScreen() {
       setToken(tok);
 
       try {
+        // Recalculate once per session to catch any missed badge awards
+        if (!recalcDone.current) {
+          recalcDone.current = true;
+          await childBadges.recalculate(tok).catch(() => {});
+        }
+
         const [badgeRes, xpRes, gradRes] = await Promise.all([
           childBadges.list(tok),
           childXP.get(tok),
