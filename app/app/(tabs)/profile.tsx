@@ -10,10 +10,12 @@ import { useTranslation } from 'react-i18next';
 import { Colors, Mascots } from '@/constants/theme';
 import { useLanguageStore } from '@/store/languageStore';
 import {
-  childProfileApi,
+  childProfileApi, avatarApi,
   ChildProfile, MemoryItem, FriendWithStats, ProfilePost, ModerationResult,
 } from '@/services/api';
 import MigoLogo from '@/components/MigoLogo';
+import Avatar from '@/components/Avatar';
+import type { AvatarConfig } from '../../../shared/types/avatar';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -245,6 +247,8 @@ export default function ProfileScreen() {
   const [selectedPost,     setSelectedPost]     = useState<ProfilePost | null>(null);
   const [childToken,        setChildToken]        = useState<string | null>(null);
   const [preReader,         setPreReader]         = useState(false);
+  const [avatarConfig,      setAvatarConfig]      = useState<AvatarConfig | null>(null);
+  const [avatarBackground,  setAvatarBackground]  = useState('#EEEDFE');
   const [confirmSignOut,    setConfirmSignOut]    = useState(false);
   const [customText,        setCustomText]        = useState('');
   const [checkingCustom,    setCheckingCustom]    = useState(false);
@@ -271,11 +275,12 @@ export default function ProfileScreen() {
       setPreReader(pr === 'true');
 
       try {
-        const [profileRes, postsRes, friendsRes, memoriesRes] = await Promise.all([
+        const [profileRes, postsRes, friendsRes, memoriesRes, avatarRes] = await Promise.all([
           childProfileApi.getProfile(tok),
           childProfileApi.getPosts(tok),
           childProfileApi.getFriendsList(tok),
           childProfileApi.getMemories(tok),
+          avatarApi.get(tok).catch(() => ({ data: { avatarConfig: null, avatarBackground: null } })),
         ]);
         if (!cancelled) {
           setProfile(profileRes.data);
@@ -283,6 +288,8 @@ export default function ProfileScreen() {
           setPosts(postsRes.data.posts);
           setFriends(friendsRes.data.friends);
           setMemories(memoriesRes.data.memories);
+          if (avatarRes.data.avatarConfig) setAvatarConfig(avatarRes.data.avatarConfig as unknown as AvatarConfig);
+          if (avatarRes.data.avatarBackground) setAvatarBackground(avatarRes.data.avatarBackground);
         }
       } catch (e) {
         console.error('[profile] load failed:', e);
@@ -413,13 +420,22 @@ export default function ProfileScreen() {
 
           {/* Avatar + info row */}
           <View style={s.avatarRow}>
-            <TouchableOpacity onPress={() => showToast(t('profile.avatarTapMessage'))} activeOpacity={0.85}>
+            <View style={{ position: 'relative' }}>
               <View style={s.avatarRing}>
-                <View style={s.avatarCircle}>
-                  <Text style={{ fontSize: 36 }}>{mascotEmoji}</Text>
+                <View style={[s.avatarCircle, avatarConfig ? { backgroundColor: avatarBackground } : null]}>
+                  {avatarConfig
+                    ? <Avatar config={avatarConfig} background={avatarBackground} size={60} />
+                    : <Text style={{ fontSize: 36 }}>{mascotEmoji}</Text>}
                 </View>
               </View>
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => router.push('/profile/edit-avatar' as never)}
+                style={s.avatarEditBtn}
+                activeOpacity={0.8}
+              >
+                <Text style={{ fontSize: 13 }}>✏️</Text>
+              </TouchableOpacity>
+            </View>
 
             <View style={{ flex: 1 }}>
               <View style={s.nameRow}>
@@ -802,6 +818,14 @@ const s = StyleSheet.create({
   avatarCircle: {
     flex: 1, borderRadius: 35,
     backgroundColor: '#EEEDFE', alignItems: 'center', justifyContent: 'center',
+  },
+
+  avatarEditBtn: {
+    position: 'absolute', bottom: 0, right: 0,
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 4, elevation: 3,
+    borderWidth: 1, borderColor: '#F0EFF8',
   },
 
   // Name / level
