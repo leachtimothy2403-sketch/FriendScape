@@ -4,8 +4,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 import AvatarBuilderCore from '@/components/AvatarBuilderCore';
 import { useOnboardingStore } from '@/store/onboardingStore';
-import { DEFAULT_AVATAR } from '@migo/shared/types/avatar';
-import type { AvatarConfig } from '@migo/shared/types/avatar';
+import { DEFAULT_AVATAR } from '@/types/avatar';
+import type { AvatarConfig } from '@/types/avatar';
 
 export default function AvatarBuilderScreen() {
   const { t }                                                     = useTranslation();

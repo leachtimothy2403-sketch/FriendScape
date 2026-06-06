@@ -4,7 +4,7 @@ import Svg, {
   Defs, LinearGradient, Stop,
 } from 'react-native-svg';
 import type { StyleProp, ViewStyle } from 'react-native';
-import type { AvatarConfig } from '@migo/shared/types/avatar';
+import type { AvatarConfig } from '@/types/avatar';
 
 export interface AvatarProps {
   config: AvatarConfig;

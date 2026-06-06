@@ -15,7 +15,7 @@ import {
 } from '@/services/api';
 import MigoLogo from '@/components/MigoLogo';
 import Avatar from '@/components/Avatar';
-import type { AvatarConfig } from '@migo/shared/types/avatar';
+import type { AvatarConfig } from '@/types/avatar';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 

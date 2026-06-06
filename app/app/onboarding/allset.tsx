@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle,
@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { children as childrenApi, childAuth } from '@/services/api';
 import Avatar from '@/components/Avatar';
 import { useOnboardingStore } from '@/store/onboardingStore';
-import type { AvatarConfig } from '@migo/shared/types/avatar';
+import type { AvatarConfig } from '@/types/avatar';
 
 const MASCOT: Record<string, { emoji: string; name: string }> = {
   pixel: { emoji: '🤖', name: 'Pixel' },
@@ -28,6 +28,10 @@ const PACK_NAME: Record<string, string> = {
 };
 
 const PARENT_DASHBOARD = 'http://localhost:3000';
+
+// Module-level guard: survives React Strict Mode's mount→unmount→remount cycle.
+// useRef resets to false on each remount, so it cannot protect against double-invocation.
+let _createChildStarted = false;
 
 function PulsingDot({ delay }: { delay: number }) {
   const scale = useSharedValue(1);
@@ -77,7 +81,6 @@ export default function AllSetScreen() {
 
   const floatY     = useSharedValue(0);
   const celebScale = useSharedValue(0);
-  const calledRef  = useRef(false);
 
   const card0Opacity = useSharedValue(0);
   const card0TransY  = useSharedValue(20);
@@ -93,7 +96,6 @@ export default function AllSetScreen() {
   ];
 
   useEffect(() => {
-    console.log('[allset] 🟡 mounted, calledRef:', calledRef.current);
     floatY.value = withRepeat(
       withSequence(
         withTiming(-10, { duration: 1400, easing: Easing.inOut(Easing.sin) }),
@@ -101,16 +103,9 @@ export default function AllSetScreen() {
       ),
       -1, false,
     );
-    if (calledRef.current) {
-    console.log('[allset] ⛔ blocked by calledRef');
-    return;
-	}
-    calledRef.current = true;
+    if (_createChildStarted) return;
+    _createChildStarted = true;
     void createChild();
-    return () => { 
-    console.log('[allset] 🔴 cleanup');
-    calledRef.current = false; 
-  };
   }, []);
 
   useEffect(() => {
@@ -198,6 +193,7 @@ export default function AllSetScreen() {
   }
 
   function handleLaunch() {
+    _createChildStarted = false;
     store.resetStore();
     router.replace('/(tabs)/feed');
   }

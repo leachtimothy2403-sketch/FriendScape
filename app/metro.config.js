@@ -3,6 +3,11 @@ const { withNativeWind } = require('nativewind/metro');
 
 const config = getDefaultConfig(__dirname);
 
+// Resolve @migo/shared path alias for Metro
+config.resolver.extraNodeModules = {
+  '@migo/shared': require('path').resolve(__dirname, '../shared'),
+};
+
 // Disable package.json "exports" field resolution — prevents Metro from
 // picking up ESM-only entry points that contain import.meta syntax.
 config.resolver.unstable_enablePackageExports = false;

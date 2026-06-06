@@ -6,8 +6,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import AvatarBuilderCore from '@/components/AvatarBuilderCore';
 import { avatarApi } from '@/services/api';
-import { DEFAULT_AVATAR } from '@migo/shared/types/avatar';
-import type { AvatarConfig } from '@migo/shared/types/avatar';
+import { DEFAULT_AVATAR } from '@/types/avatar';
+import type { AvatarConfig } from '@/types/avatar';
 
 export default function EditAvatarScreen() {
   const { t }                            = useTranslation();

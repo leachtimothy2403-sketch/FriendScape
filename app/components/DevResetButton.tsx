@@ -6,8 +6,10 @@ import { useState } from 'react';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { devApi } from '@/services/api';
+import { useOnboardingStore } from '@/store/onboardingStore';
 
 export default function DevResetButton() {
+  const resetOnboardingStore = useOnboardingStore((s) => s.resetStore);
   const [resetting, setResetting] = useState(false);
   const [clearing, setClearing]   = useState(false);
   const [result, setResult]       = useState<{ text: string; color: string } | null>(null);
@@ -30,6 +32,7 @@ export default function DevResetButton() {
       const res = await devApi.reset();
       const { deleted } = res.data;
       await AsyncStorage.clear();
+      resetOnboardingStore();
       setResult({ text: `✅ ${deleted.children} children deleted`, color: '#2D7D46' });
       setTimeout(() => { setResetting(false); router.replace('/enroll' as never); }, 2000);
     } catch (err: unknown) {
@@ -44,6 +47,7 @@ export default function DevResetButton() {
     setResult(null);
     try {
       await AsyncStorage.clear();
+      resetOnboardingStore();
       setResult({ text: '✅ Cache cleared', color: '#2D7D46' });
       setTimeout(() => { setClearing(false); router.replace('/enroll' as never); }, 1000);
     } catch {

@@ -12,8 +12,8 @@ import MigoLogo from '@/components/MigoLogo';
 import Avatar from '@/components/Avatar';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { Colors, Mascots } from '@/constants/theme';
-import { DEFAULT_AVATAR } from '@migo/shared/types/avatar';
-import type { AvatarConfig } from '@migo/shared/types/avatar';
+import { DEFAULT_AVATAR } from '@/types/avatar';
+import type { AvatarConfig } from '@/types/avatar';
 import AudioPlayer from '@/components/AudioPlayer';
 import { requestPermission } from '@/utils/webNotifications';
 
