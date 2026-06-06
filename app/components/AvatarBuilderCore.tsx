@@ -8,8 +8,8 @@ import { useTranslation } from 'react-i18next';
 import Avatar from './Avatar';
 import {
   SKIN_TONES, HAIR_COLOURS, EYE_COLOURS, BACKGROUND_COLOURS,
-} from '../../shared/types/avatar';
-import type { AvatarConfig } from '../../shared/types/avatar';
+} from '@/types/avatar';
+import type { AvatarConfig } from '@/types/avatar';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 

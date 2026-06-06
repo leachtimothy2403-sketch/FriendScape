@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import type { AvatarConfig } from '../../shared/types/avatar';
+import type { AvatarConfig } from '@/types/avatar';
 
 interface OnboardingState {
   // Data
