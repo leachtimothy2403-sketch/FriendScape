@@ -6,6 +6,7 @@ import {
   updateChild,
   deleteChild,
   createChildFromOnboarding,
+  generateAvatar,
   startSession,
   endSession,
   getMyFriends,
@@ -25,6 +26,8 @@ const router = Router();
 
 // Unauthed: onboarding creates the child via approved enrollment record
 router.post('/onboarding', createChildFromOnboarding);
+// Unauthed: called during onboarding before child account exists
+router.post('/generate-avatar', generateAvatar);
 
 // All routes below require a JWT (parent or child)
 router.use(requireAuth);

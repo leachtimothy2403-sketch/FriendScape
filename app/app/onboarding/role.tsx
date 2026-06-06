@@ -7,6 +7,7 @@ import Animated, {
 import { Audio } from 'expo-av';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useTranslation } from 'react-i18next';
 import { useOnboardingStore } from '@/store/onboardingStore';
 
 // ─── Mascot map ───────────────────────────────────────────────────────────────
@@ -17,23 +18,24 @@ const MASCOT_MAP: Record<string, { emoji: string; name: string; audio: number }>
   sage:  { emoji: '🦉', name: 'Sage',  audio: require('../../assets/audio/sage_intro.mp3')  },
 };
 
-const ROLES = [
-  { bg: '#EEEDFE', icon: '🎉', title: 'I celebrate every win',
-    desc: "Every badge, level-up, and milestone — I'll be the first to cheer for you" },
-  { bg: '#E1F5EE', icon: '🛠️', title: 'I fix things',
-    desc: "If the app does something weird, just tell me and I'll sort it out" },
-  { bg: '#FAEEDA', icon: '💛', title: 'I check in on you',
-    desc: "If you haven't been around for a while, I'll send a friendly hello" },
-  { bg: '#FAECE7', icon: '🛡️', title: 'I keep you safe',
-    desc: "If anything ever feels wrong, come to me first — I've got you" },
-  { bg: '#EEEDFE', icon: '📣', title: 'I share the news',
-    desc: "New friends, seasonal themes, app updates — you'll hear it from me first" },
-];
-
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function RoleScreen() {
+  const { t } = useTranslation();
   const { mascotId } = useOnboardingStore();
   const mascot = MASCOT_MAP[mascotId] ?? MASCOT_MAP.miga;
+
+  const ROLES = [
+    { bg: '#EEEDFE', icon: '🎉', title: t('onboarding.role.role1'),
+      desc: t('onboarding.role.role1Desc') },
+    { bg: '#E1F5EE', icon: '🛠️', title: t('onboarding.role.role2'),
+      desc: t('onboarding.role.role2Desc') },
+    { bg: '#FAEEDA', icon: '💛', title: t('onboarding.role.role3'),
+      desc: t('onboarding.role.role3Desc') },
+    { bg: '#FAECE7', icon: '🛡️', title: t('onboarding.role.role4'),
+      desc: t('onboarding.role.role4Desc') },
+    { bg: '#EEEDFE', icon: '📣', title: t('onboarding.role.role5'),
+      desc: t('onboarding.role.role5Desc') },
+  ];
 
   const soundRef = useRef<Audio.Sound | null>(null);
   const floatY   = useSharedValue(0);
@@ -70,11 +72,13 @@ export default function RoleScreen() {
         <View style={{ height: 6, backgroundColor: '#E0E0E0', borderRadius: 3, marginBottom: 8 }}>
           <View style={{ width: '55%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
         </View>
-        <Text style={{ fontSize: 13, color: '#888780', marginBottom: 16 }}>Step 5 of 9 · Meet your guide 🌟</Text>
+        <Text style={{ fontSize: 13, color: '#888780', marginBottom: 16 }}>
+          {t('onboarding.stepOf', { current: 5, total: 9 })} · {t('onboarding.step5sub')} 🌟
+        </Text>
 
         {/* Badge */}
         <View style={{ backgroundColor: '#E8F8F3', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, alignSelf: 'flex-start', marginBottom: 24 }}>
-          <Text style={{ color: '#5DCAA5', fontSize: 13, fontWeight: '600' }}>🌟 Your forever guide</Text>
+          <Text style={{ color: '#5DCAA5', fontSize: 13, fontWeight: '600' }}>{t('onboarding.role.badge')}</Text>
         </View>
 
         {/* Floating mascot — tap to play audio */}
@@ -99,7 +103,7 @@ export default function RoleScreen() {
             <Text style={{ fontSize: 40, marginRight: 12 }}>{mascot.emoji}</Text>
             <View>
               <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#2C2C2A' }}>Hi, I'm {mascot.name}! 👋</Text>
-              <Text style={{ fontSize: 12, color: '#7F77DD', marginTop: 2 }}>Your guide, helper & cheerleader — always</Text>
+              <Text style={{ fontSize: 12, color: '#7F77DD', marginTop: 2 }}>{t('onboarding.role.cardHeader')}</Text>
             </View>
           </View>
 
@@ -143,7 +147,7 @@ export default function RoleScreen() {
         }}>
           <Text style={{ fontSize: 20, marginRight: 10, flexShrink: 0 }}>{mascot.emoji}</Text>
           <Text style={{ fontSize: 12, color: '#534AB7', lineHeight: 19, flex: 1 }}>
-            Unlike your other friends, <Text style={{ fontWeight: '700' }}>{mascot.name}</Text> is always there — you can never remove me, and I'll never go away. I'm yours forever!
+            {t('onboarding.role.permanentNote', { mascot: mascot.name })}
           </Text>
         </View>
 
@@ -154,12 +158,12 @@ export default function RoleScreen() {
           activeOpacity={0.85}
         >
           <Text style={{ color: '#fff', fontSize: 17, fontWeight: 'bold' }}>
-            I love that, {mascot.name}! →
+            {t('onboarding.role.continueButton', { mascot: mascot.name })}
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => router.back()} style={{ paddingVertical: 12, alignItems: 'center' }}>
-          <Text style={{ color: '#BDBDBD', fontSize: 14 }}>← Back</Text>
+          <Text style={{ color: '#BDBDBD', fontSize: 14 }}>← {t('common.back')}</Text>
         </TouchableOpacity>
 
       </ScrollView>

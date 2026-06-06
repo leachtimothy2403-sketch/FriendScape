@@ -151,8 +151,8 @@ export async function checkBadges(req: AuthRequest, res: Response) {
     const newBadges: Record<string, unknown>[] = [];
 
     for (const badge of candidates) {
-      const threshold = badge.xp_required as number | null;
-      if (threshold !== null && val < threshold) continue;
+      const threshold = (badge.xp_required as number | null) ?? 1;
+      if (val < threshold) continue;
 
       await db('child_badges')
         .insert({ child_id: childId, badge_id: badge.id as string })
@@ -220,8 +220,8 @@ export async function recalculateBadges(req: AuthRequest, res: Response) {
       if (trigger === 'graduation') continue;
 
       const val = progress[trigger] ?? 0;
-      const threshold = badge.xp_required as number | null;
-      if (threshold !== null && val < threshold) continue;
+      const threshold = (badge.xp_required as number | null) ?? 1;
+      if (val < threshold) continue;
 
       await db('child_badges')
         .insert({ child_id: childId, badge_id: badge.id as string })
@@ -274,8 +274,8 @@ export async function checkBadgesForChild(childId: string, trigger: string): Pro
       .select('*') as Record<string, unknown>[];
 
     for (const badge of candidates) {
-      const threshold = badge.xp_required as number | null;
-      if (threshold !== null && val < threshold) continue;
+      const threshold = (badge.xp_required as number | null) ?? 1;
+      if (val < threshold) continue;
 
       await db('child_badges')
         .insert({ child_id: childId, badge_id: badge.id as string })

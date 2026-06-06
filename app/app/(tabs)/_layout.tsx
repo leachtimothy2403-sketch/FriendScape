@@ -1,7 +1,10 @@
 import { Tabs } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Colors } from '@/constants/theme';
 
 export default function TabsLayout() {
+  const { t } = useTranslation();
+
   return (
     <Tabs
       screenOptions={{
@@ -24,19 +27,19 @@ export default function TabsLayout() {
     >
       <Tabs.Screen
         name="feed"
-        options={{ title: 'Home', tabBarIcon: ({ color }) => <TabIcon emoji="🏡" color={color} /> }}
+        options={{ title: t('tabs.home'), tabBarIcon: ({ color }) => <TabIcon emoji="🏡" color={color} /> }}
       />
       <Tabs.Screen
         name="discover"
-        options={{ title: 'Discover', tabBarIcon: ({ color }) => <TabIcon emoji="🔭" color={color} /> }}
+        options={{ title: t('tabs.discover'), tabBarIcon: ({ color }) => <TabIcon emoji="🔭" color={color} /> }}
       />
       <Tabs.Screen
         name="badges"
-        options={{ title: 'Badges', tabBarIcon: ({ color }) => <TabIcon emoji="🏅" color={color} /> }}
+        options={{ title: t('tabs.badges'), tabBarIcon: ({ color }) => <TabIcon emoji="🏅" color={color} /> }}
       />
       <Tabs.Screen
         name="profile"
-        options={{ title: 'Me', tabBarIcon: ({ color }) => <TabIcon emoji="😊" color={color} /> }}
+        options={{ title: t('tabs.me'), tabBarIcon: ({ color }) => <TabIcon emoji="😊" color={color} /> }}
       />
     </Tabs>
   );

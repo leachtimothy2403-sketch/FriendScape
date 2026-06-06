@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, Image } from 'react-native';
+import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, Image, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 import { useOnboardingStore } from '@/store/onboardingStore';
+import api from '@/services/api';
 
 type Mode = 'photo' | 'builder' | 'skip';
 
@@ -12,8 +13,9 @@ export default function PhotoScreen() {
   const { t } = useTranslation();
   const { childName, avatarTheme, setAvatarTheme } = useOnboardingStore();
 
-  const [mode, setMode]         = useState<Mode>('photo');
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [mode, setMode]             = useState<Mode>('photo');
+  const [photoUri, setPhotoUri]     = useState<string | null>(null);
+  const [suggesting, setSuggesting] = useState(false);
 
   const displayName = childName.trim() || 'your child';
   const initial     = childName.trim() ? childName.trim()[0].toUpperCase() : '?';
@@ -42,9 +44,30 @@ export default function PhotoScreen() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.8,
+      quality: 0.5,
+      base64: true,
     });
-    if (!result.canceled) setPhotoUri(result.assets[0].uri);
+    if (result.canceled) return;
+
+    const asset = result.assets[0];
+    setPhotoUri(asset.uri);
+
+    if (asset.base64) {
+      setSuggesting(true);
+      try {
+        const res = await api.post<{ theme: string }>('/children/generate-avatar', {
+          imageBase64: asset.base64,
+          mediaType: asset.mimeType ?? 'image/jpeg',
+        });
+        if (THEMES.some((t) => t.id === res.data.theme)) {
+          setAvatarTheme(res.data.theme);
+        }
+      } catch {
+        // theme suggestion failed — user can still pick manually
+      } finally {
+        setSuggesting(false);
+      }
+    }
   }
 
   const selectedTheme = THEMES.find((th) => th.id === avatarTheme);
@@ -60,11 +83,13 @@ export default function PhotoScreen() {
         <View style={{ height: 6, backgroundColor: '#E0E0E0', borderRadius: 3, marginBottom: 8 }}>
           <View style={{ width: '33%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
         </View>
-        <Text style={{ fontSize: 13, color: '#888780', marginBottom: 16 }}>Step 3 of 9 · Parents 👨‍👩‍👧</Text>
+        <Text style={{ fontSize: 13, color: '#888780', marginBottom: 16 }}>
+          {t('onboarding.stepOf', { current: 3, total: 9 })} · {t('onboarding.step3sub')} 👨‍👩‍👧
+        </Text>
 
         {/* Orange parent badge */}
         <View style={{ backgroundColor: '#FFF3DC', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, alignSelf: 'flex-start', marginBottom: 20 }}>
-          <Text style={{ color: '#EF9F27', fontSize: 13, fontWeight: '600' }}>👨‍👩‍👧 Parents — this part is for you</Text>
+          <Text style={{ color: '#EF9F27', fontSize: 13, fontWeight: '600' }}>👨‍👩‍👧 {t('onboarding.parentsNote')}</Text>
         </View>
 
         <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#2C2C2A', marginBottom: 6 }}>
@@ -135,7 +160,7 @@ export default function PhotoScreen() {
                 <Text style={{ fontSize: 40, marginBottom: 8 }}>📷</Text>
               )}
               <Text style={{ fontSize: 14, color: '#888780', textAlign: 'center' }}>
-                {photoUri ? 'Tap to change photo' : 'Tap to choose a photo from your camera roll'}
+                {photoUri ? t('common.retry') : t('onboarding.photo.tapToChoosePhoto')}
               </Text>
             </TouchableOpacity>
 
@@ -144,7 +169,7 @@ export default function PhotoScreen() {
               style={{ backgroundColor: '#7F77DD', borderRadius: 9999, paddingVertical: 12, alignItems: 'center', marginBottom: 12 }}
               activeOpacity={0.85}
             >
-              <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>Choose photo</Text>
+              <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>{t('onboarding.photo.chooseFromLibrary')}</Text>
             </TouchableOpacity>
 
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#E8F8F3', borderRadius: 12, padding: 12, marginBottom: 20 }}>
@@ -212,7 +237,16 @@ export default function PhotoScreen() {
               })}
             </View>
 
-            {avatarTheme !== '' && (
+            {suggesting && (
+              <View style={{ alignItems: 'center', marginBottom: 12 }}>
+                <ActivityIndicator color="#7F77DD" />
+                <Text style={{ fontSize: 12, color: '#888780', marginTop: 6 }}>
+                  {t('onboarding.photo.suggestingTheme')}
+                </Text>
+              </View>
+            )}
+
+            {!suggesting && avatarTheme !== '' && (
               <View style={{ alignItems: 'center', marginBottom: 8 }}>
                 <View style={{
                   width: 72, height: 72, borderRadius: 36,

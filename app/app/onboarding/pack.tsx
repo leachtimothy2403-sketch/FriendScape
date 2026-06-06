@@ -48,7 +48,7 @@ export default function PackScreen() {
           <View style={{ width: '88%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
         </View>
         <Text style={{ fontSize: 13, color: '#888780', marginBottom: 16 }}>
-          Step 8 of 9 · {t('onboarding.pack.title', { name: displayName })}
+          {t('onboarding.stepOf', { current: 8, total: 9 })} · {t('onboarding.step8sub')}
         </Text>
 
         {/* Badge */}
@@ -71,7 +71,7 @@ export default function PackScreen() {
             padding: 12,
           }}>
             <Text style={{ fontSize: 13, color: '#2C2C2A', lineHeight: 20 }}>
-              Amazing choices!! Now — what should your friends look like? Pick the style you love most!
+              {t('onboarding.pack.packTitle')}
             </Text>
           </View>
         </View>

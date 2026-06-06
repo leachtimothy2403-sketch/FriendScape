@@ -6,7 +6,9 @@ export async function seed(knex: Knex): Promise<void> {
   await knex('badge_definitions').insert([
     {
       name: 'First Post',
+      name_fr: 'Premier Post',
       description: 'Shared your very first post',
+      description_fr: 'Partagé ton tout premier post',
       icon: '🎨',
       category: 'social',
       xp_required: null,
@@ -16,7 +18,9 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       name: 'Kind Words',
+      name_fr: 'Mots Gentils',
       description: 'Sent 5 encouraging messages',
+      description_fr: 'Envoyé 5 messages encourageants',
       icon: '💛',
       category: 'kindness',
       xp_required: 5,
@@ -26,7 +30,9 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       name: 'Daily Poster',
+      name_fr: 'Posteur Quotidien',
       description: 'Posted 5 days in a row',
+      description_fr: 'Posté 5 jours de suite',
       icon: '📝',
       category: 'social',
       xp_required: 5,
@@ -36,7 +42,9 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       name: 'Quick Learner',
+      name_fr: 'Apprenant Rapide',
       description: 'Completed 3 Ms. Luna sessions',
+      description_fr: 'Complété 3 séances avec Mme Luna',
       icon: '🌟',
       category: 'learning',
       xp_required: 3,
@@ -46,7 +54,9 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       name: 'Friend Maker',
+      name_fr: 'Faiseur d\'Amis',
       description: 'Added 5 friends',
+      description_fr: 'Ajouté 5 amis',
       icon: '🤝',
       category: 'social',
       xp_required: 5,
@@ -56,7 +66,9 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       name: 'Chatterbox',
+      name_fr: 'Bavard',
       description: 'Sent 50 messages total',
+      description_fr: 'Envoyé 50 messages au total',
       icon: '💬',
       category: 'social',
       xp_required: 50,
@@ -66,7 +78,9 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       name: 'Brain Box',
+      name_fr: 'Génie',
       description: 'Completed 10 Ms. Luna sessions',
+      description_fr: 'Complété 10 séances avec Mme Luna',
       icon: '🧠',
       category: 'learning',
       xp_required: 10,
@@ -76,7 +90,9 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       name: 'Social Star',
+      name_fr: 'Star Sociale',
       description: 'Posted 20 times',
+      description_fr: 'Posté 20 fois',
       icon: '🌈',
       category: 'social',
       xp_required: 20,
@@ -86,7 +102,9 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       name: 'Kind Heart',
+      name_fr: 'Cœur Gentil',
       description: 'Reacted to 20 friend posts',
+      description_fr: 'Réagi à 20 posts d\'amis',
       icon: '❤️',
       category: 'kindness',
       xp_required: 20,
@@ -96,7 +114,9 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       name: 'Graduate',
+      name_fr: 'Diplômé',
       description: 'Completed the real world track',
+      description_fr: 'Complété la piste du vrai monde',
       icon: '🎓',
       category: 'milestone',
       xp_required: null,

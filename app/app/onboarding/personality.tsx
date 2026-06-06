@@ -88,6 +88,7 @@ export default function PersonalityScreen() {
 
   const {
     childName,
+    gender,
     personalityTraits, setPersonalityTraits,
     personalityFreeText, setPersonalityFreeText,
   } = useOnboardingStore();
@@ -198,7 +199,7 @@ export default function PersonalityScreen() {
               borderWidth: 1.5, borderColor: '#E0E0E0', padding: 12,
             }}>
               <Text style={{ fontSize: 13, color: '#2C2C2A', lineHeight: 20 }}>
-                {t('onboarding.personality.migaBubble')}
+                {t(gender === 'girl' ? 'onboarding.personality.migaBubble_girl' : 'onboarding.personality.migaBubble')}
               </Text>
               <TouchableOpacity
                 onPress={() => void playMigaHear()}

@@ -28,9 +28,20 @@
     "button": "Let's set up Migo! →"
   },
   "onboarding": {
+    "stepOf": "Step {{current}} of {{total}}",
+    "step1sub": "Together",
+    "step2sub": "Your needs",
+    "step3sub": "Your photo",
+    "step4sub": "Your guide",
+    "step5sub": "Your role",
+    "step6sub": "Your interests",
+    "step7sub": "Just for you!",
+    "step8sub": "Your style",
+    "step9sub": "Let's go!",
     "together": "Do this part together",
     "togetherBadge": "👨‍👩‍👧 Do this part together",
     "childTurn": "Now it's your turn!",
+    "parentsNote": "Parents — this part is for you",
     "basics": {
       "title": "Tell us about your child",
       "subtitle": "Parents — fill this in with your child sitting with you.",
@@ -74,6 +85,10 @@
       "skipDesc": "Use a default avatar — set it up later",
       "privacyNote": "🔒 The real photo is used only to generate the cartoon and is permanently deleted right after.",
       "themeLabel": "Let {{name}} pick a theme! 🎉",
+      "tapToChoosePhoto": "Tap to choose a photo from your camera roll",
+      "suggestingTheme": "Picking a theme for you…",
+      "takePhoto": "Take a photo",
+      "chooseFromLibrary": "Choose from library",
       "themes": {
         "princess": "Princess",
         "astronaut": "Astronaut",
@@ -98,11 +113,41 @@
       "title": "Just for {{name}}!",
       "freeTextLabel": "Something else? Tell us! 🗣️",
       "freeTextPlaceholder": "Type something you love… or tap the mic to say it!",
-      "continueButton": "Those are my favourites! →"
+      "continueButton": "Those are my favourites! →",
+      "art": "Art",
+      "sports": "Sports",
+      "animals": "Animals",
+      "gaming": "Gaming",
+      "reading": "Reading",
+      "music": "Music",
+      "cooking": "Cooking",
+      "science": "Science",
+      "nature": "Nature",
+      "drama": "Drama",
+      "building": "Building",
+      "dance": "Dance"
+    },
+    "role": {
+      "title": "Your Forever Guide",
+      "badge": "🌟 Your forever guide",
+      "cardHeader": "Your guide, helper & cheerleader — always",
+      "role1": "I celebrate every win",
+      "role1Desc": "Every badge, level-up, and milestone — I'll be the first to cheer for you",
+      "role2": "I fix things",
+      "role2Desc": "If the app does something weird, just tell me and I'll sort it out",
+      "role3": "I check in on you",
+      "role3Desc": "If you haven't been around for a while, I'll send a friendly hello",
+      "role4": "I keep you safe",
+      "role4Desc": "If anything ever feels wrong, come to me first — I've got you",
+      "role5": "I share the news",
+      "role5Desc": "New friends, seasonal themes, app updates — you'll hear it from me first",
+      "permanentNote": "Unlike your other friends, {{mascot}} is always there — you can never remove me, and I'll never go away. I'm yours forever!",
+      "continueButton": "I love that, {{mascot}}! →"
     },
     "personality": {
       "title": "Just for {{name}}!",
       "migaBubble": "Now I want to get to know the REAL you! These help me find friends who truly get you 🌟",
+      "migaBubble_girl": "Now I want to get to know the REAL you! These help me find friends who truly get you 🌟",
       "q1": "In a group of friends, you are usually...",
       "q1_quiet": "🐢 The quiet one",
       "q1_quiet_desc": "I listen more than I talk",
@@ -137,9 +182,14 @@
       "freeTextPlaceholder": "Tell Miga something special about you... (totally optional!)",
       "continueButton": "These are so me! →"
     },
+    "mascot": {
+      "mascotChooseHint": "In a moment you'll meet Miga, Pixel, Finn and Sage — they're all amazing, so take your time choosing!"
+    },
     "pack": {
       "title": "Just for {{name}}!",
       "continueButton": "I love this style! →",
+      "packTitle": "Amazing choices!! Now — what should your friends look like? Pick the style you love most!",
+      "packSubtitle": "Choose a style",
       "packs": {
         "sketchCrew": "Sketch Crew",
         "sketchCrewDesc": "Illustrated portraits, like a comic book",
@@ -168,6 +218,10 @@
       "title": "You're all set, {{name}}! 🎊",
       "subtitle": "{{mascot}} and {{friend}} are already waiting for you!",
       "friendsWaiting": "Your new friends are waiting! 🎉",
+      "settingUp": "Setting up your Migo...",
+      "almostThere": "Almost there! ✨",
+      "style": "Style",
+      "loves": "Loves",
       "parentNote": "Parents — your dashboard is ready",
       "parentNoteDesc": "You can see everything {{name}} does, manage friends, set screen time limits, and get instant safety alerts — anytime.",
       "goButton": "Go to Migo! 🌟"
@@ -180,7 +234,11 @@
     "you": "You",
     "replyButton": "Reply",
     "emptyTitle": "Your friends are preparing their first posts... 🌟",
-    "postPlaceholder": "What's on your mind?"
+    "postPlaceholder": "What's on your mind?",
+    "justNow": "Just now",
+    "minutesAgo": "{{n}} min ago",
+    "hoursAgo": "{{n}}h ago",
+    "daysAgo": "{{n}}d ago"
   },
   "dm": {
     "online": "Online now",
@@ -205,7 +263,14 @@
     "lunaTagline": "Your learning friend 🌙",
     "lunaDesc": "She helps with maths, reading, science and more — in your own time, your own way.",
     "meetLunaButton": "+ Meet her!",
-    "chatLunaButton": "💬 Chat with Luna →"
+    "chatLunaButton": "💬 Chat with Luna →",
+    "searchPlaceholder": "Search by name or interest...",
+    "starFriends": "⭐ Star friends",
+    "friendsNetwork": "Friends network",
+    "addFriend": "Add",
+    "added": "Added ✓",
+    "hearMe": "Hear me",
+    "playAudio": "Play"
   },
   "games": {
     "playGame": "🎮 Play a game!",
@@ -262,6 +327,12 @@
       "digitalLesson": "Complete a digital citizenship lesson",
       "introducedFriend": "Introduce a friend"
     }
+  },
+  "tabs": {
+    "home": "Home",
+    "discover": "Discover",
+    "badges": "Badges",
+    "me": "Me"
   },
   "profile": {
     "title": "My Profile",

@@ -14,13 +14,13 @@ import { useLanguageStore } from '@/store/languageStore';
 // ─── Intro text ───────────────────────────────────────────────────────────────
 
 const EN_INTRO_TEXT_1 =
-  "Hi! Before you meet your friends on Migo, you need a special guide — someone who will always be there for you, celebrate your wins, and keep you safe. That guide is called your mascot! 🌟";
+  "Hi! Before you meet your friends on Migo, you need a special guide — someone who will always be there for you, celebrate your wins, and keep you safe. That guide is called your mascot! 🌟 In a moment you'll meet Miga, Pixel, Finn and Sage — they're all amazing, so take your time choosing!";
 
 const EN_INTRO_TEXT_2 =
   "I'm Miga! I'm a sparkly little fairy and I will ALWAYS have your back on Migo. I celebrate every win, help when things go wrong, and I will never ever go away — you're stuck with me! 💜 But peek below — you might also love Pixel, Finn or Sage!";
 
 const FR_INTRO_TEXT_1 =
-  "Salut ! Avant de rencontrer tes amis sur Migo, tu as besoin d'un guide spécial — quelqu'un qui sera toujours là pour toi, qui célèbrera tes victoires et qui te gardera en sécurité. Ce guide s'appelle ton mascotte ! 🌟";
+  "Salut ! Avant de rencontrer tes amis sur Migo, tu as besoin d'un guide spécial — quelqu'un qui sera toujours là pour toi, qui célèbrera tes victoires et qui te gardera en sécurité. Ce guide s'appelle ton mascotte ! 🌟 Dans un instant tu vas rencontrer Miga, Pixel, Finn et Sage — ils sont tous géniaux, prends ton temps pour choisir !";
 
 const FR_INTRO_TEXT_2 =
   "Je suis Miga ! Je suis une petite fée pétillante et je serai TOUJOURS là pour toi. Je célèbre chaque victoire, j'aide quand ça va pas, et je ne partirai jamais — tu es coincé(e) avec moi ! 💜 Mais regarde en bas — tu pourrais aussi aimer Pixel, Finn ou Sage !";
@@ -246,7 +246,9 @@ export default function MascotScreen() {
             </TouchableOpacity>
           )}
         </View>
-        <Text style={{ fontSize: 13, color: '#888780' }}>Step 4 of 9 · Child 🧒</Text>
+        <Text style={{ fontSize: 13, color: '#888780' }}>
+          {t('onboarding.stepOf', { current: 4, total: 9 })} · {t('onboarding.step4sub')} 🧒
+        </Text>
       </View>
 
       <ScrollView

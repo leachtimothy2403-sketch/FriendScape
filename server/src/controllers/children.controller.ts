@@ -10,6 +10,7 @@ import {
   selectVoiceId,
 } from '../services/ai.service';
 import { toChildType } from '../utils/db-mappers';
+import Anthropic from '@anthropic-ai/sdk';
 
 // ─── Authed CRUD ──────────────────────────────────────────────────────────────
 
@@ -994,5 +995,52 @@ export async function getMyFriendsList(req: AuthRequest, res: Response) {
   } catch (err) {
     console.error('[profile] getMyFriendsList error:', err);
     res.status(500).json({ error: 'Failed to fetch friends list' });
+  }
+}
+
+// ─── POST /children/generate-avatar (unauthed — called during onboarding) ─────
+const AVATAR_THEMES = ['princess', 'astronaut', 'cat', 'superhero', 'nature', 'wizard', 'artist', 'dino'] as const;
+
+export async function generateAvatar(req: Request, res: Response) {
+  const { imageBase64, mediaType } = req.body as { imageBase64?: string; mediaType?: string };
+
+  if (!imageBase64?.trim()) {
+    res.status(400).json({ error: 'imageBase64 is required' });
+    return;
+  }
+
+  const imgMediaType = (mediaType === 'image/png' || mediaType === 'image/webp') ? mediaType : 'image/jpeg';
+
+  try {
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+    const message = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 20,
+      messages: [{
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: { type: 'base64', media_type: imgMediaType, data: imageBase64 },
+          },
+          {
+            type: 'text',
+            text: `This is a child's photo. Pick the one word from this list that best matches their vibe: ${AVATAR_THEMES.join(', ')}. Reply with ONLY that one word.`,
+          },
+        ],
+      }],
+    });
+
+    const raw = (message.content[0] as { type: string; text: string }).text.trim().toLowerCase();
+    const theme = (AVATAR_THEMES as readonly string[]).includes(raw)
+      ? raw
+      : AVATAR_THEMES[Math.floor(Math.random() * AVATAR_THEMES.length)];
+
+    res.json({ theme });
+  } catch (err) {
+    console.error('[children] generateAvatar error:', err);
+    const theme = AVATAR_THEMES[Math.floor(Math.random() * AVATAR_THEMES.length)];
+    res.json({ theme });
   }
 }

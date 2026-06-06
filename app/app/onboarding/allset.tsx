@@ -202,7 +202,7 @@ export default function AllSetScreen() {
             {mascot.emoji}
           </Animated.Text>
           <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#2C2C2A', textAlign: 'center', marginBottom: 24 }}>
-            Setting up your Migo... 🌟
+            {t('onboarding.allset.settingUp')}
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <PulsingDot delay={0} />
@@ -246,7 +246,7 @@ export default function AllSetScreen() {
         <View style={{ height: 6, backgroundColor: '#E0E0E0', borderRadius: 3, marginBottom: 8 }}>
           <View style={{ width: '100%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
         </View>
-        <Text style={{ fontSize: 13, color: '#888780' }}>Almost there! ✨</Text>
+        <Text style={{ fontSize: 13, color: '#888780' }}>{t('onboarding.allset.almostThere')}</Text>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 20, paddingBottom: 40 }}>
@@ -268,12 +268,12 @@ export default function AllSetScreen() {
         {/* Summary chips */}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginBottom: 28 }}>
           <Chip>{`${mascot.emoji} Guide: ${mascot.name}`}</Chip>
-          <Chip>{`🎨 Style: ${packName}`}</Chip>
+          <Chip>{`🎨 ${t('onboarding.allset.style')}: ${packName}`}</Chip>
           {assignedFriends.map((f) => (
             <Chip key={f.id}>{`${[...(f.coverEmojis || '')][0] ?? '🌟'} ${f.name}`}</Chip>
           ))}
           {store.interests.slice(0, 2).length > 0 && (
-            <Chip>{`❤️ Loves: ${store.interests.slice(0, 2).join(', ')}`}</Chip>
+            <Chip>{`❤️ ${t('onboarding.allset.loves')}: ${store.interests.slice(0, 2).join(', ')}`}</Chip>
           )}
         </View>
 

@@ -11,12 +11,12 @@ import { useOnboardingStore } from '@/store/onboardingStore';
 const AGE_CHIPS = ['5–6', '7–8', '9–10', '11–12'];
 
 const LANGUAGES = [
-  { code: 'en', label: 'English'  },
-  { code: 'fr', label: 'French'   },
-  { code: 'es', label: 'Spanish'  },
-  { code: 'ar', label: 'Arabic'   },
-  { code: 'zh', label: 'Mandarin' },
-  { code: 'other', label: 'Other' },
+  { code: 'en', label: 'English'       },
+  { code: 'fr', label: 'Français'      },
+  { code: 'es', label: 'Español'       },
+  { code: 'ar', label: 'العربية'       },
+  { code: 'zh', label: '中文'           },
+  { code: 'other', label: 'Other'      },
 ];
 
 export default function BasicsScreen() {
@@ -45,11 +45,7 @@ export default function BasicsScreen() {
 
   function handleContinue() {
     if (!canContinue) return;
-    if (specialNeeds) {
-      router.push('/onboarding/needs');
-    } else {
-      router.push('/onboarding/photo');
-    }
+    router.push('/onboarding/needs');
   }
 
   const selectedLangLabel = LANGUAGES.find(l => l.code === language)?.label ?? 'English';
@@ -66,7 +62,9 @@ export default function BasicsScreen() {
         <View style={{ height: 6, backgroundColor: '#E0E0E0', borderRadius: 3, marginBottom: 8 }}>
           <View style={{ width: '11%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
         </View>
-        <Text style={{ fontSize: 13, color: '#888780', marginBottom: 16 }}>Step 1 of 9 · Together 👨‍👩‍👧</Text>
+        <Text style={{ fontSize: 13, color: '#888780', marginBottom: 16 }}>
+          {t('onboarding.stepOf', { current: 1, total: 9 })} · {t('onboarding.step1sub')} 👨‍👩‍👧
+        </Text>
 
         {/* Together badge */}
         <View style={{ backgroundColor: '#E8F8F3', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, alignSelf: 'flex-start', marginBottom: 20 }}>

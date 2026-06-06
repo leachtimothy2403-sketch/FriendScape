@@ -28,9 +28,20 @@
     "button": "Configurons Migo ! →"
   },
   "onboarding": {
+    "stepOf": "Étape {{current}} sur {{total}}",
+    "step1sub": "Ensemble",
+    "step2sub": "Tes besoins",
+    "step3sub": "Ta photo",
+    "step4sub": "Ton guide",
+    "step5sub": "Ton rôle",
+    "step6sub": "Tes intérêts",
+    "step7sub": "Juste pour toi !",
+    "step8sub": "Ton style",
+    "step9sub": "C'est parti !",
     "together": "Faites ça ensemble",
     "togetherBadge": "👨‍👩‍👧 Faites ça ensemble",
     "childTurn": "C'est ton tour maintenant !",
+    "parentsNote": "Parents — cette partie est pour vous",
     "basics": {
       "title": "Parlez-nous de votre enfant",
       "subtitle": "Parents — remplissez ceci avec votre enfant assis avec vous.",
@@ -74,6 +85,10 @@
       "skipDesc": "Utiliser un avatar par défaut — configurer plus tard",
       "privacyNote": "🔒 La vraie photo est utilisée uniquement pour générer le dessin et est supprimée définitivement juste après.",
       "themeLabel": "Laisse {{name}} choisir un thème ! 🎉",
+      "tapToChoosePhoto": "Appuie pour choisir une photo depuis ta galerie",
+      "suggestingTheme": "On choisit un thème pour toi…",
+      "takePhoto": "Prendre une photo",
+      "chooseFromLibrary": "Choisir depuis la galerie",
       "themes": {
         "princess": "Princesse",
         "astronaut": "Astronaute",
@@ -98,11 +113,41 @@
       "title": "Juste pour {{name}} !",
       "freeTextLabel": "Autre chose ? Dis-nous ! 🗣️",
       "freeTextPlaceholder": "Tape quelque chose que tu aimes… ou appuie sur le micro pour le dire !",
-      "continueButton": "Ce sont mes préférés ! →"
+      "continueButton": "Ce sont mes préférés ! →",
+      "art": "Art",
+      "sports": "Sports",
+      "animals": "Animaux",
+      "gaming": "Jeux vidéo",
+      "reading": "Lecture",
+      "music": "Musique",
+      "cooking": "Cuisine",
+      "science": "Sciences",
+      "nature": "Nature",
+      "drama": "Théâtre",
+      "building": "Construction",
+      "dance": "Danse"
+    },
+    "role": {
+      "title": "Ton guide pour toujours",
+      "badge": "🌟 Ton guide pour toujours",
+      "cardHeader": "Ton guide, ton aide et ton supporter — toujours",
+      "role1": "Je célèbre chaque victoire",
+      "role1Desc": "Chaque badge, montée de niveau et jalon — je serai le premier à t'applaudir",
+      "role2": "Je répare les choses",
+      "role2Desc": "Si l'app fait quelque chose de bizarre, dis-moi et je vais arranger ça",
+      "role3": "Je prends des nouvelles",
+      "role3Desc": "Si tu n'as pas été sur Migo depuis un moment, je t'enverrai un petit coucou amical",
+      "role4": "Je te protège",
+      "role4Desc": "Si quelque chose te met mal à l'aise, viens me voir d'abord — je t'ai couvert(e)",
+      "role5": "Je partage les nouvelles",
+      "role5Desc": "Nouveaux amis, thèmes saisonniers, mises à jour de l'appli — tu en entendras parler en premier par moi",
+      "permanentNote": "Contrairement à tes autres amis, {{mascot}} est toujours là — tu ne peux pas me supprimer, et je ne partirai jamais. Je suis à toi pour toujours !",
+      "continueButton": "J'adore ça, {{mascot}} ! →"
     },
     "personality": {
       "title": "Juste pour {{name}} !",
       "migaBubble": "Maintenant je veux apprendre à connaître le VRAI toi ! Ça m'aide à trouver des amis qui te comprennent vraiment 🌟",
+      "migaBubble_girl": "Maintenant je veux apprendre à connaître la VRAIE toi ! Ça m'aide à trouver des amis qui te comprennent vraiment 🌟",
       "q1": "Dans un groupe d'amis, tu es plutôt...",
       "q1_quiet": "🐢 Le/la discret(e)",
       "q1_quiet_desc": "J'écoute plus que je parle",
@@ -137,9 +182,14 @@
       "freeTextPlaceholder": "Dis à Miga quelque chose de spécial sur toi... (totalement optionnel !)",
       "continueButton": "C'est tellement moi ! →"
     },
+    "mascot": {
+      "mascotChooseHint": "Dans un instant tu vas rencontrer Miga, Pixel, Finn et Sage — ils sont tous géniaux, prends ton temps pour choisir !"
+    },
     "pack": {
       "title": "Juste pour {{name}} !",
       "continueButton": "J'adore ce style ! →",
+      "packTitle": "Super choix !! Maintenant — à quoi ressemblent tes amis ? Choisis le style que tu aimes le plus !",
+      "packSubtitle": "Choisis un style",
       "packs": {
         "sketchCrew": "Équipe Sketch",
         "sketchCrewDesc": "Portraits illustrés, comme une bande dessinée",
@@ -168,6 +218,10 @@
       "title": "Tout est prêt, {{name}} ! 🎊",
       "subtitle": "{{mascot}} et {{friend}} t'attendent déjà !",
       "friendsWaiting": "Tes nouveaux amis t'attendent ! 🎉",
+      "settingUp": "On prépare ton Migo...",
+      "almostThere": "Presque prêt(e) ! ✨",
+      "style": "Style",
+      "loves": "Passions",
       "parentNote": "Parents — votre tableau de bord est prêt",
       "parentNoteDesc": "Vous pouvez voir tout ce que fait {{name}}, gérer les amis, définir des limites de temps d'écran et recevoir des alertes de sécurité instantanées — à tout moment.",
       "goButton": "Aller sur Migo ! 🌟"
@@ -180,7 +234,11 @@
     "you": "Toi",
     "replyButton": "Répondre",
     "emptyTitle": "Tes amis préparent leurs premiers messages... 🌟",
-    "postPlaceholder": "Qu'est-ce qui se passe ?"
+    "postPlaceholder": "Qu'est-ce qui se passe ?",
+    "justNow": "À l'instant",
+    "minutesAgo": "il y a {{n}} min",
+    "hoursAgo": "il y a {{n}}h",
+    "daysAgo": "il y a {{n}} j"
   },
   "dm": {
     "online": "En ligne maintenant",
@@ -205,7 +263,14 @@
     "lunaTagline": "Ton amie pour apprendre 🌙",
     "lunaDesc": "Elle aide avec les maths, la lecture, les sciences et plus encore — à ton rythme, à ta façon.",
     "meetLunaButton": "+ La rencontrer !",
-    "chatLunaButton": "💬 Tchatter avec Luna →"
+    "chatLunaButton": "💬 Tchatter avec Luna →",
+    "searchPlaceholder": "Chercher par nom ou intérêt...",
+    "starFriends": "⭐ Amis vedettes",
+    "friendsNetwork": "Réseau d'amis",
+    "addFriend": "Ajouter",
+    "added": "Ajouté ✓",
+    "hearMe": "Écoute-moi",
+    "playAudio": "Jouer"
   },
   "games": {
     "playGame": "🎮 Jouer !",
@@ -262,6 +327,12 @@
       "digitalLesson": "Compléter une leçon de citoyenneté numérique",
       "introducedFriend": "Présenter un ami"
     }
+  },
+  "tabs": {
+    "home": "Accueil",
+    "discover": "Découvrir",
+    "badges": "Badges",
+    "me": "Moi"
   },
   "profile": {
     "title": "Mon Profil",

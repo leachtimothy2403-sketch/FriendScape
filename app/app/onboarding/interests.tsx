@@ -21,19 +21,19 @@ const MASCOT_MAP: Record<string, { emoji: string; audio: number }> = {
   sage:  { emoji: '🦉', audio: require('../../assets/audio/sage_intro.mp3')  },
 };
 
-const INTERESTS = [
-  { id: 'art',      emoji: '🎨', name: 'Art'      },
-  { id: 'sports',   emoji: '⚽', name: 'Sports'   },
-  { id: 'animals',  emoji: '🐾', name: 'Animals'  },
-  { id: 'gaming',   emoji: '🎮', name: 'Gaming'   },
-  { id: 'reading',  emoji: '📚', name: 'Reading'  },
-  { id: 'music',    emoji: '🎵', name: 'Music'    },
-  { id: 'cooking',  emoji: '🍳', name: 'Cooking'  },
-  { id: 'science',  emoji: '🚀', name: 'Science'  },
-  { id: 'nature',   emoji: '🌿', name: 'Nature'   },
-  { id: 'drama',    emoji: '🎭', name: 'Drama'    },
-  { id: 'building', emoji: '🏗️', name: 'Building' },
-  { id: 'dance',    emoji: '💃', name: 'Dance'    },
+const INTERESTS_BASE = [
+  { id: 'art',      emoji: '🎨' },
+  { id: 'sports',   emoji: '⚽' },
+  { id: 'animals',  emoji: '🐾' },
+  { id: 'gaming',   emoji: '🎮' },
+  { id: 'reading',  emoji: '📚' },
+  { id: 'music',    emoji: '🎵' },
+  { id: 'cooking',  emoji: '🍳' },
+  { id: 'science',  emoji: '🚀' },
+  { id: 'nature',   emoji: '🌿' },
+  { id: 'drama',    emoji: '🎭' },
+  { id: 'building', emoji: '🏗️' },
+  { id: 'dance',    emoji: '💃' },
 ];
 
 export default function InterestsScreen() {
@@ -151,7 +151,7 @@ export default function InterestsScreen() {
           <View style={{ width: '66%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
         </View>
         <Text style={{ fontSize: 13, color: '#888780', marginBottom: 16 }}>
-          Step 6 of 9 · {t('onboarding.interests.title', { name: displayName })}
+          {t('onboarding.stepOf', { current: 6, total: 9 })} · {t('onboarding.step6sub')}
         </Text>
 
         {/* Badge */}
@@ -189,7 +189,7 @@ export default function InterestsScreen() {
                 }}
               >
                 <Text style={{ fontSize: 12, marginRight: 4 }}>🔊</Text>
-                <Text style={{ fontSize: 11, color: '#888780', fontWeight: '600' }}>Hear me</Text>
+                <Text style={{ fontSize: 11, color: '#888780', fontWeight: '600' }}>{t('discover.hearMe')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -197,12 +197,13 @@ export default function InterestsScreen() {
 
         {/* Interest tiles — 3-column grid */}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: GAP, marginBottom: 28 }}>
-          {INTERESTS.map((item) => {
-            const sel = interests.includes(item.name);
+          {INTERESTS_BASE.map((item) => {
+            const itemName = t(`onboarding.interests.${item.id}`);
+            const sel = interests.includes(itemName);
             return (
               <TouchableOpacity
                 key={item.id}
-                onPress={() => toggleInterest(item.name)}
+                onPress={() => toggleInterest(itemName)}
                 style={{
                   width: tileW,
                   aspectRatio: 1,
@@ -221,7 +222,7 @@ export default function InterestsScreen() {
                   fontSize: 11, fontWeight: 'bold', marginTop: 4, textAlign: 'center',
                   color: sel ? '#7F77DD' : '#2C2C2A',
                 }}>
-                  {item.name}
+                  {itemName}
                 </Text>
               </TouchableOpacity>
             );
