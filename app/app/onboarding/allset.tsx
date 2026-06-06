@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { children as childrenApi, childAuth } from '@/services/api';
 import Avatar from '@/components/Avatar';
 import { useOnboardingStore } from '@/store/onboardingStore';
-import type { AvatarConfig } from '@/types/avatar';
+import type { AvatarConfig } from '@migo/shared/types/avatar';
 
 const MASCOT: Record<string, { emoji: string; name: string }> = {
   pixel: { emoji: '🤖', name: 'Pixel' },

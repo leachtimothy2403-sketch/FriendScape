@@ -183,6 +183,31 @@ function parseJSON<T>(raw: string, label: string): T | null {
   }
 }
 
+async function callWithRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (err: unknown) {
+      const e = err as Record<string, unknown>;
+      const status = e?.status as number | undefined;
+      const code = e?.code as string | undefined;
+      const isRetryable =
+        status === 429 ||
+        status === 503 ||
+        code === 'ECONNRESET' ||
+        code === 'ETIMEDOUT' ||
+        code === 'ECONNABORTED';
+      if (isRetryable && i < maxRetries - 1) {
+        const waitMs = (i + 1) * 15000;
+        await new Promise((r) => setTimeout(r, waitMs));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error('callWithRetry: unreachable');
+}
+
 
 // ── 1. Generate friend reply ──────────────────────────────────────────────────
 
@@ -269,12 +294,12 @@ CONVERSATION BALANCE RULES:
     { role: 'user' as const, content: message },
   ];
 
-  const response = await client.messages.create({
+  const response = await callWithRetry(() => client.messages.create({
     model: MODELS.smart,
     max_tokens: MAX_TOKENS.friendReply,
     system: systemWithCheckIn,
     messages,
-  });
+  }));
 
   return {
     text: extractText(response),
@@ -398,12 +423,12 @@ Return ONLY valid JSON array — no markdown, no explanation:
   }
 ]`.trim();
 
-  const response = await client.messages.create({
+  const response = await callWithRetry(() => client.messages.create({
     model: MODELS.smart,
     max_tokens: MAX_TOKENS.personalisedFriends,
     system,
     messages: [{ role: 'user', content: `Generate ${count} personalised friends for ${child.name}.` }],
-  });
+  }));
 
   const raw = extractText(response).replace(/```json|```/g, '').trim();
 
@@ -544,12 +569,12 @@ Return ONLY valid JSON array — no markdown:
   }
 ]`.trim();
 
-  const response = await client.messages.create({
+  const response = await callWithRetry(() => client.messages.create({
     model: MODELS.smart,
     max_tokens: 600,
     system,
     messages: [{ role: 'user', content: `Generate 2-3 network connections for ${friend.name}.` }],
-  });
+  }));
 
   const raw = extractText(response).replace(/```json|```/g, '').trim();
   const parsed = parseJSON<NetworkConnectionRaw[]>(raw, 'friend network');
@@ -607,7 +632,7 @@ Return ONLY valid JSON — no markdown, no explanation. Format:
 ]
 `.trim();
 
-  const response = await client.messages.create({
+  const response = await callWithRetry(() => client.messages.create({
     model: MODELS.smart,
     max_tokens: MAX_TOKENS.dailyPosts,
     system,
@@ -615,7 +640,7 @@ Return ONLY valid JSON — no markdown, no explanation. Format:
       role: 'user',
       content: `Generate one post for each of these friends for ${child.name}:\n${friendList}`,
     }],
-  });
+  }));
 
   const parsed = parseJSON<DailyPost[]>(extractText(response), 'daily posts');
   if (!parsed) return { posts: [], error: 'Parse error', inputTokens: 0, outputTokens: 0 };
@@ -680,12 +705,12 @@ Keep ALL string values under 10 words. Use null for crisisReason and
 parentAlertReason unless you must include a reason — if you do, 10 words max.
 `.trim();
 
-  const response = await client.messages.create({
+  const response = await callWithRetry(() => client.messages.create({
     model: MODELS.fast,
     max_tokens: MAX_TOKENS.moodCheck,
     system,
     messages: [{ role: 'user', content: message }],
-  });
+  }));
 
   const parsed = parseJSON<Omit<MoodResult, 'inputTokens' | 'outputTokens'>>(extractText(response), 'mood check');
   if (!parsed) {
@@ -760,7 +785,7 @@ Return ONLY valid JSON:
     )
     .join('\n\n');
 
-  const response = await client.messages.create({
+  const response = await callWithRetry(() => client.messages.create({
     model: MODELS.smart,
     max_tokens: MAX_TOKENS.memoryDistill,
     system,
@@ -778,7 +803,7 @@ ${conversationText}
 Distil the important new facts to remember.
 `.trim(),
     }],
-  });
+  }));
 
   const parsed = parseJSON<DistilledMemory>(extractText(response), 'memory distillation');
   if (!parsed) return { memory: null, error: 'Parse error', inputTokens: 0, outputTokens: 0 };
@@ -837,7 +862,7 @@ Return exactly 3 friends, ordered by best match first.
   Is Teacher: ${f.isTeacher}`)
     .join('');
 
-  const response = await client.messages.create({
+  const response = await callWithRetry(() => client.messages.create({
     model: MODELS.smart,
     max_tokens: MAX_TOKENS.friendMatch,
     system,
@@ -857,7 +882,7 @@ ${friendListText}
 Pick the 3 best matches.
 `.trim(),
     }],
-  });
+  }));
 
   const parsed = parseJSON<FriendMatch[]>(extractText(response), 'friend match');
   if (!parsed) return { matches: [], error: 'Parse error', inputTokens: 0, outputTokens: 0 };
@@ -915,12 +940,12 @@ async function searchFrenchCurriculum(grade: string, subject: string): Promise<s
     let messages: Anthropic.MessageParam[] = [{ role: 'user', content: userMsg }];
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let response = await (client.messages.create as (...a: any[]) => Promise<Anthropic.Message>)({
+    let response = await callWithRetry(() => (client.messages.create as (...a: any[]) => Promise<Anthropic.Message>)({
       model: MODELS.smart,
       max_tokens: 600,
       tools,
       messages,
-    });
+    }));
 
     // Agentic loop for web search tool use
     for (let turn = 0; turn < 4 && response.stop_reason === 'tool_use'; turn++) {
@@ -939,12 +964,12 @@ async function searchFrenchCurriculum(grade: string, subject: string): Promise<s
         },
       ];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      response = await (client.messages.create as (...a: any[]) => Promise<Anthropic.Message>)({
+      response = await callWithRetry(() => (client.messages.create as (...a: any[]) => Promise<Anthropic.Message>)({
         model: MODELS.smart,
         max_tokens: 600,
         tools,
         messages,
-      });
+      }));
     }
 
     const text = (response.content as Anthropic.ContentBlock[])
@@ -959,14 +984,14 @@ async function searchFrenchCurriculum(grade: string, subject: string): Promise<s
 
   if (!result) {
     try {
-      const fallback = await client.messages.create({
+      const fallback = await callWithRetry(() => client.messages.create({
         model: MODELS.fast,
         max_tokens: 350,
         messages: [{
           role: 'user',
           content: `Tu es expert du système éducatif français. Donne un résumé concis (max 120 mots) du programme officiel pour la classe de ${grade} en ${subject}: concepts clés attendus, compétences principales à développer, sujets typiques couverts. En français uniquement.`,
         }],
-      });
+      }));
       result = extractText(fallback);
     } catch {
       result = defaultCurriculumContext(grade, subject);
@@ -1003,7 +1028,7 @@ async function extractTutorMeta(
   const ctx = history.slice(-3).map((m) => `${m.sender_type}: ${m.content}`).join(' | ');
 
   try {
-    const res = await client.messages.create({
+    const res = await callWithRetry(() => client.messages.create({
       model: MODELS.fast,
       max_tokens: 180,
       system: `Analyse this child's message to their tutor Ms. Luna and return ONLY valid JSON, no explanation:
@@ -1015,7 +1040,7 @@ async function extractTutorMeta(
 }
 Rules: homework_help if child mentions devoirs/test/exercice/demain/prof/homework/exam. struggling if confused/frustrated. got_it if they understood and responded correctly.`,
       messages: [{ role: 'user', content: `Child message: "${childMessage}"\nContext: ${ctx}` }],
-    });
+    }));
 
     const parsed = parseJSON<Omit<TutorMeta, 'gradeCapture'>>(extractText(res), 'tutor meta');
     if (parsed) {
@@ -1244,12 +1269,12 @@ Do nothing else until you have the grade.` : ''}`.trim();
 
   // Run main Luna call + metadata extraction in parallel
   const [response, meta] = await Promise.all([
-    client.messages.create({
+    callWithRetry(() => client.messages.create({
       model: MODELS.smart,
       max_tokens: MAX_TOKENS.tutorReply,
       system,
       messages,
-    }),
+    })),
     extractTutorMeta(message, conversationHistory),
   ]);
 
@@ -1316,12 +1341,12 @@ RULES:
 ${child.preReader ? '- EXTRA: Very simple words only. Very short.' : ''}
 `.trim();
 
-  const response = await client.messages.create({
+  const response = await callWithRetry(() => client.messages.create({
     model: messageType === 'crisis_support' ? MODELS.smart : MODELS.fast,
     max_tokens: MAX_TOKENS.mascotReply,
     system,
     messages: [{ role: 'user', content: message }],
-  });
+  }));
 
   return {
     text: extractText(response),
@@ -1419,7 +1444,7 @@ Max 3 sentences.
 ${language === 'fr' ? 'Respond entirely in French. The message field must be in French.' : 'Respond in English.'}
 `.trim();
 
-  const response = await client.messages.create({
+  const response = await callWithRetry(() => client.messages.create({
     model:      MODELS.fast,
     max_tokens: MAX_TOKENS.digitalCitizenship,
     system,
@@ -1427,7 +1452,7 @@ ${language === 'fr' ? 'Respond entirely in French. The message field must be in 
       role:    'user',
       content: `Here are ${child.name}'s messages from this week:\n\n${messages.slice(0, 50).map((m, i) => `${i + 1}. "${m}"`).join('\n')}`,
     }],
-  });
+  }));
 
   const parsed = parseJSON<Omit<DigitalCitizenshipAnalysis, 'inputTokens' | 'outputTokens'>>(
     extractText(response), 'digital citizenship',
@@ -1470,10 +1495,10 @@ Stay completely in character. Use your personality. Keep it SHORT — max 2 sent
 CRITICAL: Only reference friends that ${child.name} already knows on Migo. ${knownContext} Do NOT mention any other Migo character by name. If you have no mutual friends to reference, just express excitement about the new friendship directly.
 ${child.preReader ? 'Very simple words only.' : ''}`.trim();
 
-  const response = await client.messages.create({
+  const response = await callWithRetry(() => client.messages.create({
     model: MODELS.smart, max_tokens: MAX_TOKENS.networkWelcome, system,
     messages: [{ role: 'user', content: `[I just added ${newFriendName} as a friend!]` }],
-  });
+  }));
   return { text: extractText(response), inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens };
 }
 
@@ -1497,10 +1522,10 @@ You may mention ${referringFriendName} warmly. Do NOT reference any other Migo f
 Keep it SHORT — 1–2 sentences max.
 ${child.preReader ? 'Very simple words only.' : ''}`.trim();
 
-  const response = await client.messages.create({
+  const response = await callWithRetry(() => client.messages.create({
     model: MODELS.smart, max_tokens: MAX_TOKENS.networkWelcome, system,
     messages: [{ role: 'user', content: `[${referringFriendName} just introduced us — say hello!]` }],
-  });
+  }));
   return { text: extractText(response), inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens };
 }
 
@@ -1546,12 +1571,12 @@ Write ONE short comment (1-2 sentences maximum):
 - No markdown
 - Respond in ${lang}`;
 
-  const response = await client.messages.create({
+  const response = await callWithRetry(() => client.messages.create({
     model:      MODELS.fast,
     max_tokens: MAX_TOKENS.postComment,
     system,
     messages: [{ role: 'user', content: `${child.name}'s post: "${postContent}"` }],
-  });
+  }));
 
   return {
     text:         extractText(response),
@@ -1607,7 +1632,7 @@ You are ${friend.name}, playing Rock Paper Scissors with ${child.name}.
 Personality: ${friend.personality.join(', ')}.
 React in 1 sentence, fully in character. Be playful. No markdown. Respond in ${lang}.`;
 
-  const response = await client.messages.create({
+  const response = await callWithRetry(() => client.messages.create({
     model:      MODELS.fast,
     max_tokens: MAX_TOKENS.gameReaction,
     system,
@@ -1615,7 +1640,7 @@ React in 1 sentence, fully in character. Be playful. No markdown. Respond in ${l
       role:    'user',
       content: `${child.name} chose ${choiceEmoji[childChoice] ?? '✊'}, you chose ${choiceEmoji[friendChoice]}. Result: ${resultDesc}.`,
     }],
-  });
+  }));
 
   return {
     friendChoice,
@@ -1689,12 +1714,12 @@ You are ${friend.name}, playing Tic-Tac-Toe with ${child.name}.
 Personality: ${friend.personality.join(', ')}.
 React in 1-2 short sentences, fully in character. No markdown. Respond in ${lang}.`;
 
-  const response = await client.messages.create({
+  const response = await callWithRetry(() => client.messages.create({
     model:      MODELS.fast,
     max_tokens: MAX_TOKENS.gameReaction,
     system,
     messages: [{ role: 'user', content: ctx }],
-  });
+  }));
 
   return {
     square,
@@ -1738,12 +1763,12 @@ No markdown. Respond in ${lang}.`;
     ? `Story so far: "${storyHistory.join(' ')}"`
     : 'Start an imaginative story opening in 1-2 sentences.';
 
-  const response = await client.messages.create({
+  const response = await callWithRetry(() => client.messages.create({
     model:      MODELS.smart,
     max_tokens: MAX_TOKENS.storyContrib,
     system,
     messages: [{ role: 'user', content: storyText + (isEnding ? ' Please write the ending.' : ' Please continue.') }],
-  });
+  }));
 
   return {
     contribution: extractText(response),
@@ -1755,7 +1780,7 @@ No markdown. Respond in ${lang}.`;
 
 
 export async function moderateInterest(text: string): Promise<ModerationResult> {
-  const response = await client.messages.create({
+  const response = await callWithRetry(() => client.messages.create({
     model:      MODELS.fast,
     max_tokens: 10,
     messages: [{
@@ -1766,7 +1791,7 @@ Is it appropriate? Reject profanity, violence, sexual content, hate, or dangerou
 Accept hobbies, sports, animals, food, creative activities, games, learning topics.
 Reply ONLY with SAFE or UNSAFE.`,
     }],
-  });
+  }));
 
   const reply = extractText(response).trim().toUpperCase();
   return { safe: reply.startsWith('SAFE') };

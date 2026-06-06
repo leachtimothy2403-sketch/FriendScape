@@ -20,7 +20,7 @@ const transporter = nodemailer.createTransport({
   port: smtpPort,
   secure: false,
   auth: { user: smtpUser, pass: smtpPass },
-  tls: { rejectUnauthorized: false },
+  tls: { rejectUnauthorized: process.env.SMTP_TLS_REJECT_UNAUTHORIZED !== 'false' },
 });
 
 // Verify SMTP connection on startup so problems surface immediately.
