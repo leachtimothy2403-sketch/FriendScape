@@ -168,7 +168,7 @@ function Freckles() {
   );
 }
 
-const CAP = 'M26,112 C26,38 174,38 174,112 L160,80 C145,46 55,46 40,80 Z';
+const CAP = 'M26,112 C26,38 174,38 174,112 L160,80 C145,68 55,68 40,80 Z';
 const SIDE_L = 'M26,112 L18,178 Q32,185 44,178 L44,80 C38,75 26,85 26,112 Z';
 const SIDE_R = 'M174,112 L182,178 Q168,185 156,178 L156,80 C162,75 174,85 174,112 Z';
 
@@ -392,9 +392,9 @@ function Hat({ style, hairColor }: { style: AvatarConfig['hat']; hairColor: stri
         <G>
           <Path d="M24,108 C24,34 176,34 176,108 L160,80 Q100,65 40,80 Z" fill={bc} />
           <Circle cx={100} cy={28} r={10} fill={bc} />
-          <Rect x={24} y={103} width={152} height={14} rx={7} fill={darkenHex(bc, 0.1)} />
+          <Rect x={24} y={76} width={152} height={14} rx={7} fill={darkenHex(bc, 0.1)} />
           {([52, 76, 100, 124, 148] as number[]).map((x) => (
-            <Line key={x} x1={x} y1={46} x2={x} y2={100} stroke={darkenHex(bc, 0.14)} strokeWidth={2} strokeLinecap="round" />
+            <Line key={x} x1={x} y1={46} x2={x} y2={76} stroke={darkenHex(bc, 0.14)} strokeWidth={2} strokeLinecap="round" />
           ))}
         </G>
       );

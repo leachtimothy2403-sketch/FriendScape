@@ -316,7 +316,13 @@ export async function generatePersonalisedFriends(
     'Chloé', 'Hugo', 'Nico', 'Camille', 'Luca', 'Sofia', 'Coach Sarah', 'Prof Max',
   ];
 
-  const system = `You are creating personalised AI friends for a child on Migo, a safe social app for kids.
+  const languageInstruction = language === 'fr'
+    ? 'Tu dois toujours répondre en français uniquement.'
+    : 'You must always respond in English only.';
+
+  const system = `${languageInstruction}
+
+You are creating personalised AI friends for a child on Migo, a safe social app for kids.
 
 CHILD PROFILE:
 Name: ${child.name}
@@ -498,7 +504,13 @@ export async function generateFriendNetwork(
     .map((f) => `${f.name} (${f.interests.slice(0, 3).join(', ')})`)
     .join('\n');
 
-  const system = `You are creating the social circle for ${friend.name}, an AI friend on Migo.
+  const languageInstruction = language === 'fr'
+    ? 'Tu dois toujours répondre en français uniquement.'
+    : 'You must always respond in English only.';
+
+  const system = `${languageInstruction}
+
+You are creating the social circle for ${friend.name}, an AI friend on Migo.
 
 ${friend.name}'s profile:
 - Age: ${friend.age}, ${friend.gender}
@@ -1074,7 +1086,13 @@ export async function generateTutorReply(
   const interestsStr = child.interests?.join(', ') ?? '';
   const lang = language === 'fr' ? 'French' : 'English';
 
-  const system = `You are Ms. Luna, a warm and patient teacher friend on Migo for ${child.name} (age ${child.age}, grade ${grade ?? 'unknown'}).
+  const languageInstruction = language === 'fr'
+    ? 'Tu dois toujours répondre en français uniquement.'
+    : 'You must always respond in English only.';
+
+  const system = `${languageInstruction}
+
+You are Ms. Luna, a warm and patient teacher friend on Migo for ${child.name} (age ${child.age}, grade ${grade ?? 'unknown'}).
 
 ${isPhotoMode
     ? `PHOTO MODE: The child has sent you an image. Look at it carefully and help them understand what they see, step by step. Guide them with questions rather than giving direct answers. Be warm, encouraging, and focus entirely on what's in the photo.`
@@ -1507,7 +1525,12 @@ export async function generatePostComment(
   language: string,
 ): Promise<PostCommentResult> {
   const lang = language === 'fr' ? 'French' : 'English';
-  const system = `You are ${friend.name}, commenting on your Migo friend ${child.name}'s post.
+  const languageInstruction = language === 'fr'
+    ? 'Tu dois toujours répondre en français uniquement.'
+    : 'You must always respond in English only.';
+  const system = `${languageInstruction}
+
+You are ${friend.name}, commenting on your Migo friend ${child.name}'s post.
 
 YOUR PERSONALITY: ${friend.personality.join(', ')}
 ${memoryBrief ? `\nWHAT YOU KNOW ABOUT ${child.name.toUpperCase()}:\n${memoryBrief}` : ''}
@@ -1568,6 +1591,9 @@ export async function generateRPSMove(
   const friendChoice = RPS_CHOICES[Math.floor(Math.random() * 3)];
   const winner       = rpsWinner(childChoice as RPSChoice, friendChoice);
   const lang         = language === 'fr' ? 'French' : 'English';
+  const languageInstruction = language === 'fr'
+    ? 'Tu dois toujours répondre en français uniquement.'
+    : 'You must always respond in English only.';
   const choiceEmoji: Record<string, string> = { rock: '✊', paper: '✋', scissors: '✌️' };
 
   const resultDesc =
@@ -1575,7 +1601,9 @@ export async function generateRPSMove(
     winner === 'child'  ? `${child.name} wins` :
     `${friend.name} wins`;
 
-  const system = `You are ${friend.name}, playing Rock Paper Scissors with ${child.name}.
+  const system = `${languageInstruction}
+
+You are ${friend.name}, playing Rock Paper Scissors with ${child.name}.
 Personality: ${friend.personality.join(', ')}.
 React in 1 sentence, fully in character. Be playful. No markdown. Respond in ${lang}.`;
 
@@ -1646,13 +1674,18 @@ export async function generateTicTacToeMove(
   newBoard[square] = 'O';
   const winner   = checkTTTBoard(newBoard);
   const lang     = language === 'fr' ? 'French' : 'English';
+  const languageInstruction = language === 'fr'
+    ? 'Tu dois toujours répondre en français uniquement.'
+    : 'You must always respond in English only.';
 
   const ctx =
     winner === 'O'    ? (lang === 'French' ? `Tu perds ! ${friend.name} a gagné !` : `${friend.name} wins!`) :
     winner === 'draw' ? (lang === 'French' ? 'Égalité !' : "It's a draw!") :
     (lang === 'French' ? `${friend.name} a joué case ${square + 1}.` : `${friend.name} played square ${square + 1}.`);
 
-  const system = `You are ${friend.name}, playing Tic-Tac-Toe with ${child.name}.
+  const system = `${languageInstruction}
+
+You are ${friend.name}, playing Tic-Tac-Toe with ${child.name}.
 Personality: ${friend.personality.join(', ')}.
 React in 1-2 short sentences, fully in character. No markdown. Respond in ${lang}.`;
 
@@ -1688,8 +1721,13 @@ export async function generateStoryContribution(
 ): Promise<StoryContribution> {
   const isEnding = round >= 5;
   const lang     = language === 'fr' ? 'French' : 'English';
+  const languageInstruction = language === 'fr'
+    ? 'Tu dois toujours répondre en français uniquement.'
+    : 'You must always respond in English only.';
 
-  const system = `You are ${friend.name}, building a collaborative story with ${child.name}.
+  const system = `${languageInstruction}
+
+You are ${friend.name}, building a collaborative story with ${child.name}.
 Personality: ${friend.personality.join(', ')}.
 ${isEnding
     ? 'This is the FINAL round. Write a satisfying, warm ending in 2-3 sentences. Wrap everything up.'

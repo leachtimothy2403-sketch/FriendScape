@@ -45,7 +45,7 @@ export default function BasicsScreen() {
 
   function handleContinue() {
     if (!canContinue) return;
-    router.push('/onboarding/needs');
+    router.push(specialNeeds ? '/onboarding/needs' : '/onboarding/photo');
   }
 
   const selectedLangLabel = LANGUAGES.find(l => l.code === language)?.label ?? 'English';

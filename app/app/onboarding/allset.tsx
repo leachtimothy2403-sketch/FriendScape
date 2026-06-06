@@ -137,11 +137,16 @@ export default function AllSetScreen() {
   const celebStyle = useAnimatedStyle(() => ({ transform: [{ scale: celebScale.value }] }));
 
   async function createChild() {
-    console.log('[allset] calling createChild...');
-    console.log('[allset] store:', JSON.stringify(store));
+    const parentEmail = store.parentEmail ||
+      (await AsyncStorage.getItem('pendingParentEmail')) || '';
+
+    if (!parentEmail) {
+      router.replace('/onboarding/basics');
+      return;
+    }
 
     const payload = {
-      parentEmail:         store.parentEmail,
+      parentEmail,
       name:                store.childName,
       age:                 store.age,
       gender:              store.gender,

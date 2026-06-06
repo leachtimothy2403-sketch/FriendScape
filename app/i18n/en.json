@@ -107,7 +107,9 @@
       "hearButton": "Hear {{name}}",
       "continueButton": "I pick {{name}}! →",
       "tapToHear": "🔊 Tap to hear what to do!",
-      "skipIntro": "Skip intro →"
+      "skipIntro": "Skip intro →",
+      "hearbutton": "Hear my voice",
+      "continuebutton": "Choose this friend →"
     },
     "interests": {
       "title": "Just for {{name}}!",
