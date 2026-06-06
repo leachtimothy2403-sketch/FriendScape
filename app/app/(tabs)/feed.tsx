@@ -9,8 +9,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { childAuth, childPosts, childSession, childProfileApi, FriendWithStats } from '@/services/api';
 import MigoLogo from '@/components/MigoLogo';
+import Avatar from '@/components/Avatar';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { Colors, Mascots } from '@/constants/theme';
+import { DEFAULT_AVATAR } from '@/types/avatar';
+import type { AvatarConfig } from '@/types/avatar';
 import AudioPlayer from '@/components/AudioPlayer';
 import { requestPermission } from '@/utils/webNotifications';
 
@@ -86,6 +89,8 @@ export default function FeedScreen() {
   const [newPostText, setNewPostText] = useState('');
   const [newPostMood, setNewPostMood] = useState('');
   const [posting, setPosting]         = useState(false);
+  const [avatarConfig, setAvatarConfig] = useState<AvatarConfig | null>(null);
+  const [avatarBackground, setAvatarBackground] = useState<string>('#EEEDFE');
 
   const childTokenRef = useRef<string | null>(null);
   const refreshTimer  = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -122,6 +127,17 @@ export default function FeedScreen() {
         setChildToken(token);
         childSession.start(token).catch(() => {});
         console.log('[feed] generating posts...');
+
+        try {
+          const profileRes = await childProfileApi.getProfile(token);
+          if (!cancelled) {
+            setAvatarConfig((profileRes.data.avatarConfig as unknown as AvatarConfig) ?? null);
+            setAvatarBackground(profileRes.data.avatarBackground ?? '#EEEDFE');
+          }
+        } catch (e) {
+          console.error('[feed] profile fetch failed:', e);
+        }
+
         await loadFeed(token, true);
       }
 
@@ -300,9 +316,17 @@ export default function FeedScreen() {
             <Text style={{ fontSize: 22 }}>🔔</Text>
             <View style={s.redDot} />
           </View>
-          <View style={s.avatarCircle}>
-            <Text style={{ fontSize: 20 }}>{avatarEmoji}</Text>
-          </View>
+          {avatarConfig ? (
+            <Avatar
+              config={avatarConfig}
+              background={avatarBackground}
+              size={36}
+            />
+          ) : (
+            <View style={s.avatarCircle}>
+              <Text style={{ fontSize: 20 }}>{avatarEmoji}</Text>
+            </View>
+          )}
         </View>
       </View>
 

@@ -249,6 +249,8 @@ export interface ChildProfile {
   mascotId: string;
   interests: string[];
   bio: string | null;
+  avatarConfig?: Record<string, unknown>;
+  avatarBackground?: string;
   stats: {
     totalPosts: number;
     totalFriends: number;

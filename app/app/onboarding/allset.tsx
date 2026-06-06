@@ -9,7 +9,9 @@ import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { children as childrenApi, childAuth } from '@/services/api';
+import Avatar from '@/components/Avatar';
 import { useOnboardingStore } from '@/store/onboardingStore';
+import type { AvatarConfig } from '@/types/avatar';
 
 const MASCOT: Record<string, { emoji: string; name: string }> = {
   pixel: { emoji: '🤖', name: 'Pixel' },
@@ -254,7 +256,32 @@ export default function AllSetScreen() {
       <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 20, paddingBottom: 40 }}>
 
         <View style={{ alignItems: 'center', marginBottom: 20 }}>
-          <Animated.Text style={[{ fontSize: 80 }, celebStyle]}>🎉</Animated.Text>
+          {store.avatarConfig ? (
+            <Animated.View style={[{ alignItems: 'center', justifyContent: 'center' }, celebStyle]}>
+              <View
+                style={{
+                  width: 120,
+                  height: 120,
+                  borderRadius: 60,
+                  backgroundColor: store.avatarBackground || '#EEEDFE',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: store.avatarBackground || '#EEEDFE',
+                  shadowOpacity: 0.3,
+                  shadowRadius: 12,
+                  elevation: 8,
+                }}
+              >
+                <Avatar
+                  config={store.avatarConfig}
+                  background={store.avatarBackground || '#EEEDFE'}
+                  size={96}
+                />
+              </View>
+            </Animated.View>
+          ) : (
+            <Animated.Text style={[{ fontSize: 80 }, celebStyle]}>🎉</Animated.Text>
+          )}
         </View>
 
         <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#2C2C2A', textAlign: 'center', marginBottom: 8 }}>
