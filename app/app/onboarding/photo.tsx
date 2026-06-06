@@ -184,10 +184,21 @@ export default function PhotoScreen() {
         {/* ── Builder mode content ── */}
         {mode === 'builder' && (
           <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 20, marginTop: 8, marginBottom: 20, alignItems: 'center' }}>
-            <Text style={{ fontSize: 36, marginBottom: 12 }}>🎨</Text>
-            <Text style={{ fontSize: 14, color: '#888780', textAlign: 'center', lineHeight: 20 }}>
-              Avatar builder coming soon! For now, your child will get a themed avatar with their initial.
+            <Text style={{ fontSize: 13, color: '#888780', textAlign: 'center', marginBottom: 16, lineHeight: 20 }}>
+              Design {displayName}'s unique avatar — face shape, hair, eyes, accessories and more!
             </Text>
+            <TouchableOpacity
+              onPress={() => router.push('/onboarding/avatar-builder' as never)}
+              style={{
+                backgroundColor: '#7F77DD',
+                borderRadius: 9999,
+                paddingVertical: 14,
+                paddingHorizontal: 32,
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>Open Avatar Builder</Text>
+            </TouchableOpacity>
           </View>
         )}
 

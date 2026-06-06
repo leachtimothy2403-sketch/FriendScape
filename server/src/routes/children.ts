@@ -19,6 +19,8 @@ import {
   getMyFriendsList,
   validateInterest,
   regenerateFriends,
+  getMyAvatar,
+  saveMyAvatar,
 } from '../controllers/children.controller';
 import { requireAuth } from '../middleware/auth';
 
@@ -46,6 +48,8 @@ router.get('/me/posts',        getMyPosts);
 router.get('/me/friends-list',           getMyFriendsList);
 router.post('/me/interests/validate',    validateInterest);
 router.post('/me/regenerate-friends',    regenerateFriends);
+router.get('/me/avatar',                 getMyAvatar);
+router.put('/me/avatar',                 saveMyAvatar);
 
 // Parent-authenticated CRUD
 router.get('/', getChildren);

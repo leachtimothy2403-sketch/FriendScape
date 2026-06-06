@@ -154,6 +154,8 @@ export default function AllSetScreen() {
       avatarPack:          store.avatarPack,
       personalityTraits:   store.personalityTraits,
       personalityFreeText: store.personalityFreeText,
+      avatarConfig:        store.avatarConfig ?? undefined,
+      avatarBackground:    store.avatarBackground,
     };
 
     try {

@@ -144,6 +144,7 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
       avatarTheme, mascotId, interests, freeInterest,
       avatarPack,
       personalityTraits, personalityFreeText,
+      avatarConfig, avatarBackground,
     } = req.body as Record<string, unknown>;
 
     // 1. Validate required fields
@@ -208,6 +209,8 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
         personality_traits:    traitsArray.length ? JSON.stringify(traitsArray) : null,
         personality_free_text: freeText,
         personality_completed: traitsArray.length > 0,
+        avatar_config:         avatarConfig ? JSON.stringify(avatarConfig) : null,
+        avatar_background:     avatarBackground ? String(avatarBackground) : null,
       })
       .returning('*');
 
@@ -636,16 +639,22 @@ export async function getMyProfile(req: AuthRequest, res: Response) {
       if (totalXp >= XP_LEVELS[i][0]) { level = i + 1; levelName = XP_LEVELS[i][1]; break; }
     }
 
+    const avatarConfig = child.avatar_config
+      ? (typeof child.avatar_config === 'object' ? child.avatar_config : JSON.parse(child.avatar_config as string))
+      : null;
+
     res.json({
-      id:          child.id,
-      name:        child.name,
-      age:         child.age,
-      gender:      child.gender,
-      language:    child.language,
-      avatarTheme: child.avatar_theme,
-      mascotId:    child.mascot,
-      interests:   Array.isArray(child.interests) ? child.interests : JSON.parse(child.interests as string || '[]'),
-      bio:         (child.bio as string | null) ?? null,
+      id:              child.id,
+      name:            child.name,
+      age:             child.age,
+      gender:          child.gender,
+      language:        child.language,
+      avatarTheme:     child.avatar_theme,
+      mascotId:        child.mascot,
+      interests:       Array.isArray(child.interests) ? child.interests : JSON.parse(child.interests as string || '[]'),
+      bio:             (child.bio as string | null) ?? null,
+      avatarConfig:    avatarConfig,
+      avatarBackground:(child.avatar_background as string) ?? null,
       stats: {
         totalPosts:   Number((postsCount   as { count: string } | undefined)?.count   ?? 0),
         totalFriends: Number((friendsCount as { count: string } | undefined)?.count   ?? 0),
@@ -995,6 +1004,61 @@ export async function getMyFriendsList(req: AuthRequest, res: Response) {
   } catch (err) {
     console.error('[profile] getMyFriendsList error:', err);
     res.status(500).json({ error: 'Failed to fetch friends list' });
+  }
+}
+
+// ─── GET /children/me/avatar ──────────────────────────────────────────────────
+export async function getMyAvatar(req: AuthRequest, res: Response) {
+  const childId = req.childId;
+  if (!childId) { res.status(401).json({ error: 'Child authentication required' }); return; }
+
+  try {
+    const child = await db('children').where({ id: childId }).first();
+    if (!child) { res.status(404).json({ error: 'Child not found' }); return; }
+
+    const avatarConfig = child.avatar_config
+      ? (typeof child.avatar_config === 'object' ? child.avatar_config : JSON.parse(child.avatar_config as string))
+      : null;
+
+    res.json({ avatarConfig, avatarBackground: (child.avatar_background as string) ?? null });
+  } catch (err) {
+    console.error('[avatar] getMyAvatar error:', err);
+    res.status(500).json({ error: 'Failed to fetch avatar' });
+  }
+}
+
+// ─── PUT /children/me/avatar ──────────────────────────────────────────────────
+export async function saveMyAvatar(req: AuthRequest, res: Response) {
+  const childId = req.childId;
+  if (!childId) { res.status(401).json({ error: 'Child authentication required' }); return; }
+
+  const { avatarConfig, avatarBackground } = req.body as { avatarConfig?: unknown; avatarBackground?: string };
+
+  if (!avatarConfig || typeof avatarConfig !== 'object') {
+    res.status(400).json({ error: 'avatarConfig is required and must be an object' });
+    return;
+  }
+
+  try {
+    const [child] = await db('children')
+      .where({ id: childId })
+      .update({
+        avatar_config:      JSON.stringify(avatarConfig),
+        avatar_background:  avatarBackground ?? null,
+        updated_at:         db.fn.now(),
+      })
+      .returning('*');
+
+    if (!child) { res.status(404).json({ error: 'Child not found' }); return; }
+
+    const stored = typeof child.avatar_config === 'object'
+      ? child.avatar_config
+      : JSON.parse(child.avatar_config as string);
+
+    res.json({ success: true, avatarConfig: stored, avatarBackground: child.avatar_background ?? null });
+  } catch (err) {
+    console.error('[avatar] saveMyAvatar error:', err);
+    res.status(500).json({ error: 'Failed to save avatar' });
   }
 }
 

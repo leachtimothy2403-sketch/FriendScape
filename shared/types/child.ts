@@ -1,3 +1,5 @@
+import type { AvatarConfig } from './avatar';
+
 export type Gender = 'boy' | 'girl' | 'nonbinary' | 'preferNotToSay';
 export type Language = 'en' | 'es' | 'fr' | 'de' | 'pt' | 'zh' | 'ar';
 export type AvatarTheme = 'animals' | 'space' | 'fantasy' | 'ocean' | 'jungle';
@@ -24,6 +26,8 @@ export interface Child {
   schoolCountry?: string;       // default 'FR'
   learningSessionsCount?: number;
   lastSubject?: string;
+  avatarConfig?: AvatarConfig;
+  avatarBackground?: string;
   createdAt: Date;
   updatedAt: Date;
 }

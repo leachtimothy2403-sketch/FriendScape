@@ -317,6 +317,17 @@ export const childSession = {
     api.post<{ ended: number }>('/children/session/end', {}, withToken(token)),
 };
 
+export const avatarApi = {
+  get: (token: string) =>
+    api.get<{ avatarConfig: Record<string, unknown> | null; avatarBackground: string | null }>(
+      '/children/me/avatar', withToken(token),
+    ),
+  save: (token: string, avatarConfig: Record<string, unknown>, avatarBackground: string) =>
+    api.put<{ success: boolean; avatarConfig: Record<string, unknown>; avatarBackground: string }>(
+      '/children/me/avatar', { avatarConfig, avatarBackground }, withToken(token),
+    ),
+};
+
 export const devApi = {
   reset: () => api.post<{
     success: boolean;

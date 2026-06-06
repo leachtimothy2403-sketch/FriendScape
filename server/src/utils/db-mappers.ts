@@ -1,4 +1,4 @@
-import { Child, PersonalityTrait, EmotionalEntry, Milestone } from '../../../shared/types';
+import { Child, PersonalityTrait, EmotionalEntry, Milestone, AvatarConfig } from '../../../shared/types';
 import { FriendForAI, ExtendedMemory } from '../services/ai.service';
 
 export function toChildType(row: Record<string, unknown>): Child {
@@ -22,7 +22,11 @@ export function toChildType(row: Record<string, unknown>): Child {
     schoolGrade:          row.school_grade ? String(row.school_grade) : undefined,
     schoolCountry:        row.school_country ? String(row.school_country) : undefined,
     learningSessionsCount: row.learning_sessions_count !== undefined ? Number(row.learning_sessions_count) : undefined,
-    lastSubject:          row.last_subject ? String(row.last_subject) : undefined,
+    lastSubject:           row.last_subject ? String(row.last_subject) : undefined,
+    avatarConfig:          row.avatar_config
+      ? (typeof row.avatar_config === 'object' ? row.avatar_config as AvatarConfig : JSON.parse(row.avatar_config as string) as AvatarConfig)
+      : undefined,
+    avatarBackground:      row.avatar_background ? String(row.avatar_background) : undefined,
     createdAt:    row.created_at as Date,
     updatedAt:    row.updated_at as Date,
   };

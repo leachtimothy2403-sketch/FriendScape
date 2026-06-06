@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import type { AvatarConfig } from '../../shared/types/avatar';
 
 interface OnboardingState {
   // Data
@@ -20,6 +21,8 @@ interface OnboardingState {
   avatarPack: string;
   personalityTraits: string[];
   personalityFreeText: string;
+  avatarConfig: AvatarConfig | null;
+  avatarBackground: string;
 
   // Actions
   initParentEmail: () => Promise<void>;
@@ -37,6 +40,8 @@ interface OnboardingState {
   setAvatarPack: (v: string) => void;
   setPersonalityTraits: (v: string[]) => void;
   setPersonalityFreeText: (v: string) => void;
+  setAvatarConfig: (v: AvatarConfig) => void;
+  setAvatarBackground: (v: string) => void;
   resetStore: () => void;
 }
 
@@ -56,6 +61,8 @@ const DEFAULTS = {
   avatarPack:          '',
   personalityTraits:   [] as string[],
   personalityFreeText: '',
+  avatarConfig:        null as AvatarConfig | null,
+  avatarBackground:    '#EEEDFE',
 };
 
 // Use localStorage on web so data survives page reloads; AsyncStorage on native.
@@ -87,6 +94,8 @@ export const useOnboardingStore = create<OnboardingState>()(
       setAvatarPack:          (v) => set({ avatarPack: v }),
       setPersonalityTraits:   (v) => set({ personalityTraits: v }),
       setPersonalityFreeText: (v) => set({ personalityFreeText: v }),
+      setAvatarConfig:        (v) => set({ avatarConfig: v }),
+      setAvatarBackground:    (v) => set({ avatarBackground: v }),
       resetStore:             ()  => set(DEFAULTS),
     }),
     {
