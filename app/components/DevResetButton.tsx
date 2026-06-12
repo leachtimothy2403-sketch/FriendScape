@@ -7,9 +7,12 @@ import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { devApi } from '@/services/api';
 import { useOnboardingStore } from '@/store/onboardingStore';
+import { useNotificationStore } from '@/store/notificationStore';
 
 export default function DevResetButton() {
-  const resetOnboardingStore = useOnboardingStore((s) => s.resetStore);
+  const resetOnboardingStore  = useOnboardingStore((s) => s.resetStore);
+  const clearNotification     = useNotificationStore((s) => s.clearNotification);
+  const setUnreadCount        = useNotificationStore((s) => s.setUnreadCount);
   const [resetting, setResetting] = useState(false);
   const [clearing, setClearing]   = useState(false);
   const [result, setResult]       = useState<{ text: string; color: string } | null>(null);
@@ -33,6 +36,8 @@ export default function DevResetButton() {
       const { deleted } = res.data;
       await AsyncStorage.clear();
       resetOnboardingStore();
+      clearNotification();
+      setUnreadCount(0);
       setResult({ text: `✅ ${deleted.children} children deleted`, color: '#2D7D46' });
       setTimeout(() => { setResetting(false); router.replace('/enroll' as never); }, 2000);
     } catch (err: unknown) {
@@ -48,6 +53,8 @@ export default function DevResetButton() {
     try {
       await AsyncStorage.clear();
       resetOnboardingStore();
+      clearNotification();
+      setUnreadCount(0);
       setResult({ text: '✅ Cache cleared', color: '#2D7D46' });
       setTimeout(() => { setClearing(false); router.replace('/enroll' as never); }, 1000);
     } catch {

@@ -10,7 +10,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { useTranslation } from 'react-i18next';
-import { childMessages, childFriends, childAuth, gameApi } from '@/services/api';
+import { childMessages, childFriends, childAuth, gameApi, audioApi } from '@/services/api';
+import { Audio } from 'expo-av';
+import { useLanguageStore } from '@/store/languageStore';
 import { Colors } from '@/constants/theme';
 import AudioPlayer from '@/components/AudioPlayer';
 import { useNotificationStore } from '@/store/notificationStore';
@@ -44,8 +46,9 @@ function firstEmoji(str: string | null | undefined): string {
   return [...str][0] ?? '🌟';
 }
 
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en', {
+function formatTime(iso: string, language: string): string {
+  const locale = language === 'fr' ? 'fr-FR' : 'en-US';
+  return new Date(iso).toLocaleTimeString(locale, {
     hour: '2-digit', minute: '2-digit', hour12: false,
   });
 }
@@ -91,6 +94,7 @@ export default function DMScreen() {
   const [activeGame, setActiveGame]           = useState<ActiveGame | null>(null);
   const [gameLoading, setGameLoading]         = useState(false);
   const [lastMessageHadPhoto, setLastMessageHadPhoto] = useState(false);
+  const [isRecording, setIsRecording]                 = useState(false);
 
   const listRef        = useRef<FlatList<DisplayItem>>(null);
   const inputRef       = useRef<TextInput>(null);
@@ -100,9 +104,12 @@ export default function DMScreen() {
   const countdownRef   = useRef<ReturnType<typeof setInterval> | null>(null);
   const pendingMsgRef  = useRef<ChatMessage | null>(null);
   const isFocusedRef   = useRef(true);
+  const mountedRef     = useRef(true);
   const gradeChipsAnim = useRef(new Animated.Value(60)).current;
+  const recordingRef   = useRef<Audio.Recording | null>(null);
 
   const showNotification = useNotificationStore((s) => s.showNotification);
+  const language = useLanguageStore((s) => s.language);
   const isWeb   = Platform.OS === 'web';
   const isIPad  = Platform.OS === 'ios' && Platform.isPad;
   const useInverted = !isWeb && !isIPad;
@@ -140,6 +147,7 @@ export default function DMScreen() {
 
   useEffect(() => {
     let cancelled = false;
+    mountedRef.current = true;
 
     async function init() {
       let token = await AsyncStorage.getItem('childToken');
@@ -169,8 +177,7 @@ export default function DMScreen() {
 
         const friend  = friendRes.data.friend as Record<string, unknown>;
         const name    = String(friend.name ?? 'Friend');
-        const emojis  = String(friend.cover_emojis ?? '🌟');
-        const emoji   = firstEmoji(emojis);
+        const emoji = [...(String(friend.cover_emojis || '🌟'))][0] ?? '🌟';
         const teacher = Boolean(friend.is_teacher);
 
         if (!cancelled) {
@@ -200,8 +207,9 @@ export default function DMScreen() {
     void init();
     return () => {
       cancelled = true;
-      if (pollRef.current)      clearInterval(pollRef.current);
-      if (timeoutRef.current)   clearTimeout(timeoutRef.current);
+      mountedRef.current = false;
+      // pollRef and timeoutRef are intentionally NOT cleared here: the background poll
+      // must survive navigation-back (unmount) so it can still call showNotification.
       if (countdownRef.current) clearInterval(countdownRef.current);
     };
   }, [friendId]);
@@ -217,6 +225,59 @@ export default function DMScreen() {
     if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
     pendingMsgRef.current = null;
   }, []);
+
+  // ── Voice recording / transcription ─────────────────────────────────────────
+
+  async function handleVoiceMemo() {
+    if (isRecording) {
+      setIsRecording(false);
+      const rec = recordingRef.current;
+      if (!rec) return;
+      try {
+        await rec.stopAndUnloadAsync();
+        const uri = rec.getURI();
+        recordingRef.current = null;
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+        if (!uri || !childToken) return;
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.responseType = 'arraybuffer';
+          xhr.onload = () => {
+            const bytes = new Uint8Array(xhr.response as ArrayBuffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+            resolve(btoa(binary));
+          };
+          xhr.onerror = reject;
+          xhr.open('GET', uri);
+          xhr.send();
+        });
+        const result = await audioApi.transcribe(childToken, {
+          audioBase64: base64,
+          mimeType: 'audio/m4a',
+          language,
+        });
+        const transcript = result.data.transcript?.trim();
+        if (transcript) setInputText(transcript);
+      } catch (err) {
+        console.error('[voice] transcription failed:', err);
+        showToast(t('dm.voiceError'));
+      }
+    } else {
+      try {
+        const { granted } = await Audio.requestPermissionsAsync();
+        if (!granted) { showToast(t('dm.micPermissionDenied')); return; }
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+        const { recording } = await Audio.Recording.createAsync(
+          Audio.RecordingOptionsPresets.HIGH_QUALITY,
+        );
+        recordingRef.current = recording;
+        setIsRecording(true);
+      } catch (err) {
+        console.error('[voice] recording start failed:', err);
+      }
+    }
+  }
 
   // ── Camera / image picker ─────────────────────────────────────────────────────
 
@@ -426,16 +487,18 @@ export default function DMScreen() {
               new Date(latest.created_at) > new Date(pendingMsgRef.current.created_at)
             ) {
               stopPolling();
-              setShowTyping(false);
-              setLastMessageHadPhoto(false);
-              setMessages((prev) => [latest, ...prev]);
+              if (mountedRef.current) {
+                setShowTyping(false);
+                setLastMessageHadPhoto(false);
+                setMessages((prev) => [latest, ...prev]);
 
-              if (isTeacher && detectsGradeQuestion(latest.content)) {
-                setMessages((prev) => {
-                  const hasChildReply = prev.some((m) => m.sender_type === 'child' && m.id !== optimistic.id);
-                  if (!hasChildReply) showGradeChipsAnimated();
-                  return prev;
-                });
+                if (isTeacher && detectsGradeQuestion(latest.content)) {
+                  setMessages((prev) => {
+                    const hasChildReply = prev.some((m) => m.sender_type === 'child' && m.id !== optimistic.id);
+                    if (!hasChildReply) showGradeChipsAnimated();
+                    return prev;
+                  });
+                }
               }
 
               if (!isFocusedRef.current) {
@@ -448,8 +511,10 @@ export default function DMScreen() {
 
         timeoutRef.current = setTimeout(() => {
           stopPolling();
-          setShowTyping(false);
-          setReplyTimedOut(true);
+          if (mountedRef.current) {
+            setShowTyping(false);
+            setReplyTimedOut(true);
+          }
         }, 120_000);
 
       } else if (data.friendReply) {
@@ -523,7 +588,7 @@ export default function DMScreen() {
             <Text style={s.friendNameText}>{friendName}</Text>
             {isOnline === true
               ? <Text style={s.onlineText}>● Online now</Text>
-              : <Text style={s.offlineText}>🕐 Usually replies in a few minutes</Text>
+              : <Text style={s.offlineText}>{t('dm.usuallyReplies')}</Text>
             }
           </View>
         </TouchableOpacity>
@@ -652,18 +717,30 @@ export default function DMScreen() {
         {/* Input bar */}
         <View style={s.inputBar}>
           {isTeacher ? (
-            <TouchableOpacity style={s.cameraBtn} onPress={() => void handleCamera()}>
-              <Text style={{ fontSize: 18 }}>📸</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity style={s.cameraBtn} onPress={() => void handleCamera()}>
+                <Text style={{ fontSize: 18 }}>📸</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.voiceBtn, isRecording && { backgroundColor: '#FF4B4B' }]}
+                onPress={() => void handleVoiceMemo()}
+              >
+                <Text style={{ fontSize: 18 }}>{isRecording ? '⏹️' : '🎤'}</Text>
+              </TouchableOpacity>
+            </>
           ) : (
-            <TouchableOpacity style={s.voiceBtn} disabled>
-              <Text style={{ fontSize: 18 }}>🎤</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity
+                style={[s.voiceBtn, isRecording && { backgroundColor: '#FF4B4B' }]}
+                onPress={() => void handleVoiceMemo()}
+              >
+                <Text style={{ fontSize: 18 }}>{isRecording ? '⏹️' : '🎤'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.gameBtn} onPress={() => setShowGameModal(true)} disabled={!!activeGame}>
+                <Text style={{ fontSize: 16 }}>🎮</Text>
+              </TouchableOpacity>
+            </>
           )}
-
-          <TouchableOpacity style={s.gameBtn} onPress={() => setShowGameModal(true)} disabled={!!activeGame}>
-            <Text style={{ fontSize: 16 }}>🎮</Text>
-          </TouchableOpacity>
 
           <TextInput
             ref={inputRef}
@@ -698,6 +775,7 @@ export default function DMScreen() {
 // ── Message bubble ────────────────────────────────────────────────────────────
 
 function MessageBubble({ message, friendName }: { message: ChatMessage; friendName: string }) {
+  const { language } = useLanguageStore();
   const isChild = message.sender_type === 'child';
 
   const mdStyles = {
@@ -724,7 +802,7 @@ function MessageBubble({ message, friendName }: { message: ChatMessage; friendNa
           )}
         </View>
         <Text style={[s.timestamp, isChild ? s.tsRight : s.tsLeft]}>
-          {formatTime(message.created_at)}
+          {formatTime(message.created_at, language)}
         </Text>
       </View>
     </View>
@@ -764,12 +842,13 @@ function TypingBubble({ lookingAtPhoto }: { lookingAtPhoto?: boolean }) {
 }
 
 function GreetingCard({ name, emoji, bg, inverted }: { name: string; emoji: string; bg: string; inverted: boolean }) {
+  const { t } = useTranslation();
   return (
     <View style={[s.greeting, inverted && { transform: [{ scaleY: -1 }] }]}>
       <View style={[s.greetingAvatar, { backgroundColor: bg }]}>
         <Text style={{ fontSize: 40 }}>{emoji}</Text>
       </View>
-      <Text style={s.greetingText}>Say hello to {name}!{'\n'}They'd love to hear from you.</Text>
+      <Text style={s.greetingText}>{t('dm.sayHello', { name })}</Text>
     </View>
   );
 }

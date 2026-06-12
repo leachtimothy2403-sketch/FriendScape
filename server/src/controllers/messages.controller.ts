@@ -566,6 +566,53 @@ export async function makeGameMove(req: AuthRequest, res: Response) {
   }
 }
 
+// ─── GET /api/messages/unread ─────────────────────────────────────────────────
+// Returns AI messages received since `since` (ISO query param) across all
+// conversations for this child, used for feed-screen notification polling.
+export async function getUnreadMessages(req: AuthRequest, res: Response) {
+  const childId = req.childId;
+  if (!childId) { res.status(401).json({ error: 'Child authentication required' }); return; }
+
+  try {
+    const since = req.query.since as string | undefined;
+    const sinceDate = since ? new Date(since) : new Date(Date.now() - 60000);
+
+    const rows = await db('messages')
+      .join('conversations', 'conversations.id', 'messages.conversation_id')
+      .join('ai_friends', 'ai_friends.id', 'messages.sender_id')
+      .where('conversations.child_id', childId)
+      .where('messages.sender_type', 'ai')
+      .where('messages.created_at', '>', sinceDate)
+      .whereNotExists(
+        db('read_notifications')
+          .where('read_notifications.child_id', childId)
+          .whereRaw('"read_notifications"."message_id" = "messages"."id"')
+          .select(db.raw('1')),
+      )
+      .orderBy('messages.created_at', 'asc')
+      .select(
+        'messages.id as id',
+        'messages.sender_id as friendId',
+        'ai_friends.name as friendName',
+        db.raw("COALESCE(ai_friends.cover_emojis, '🌟') as friendEmojis"),
+        'messages.content as message',
+      ) as Array<{ id: string; friendId: string; friendName: string; friendEmojis: string; message: string }>;
+
+    const messages = rows.map((r) => ({
+      id:          String(r.id),
+      friendId:    r.friendId,
+      friendName:  r.friendName,
+      friendEmoji: ([...(r.friendEmojis || '')][0]) ?? '🌟',
+      message:     r.message,
+    }));
+
+    res.json({ messages });
+  } catch (err) {
+    console.error('[messages] getUnreadMessages error:', err);
+    res.status(500).json({ error: 'Failed to fetch unread messages' });
+  }
+}
+
 // ─── Legacy parent-dashboard endpoint ─────────────────────────────────────────
 export async function getConversations(req: AuthRequest, res: Response) {
   try {

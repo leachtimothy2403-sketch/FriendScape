@@ -4,12 +4,12 @@ import Animated, {
   useSharedValue, useAnimatedStyle,
   withRepeat, withSequence, withTiming, Easing,
 } from 'react-native-reanimated';
-import { Audio, AVPlaybackStatus } from 'expo-av';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { useLanguageStore } from '@/store/languageStore';
+import AudioPlayer from '@/components/AudioPlayer';
 
 // ─── Intro text ───────────────────────────────────────────────────────────────
 
@@ -25,30 +25,9 @@ const FR_INTRO_TEXT_1 =
 const FR_INTRO_TEXT_2 =
   "Je suis Miga ! Je suis une petite fée pétillante et je serai TOUJOURS là pour toi. Je célèbre chaque victoire, j'aide quand ça va pas, et je ne partirai jamais — tu es coincé(e) avec moi ! 💜 Mais regarde en bas — tu pourrais aussi aimer Pixel, Finn ou Sage !";
 
-// ─── Audio assets — module-level so Metro can statically resolve all requires ─
+type MascotId = 'pixel' | 'finn' | 'miga' | 'sage';
 
-const AUDIO_EN = {
-  miga_intro:    require('../../assets/audio/miga_intro.mp3'),
-  miga_selected: require('../../assets/audio/miga_selected.mp3'),
-  miga_hear:     require('../../assets/audio/miga_hear.mp3'),
-  finn_intro:    require('../../assets/audio/finn_intro.mp3'),
-  pixel_intro:   require('../../assets/audio/pixel_intro.mp3'),
-  sage_intro:    require('../../assets/audio/sage_intro.mp3'),
-};
-
-const AUDIO_FR = {
-  miga_intro:    require('../../assets/audio/miga_intro_fr.mp3'),
-  miga_selected: require('../../assets/audio/miga_selected_fr.mp3'),
-  miga_hear:     require('../../assets/audio/miga_hear_fr.mp3'),
-  finn_intro:    require('../../assets/audio/finn_intro.mp3'),
-  pixel_intro:   require('../../assets/audio/pixel_intro.mp3'),
-  sage_intro:    require('../../assets/audio/sage_intro.mp3'),
-};
-
-type AudioSource = (typeof AUDIO_EN)[keyof typeof AUDIO_EN];
-type MascotId    = 'pixel' | 'finn' | 'miga' | 'sage';
-
-// ─── Static mascot data (audio resolved inside component) ─────────────────────
+// ─── Static mascot data ───────────────────────────────────────────────────────
 
 const MASCOT_DATA = [
   { id: 'pixel' as const, name: 'Pixel', emoji: '🤖',
@@ -73,22 +52,8 @@ export default function MascotScreen() {
 
   const isFr = language === 'fr';
 
-  // Language-specific audio and text
-  const AUDIO      = isFr ? AUDIO_FR : AUDIO_EN;
   const introText1 = isFr ? FR_INTRO_TEXT_1 : EN_INTRO_TEXT_1;
   const introText2 = isFr ? FR_INTRO_TEXT_2 : EN_INTRO_TEXT_2;
-
-  // MASCOTS with audio resolved for current language
-  const MASCOTS: Array<{
-    id: MascotId; name: string; emoji: string;
-    bubble: string; bubbleFr: string;
-    intro: AudioSource; hear: AudioSource; selected: AudioSource | null;
-  }> = [
-    { ...MASCOT_DATA[0], intro: AUDIO.pixel_intro, hear: AUDIO.pixel_intro, selected: null },
-    { ...MASCOT_DATA[1], intro: AUDIO.finn_intro,  hear: AUDIO.finn_intro,  selected: null },
-    { ...MASCOT_DATA[2], intro: AUDIO.miga_intro,  hear: AUDIO.miga_hear,   selected: AUDIO.miga_selected },
-    { ...MASCOT_DATA[3], intro: AUDIO.sage_intro,  hear: AUDIO.sage_intro,  selected: null },
-  ];
 
   const [selected, setSelected]           = useState<MascotId>((mascotId as MascotId) || 'miga');
   const [introStarted, setIntroStarted]   = useState(false);
@@ -96,8 +61,8 @@ export default function MascotScreen() {
   const [typingDone, setTypingDone]       = useState(false);
   const [showNext, setShowNext]           = useState(false);
   const [introComplete, setIntroComplete] = useState(false);
+  const [phase2Started, setPhase2Started] = useState(false);
 
-  const soundRef     = useRef<Audio.Sound | null>(null);
   const typingRef    = useRef<ReturnType<typeof setInterval> | null>(null);
   const advancedRef  = useRef(false);
   const nextTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -114,8 +79,6 @@ export default function MascotScreen() {
   }));
 
   useEffect(() => {
-    Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-
     floatY.value = withRepeat(
       withSequence(
         withTiming(-10, { duration: 1400, easing: Easing.inOut(Easing.sin) }),
@@ -124,10 +87,9 @@ export default function MascotScreen() {
       -1, false,
     );
 
-    if (!preReader) beginIntro(false);
+    if (!preReader) beginIntro();
 
     return () => {
-      soundRef.current?.unloadAsync();
       if (typingRef.current)    clearInterval(typingRef.current);
       if (nextTimerRef.current) clearTimeout(nextTimerRef.current);
       if (gridTimerRef.current) clearTimeout(gridTimerRef.current);
@@ -161,33 +123,10 @@ export default function MascotScreen() {
     }, 30);
   }
 
-  async function playAudio(source: AudioSource, onFinish?: () => void) {
-    try {
-      await soundRef.current?.unloadAsync();
-      soundRef.current = null;
-      const { sound } = await Audio.Sound.createAsync(source);
-      soundRef.current = sound;
-      if (onFinish) {
-        sound.setOnPlaybackStatusUpdate((status: AVPlaybackStatus) => {
-          if (status.isLoaded && status.didJustFinish) onFinish();
-        });
-      }
-      await sound.playAsync();
-    } catch {
-      if (onFinish) setTimeout(onFinish, 3000);
-    }
-  }
-
-  function beginIntro(autoAdvance: boolean) {
+  function beginIntro() {
     setIntroStarted(true);
     startTypewriter(introText1);
     nextTimerRef.current = setTimeout(() => setShowNext(true), 4000);
-
-    if (autoAdvance) {
-      setTimeout(() => playAudio(AUDIO.miga_intro, () => handleNext()), 500);
-    } else {
-      setTimeout(() => playAudio(AUDIO.miga_intro), 500);
-    }
   }
 
   function handleNext() {
@@ -195,10 +134,11 @@ export default function MascotScreen() {
     advancedRef.current = true;
 
     setShowNext(false);
-    startTypewriter(introText2);
-    playAudio(AUDIO.miga_selected);
+    setPhase2Started(true);
 
-    gridTimerRef.current = setTimeout(() => setIntroComplete(true), 1000);
+    startTypewriter(introText2);
+
+    gridTimerRef.current = setTimeout(() => setIntroComplete(true), 5000);
   }
 
   function skipIntro() {
@@ -206,29 +146,27 @@ export default function MascotScreen() {
     if (nextTimerRef.current) clearTimeout(nextTimerRef.current);
     if (gridTimerRef.current) clearTimeout(gridTimerRef.current);
     advancedRef.current = true;
-    soundRef.current?.stopAsync();
     setIntroComplete(true);
   }
 
   function handleSelect(id: MascotId) {
     setSelected(id);
-    const m = MASCOTS.find((m) => m.id === id)!;
-    playAudio(m.intro);
   }
 
   async function handleConfirm() {
     setMascotId(selected);
-    const m = MASCOTS.find((m) => m.id === selected)!;
-    if (m.selected) await playAudio(m.selected);
     router.push('/onboarding/role');
   }
 
-  const activeMascot = MASCOTS.find((m) => m.id === selected)!;
+  const activeMascot = MASCOT_DATA.find((m) => m.id === selected)!;
   const activeBubble = isFr ? activeMascot.bubbleFr : activeMascot.bubble;
 
-  const bubbleText = introComplete ? activeBubble : introBubble;
-  const heroEmoji  = introComplete ? activeMascot.emoji : '🧚';
-  const heroSize   = introComplete ? 72 : 90;
+  const bubbleText  = introComplete ? activeBubble : introBubble;
+  const heroEmoji   = introComplete ? activeMascot.emoji : '🧚';
+  const heroSize    = introComplete ? 72 : 90;
+
+  // AudioPlayer text and characterId for current intro phase
+  const introAudioText = phase2Started ? introText2 : introText1;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F7FF' }}>
@@ -307,14 +245,47 @@ export default function MascotScreen() {
                 : null}
             </Text>
           </View>
+
+          {/* AudioPlayer for intro text (ElevenLabs TTS, correct per-language voice) */}
+          {!introComplete && introStarted && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'center', marginTop: 10 }}>
+              <AudioPlayer
+                text={introAudioText}
+                characterId="miga"
+                size="sm"
+              />
+              <Text style={{ fontSize: 12, color: '#888780', fontWeight: '600', marginLeft: 6 }}>
+                {t('onboarding.mascot.hearbutton')}
+              </Text>
+            </View>
+          )}
         </View>
+
+        {/* ── Second hint bubble (show as soon as intro starts, phase1 only) ── */}
+        {!introComplete && introStarted && !phase2Started && (
+          <View style={{
+            backgroundColor: '#EEEDFE',
+            borderRadius: 16,
+            borderTopLeftRadius: 4,
+            paddingHorizontal: 16,
+            paddingVertical: 10,
+            maxWidth: 300,
+            alignSelf: 'center',
+            marginTop: 8,
+            marginBottom: 8,
+          }}>
+            <Text style={{ fontSize: 13, color: '#534AB7', textAlign: 'center', lineHeight: 19 }}>
+              {t('onboarding.mascot.mascotChooseHint')}
+            </Text>
+          </View>
+        )}
 
         {/* ── Intro-phase buttons ── */}
         {!introComplete && (
           <View style={{ alignItems: 'center', marginBottom: 8 }}>
             {preReader && !introStarted ? (
               <TouchableOpacity
-                onPress={() => beginIntro(true)}
+                onPress={() => beginIntro()}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -344,7 +315,7 @@ export default function MascotScreen() {
                 }}
                 activeOpacity={0.85}
               >
-                <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Next →</Text>
+                <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>{t('onboarding.mascot.nextButton')}</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -358,7 +329,7 @@ export default function MascotScreen() {
             </Text>
 
             <Animated.View style={[cardsStyle, { gap: 12, marginBottom: 36 }]}>
-              {MASCOTS.map((mascot) => {
+              {MASCOT_DATA.map((mascot) => {
                 const isSel = selected === mascot.id;
                 return (
                   <TouchableOpacity
@@ -386,19 +357,16 @@ export default function MascotScreen() {
                       <Text style={{ fontSize: 16, fontWeight: '700', color: isSel ? '#7F77DD' : '#2C2C2A', marginBottom: 6 }}>
                         {mascot.name}
                       </Text>
-                      <TouchableOpacity
-                        onPress={() => playAudio(mascot.hear)}
-                        style={{
-                          flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start',
-                          backgroundColor: isSel ? '#D8D5FF' : '#F0F0F0',
-                          paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20,
-                        }}
-                      >
-                        <Text style={{ fontSize: 13, marginRight: 4 }}>🔊</Text>
-                        <Text style={{ fontSize: 12, color: isSel ? '#7F77DD' : '#888780', fontWeight: '600' }}>
-                          {t('onboarding.mascot.hearButton', { name: mascot.name })}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginTop: 4 }}>
+                        <AudioPlayer
+                          text={isFr ? mascot.bubbleFr : mascot.bubble}
+                          characterId={mascot.id}
+                          size="sm"
+                        />
+                        <Text style={{ fontSize: 12, color: isSel ? '#7F77DD' : '#888780', fontWeight: '600', marginLeft: 6 }}>
+                          {t('onboarding.mascot.hearbutton')}
                         </Text>
-                      </TouchableOpacity>
+                      </View>
                     </View>
 
                     <View style={{
@@ -422,7 +390,7 @@ export default function MascotScreen() {
               activeOpacity={0.85}
             >
               <Text style={{ color: '#fff', fontSize: 17, fontWeight: 'bold' }}>
-                {t('onboarding.mascot.continueButton', { name: activeMascot.name })}
+                {t('onboarding.mascot.continuebutton')}
               </Text>
             </TouchableOpacity>
 

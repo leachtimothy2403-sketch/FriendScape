@@ -34,7 +34,7 @@ export const auth = {
   login: (data: { email: string; password: string }) =>
     api.post('/auth/login', data),
   logout: () => api.post('/auth/logout'),
-  enroll: (data: { parentEmail: string }) =>
+  enroll: (data: { parentEmail: string; language?: string }) =>
     api.post<{ status: string; message?: string }>('/auth/enroll', data),
   enrollmentStatus: (parentEmail: string) =>
     api.get<{ status: 'pending' | 'approved' | 'expired' }>(
@@ -118,6 +118,10 @@ export const childPosts = {
     api.post<{ reactions: Record<string, number>; toggled: boolean }>(
       `/posts/${postId}/react`, { emoji }, withToken(token),
     ),
+  comment: (token: string, postId: string, text: string) =>
+    api.post<{ comment: unknown }>(`/posts/${postId}/comments`, { text }, withToken(token)),
+  getComments: (token: string, postId: string) =>
+    api.get<{ comments: Array<{ authorName: string; authorEmoji: string; content: string; createdAt: string }> }>(`/posts/${postId}/comments`, withToken(token)),
 };
 
 export const childMessages = {
@@ -141,6 +145,10 @@ export const childMessages = {
     api.get<{ message: unknown | null }>(
       `/messages/${friendId}/latest`, withToken(token),
     ),
+  getUnread: (token: string, since?: string) =>
+    api.get<{ messages: Array<{ id: string; friendId: string; friendName: string; friendEmoji: string; message: string }> }>(
+      `/messages/unread${since ? `?since=${encodeURIComponent(since)}` : ''}`, withToken(token),
+    ),
 };
 
 export const childFriends = {
@@ -157,19 +165,23 @@ export const audioApi = {
     token: string,
     data: { text: string; characterId: string; language: 'en' | 'fr'; messageId?: string },
   ) => api.post<{ audioUrl: string }>('/audio/generate', data, withToken(token)),
+  transcribe: (
+    token: string | null,
+    data: { audioBase64: string; mimeType: string; language?: string },
+  ) => api.post<{ transcript: string }>('/audio/transcribe', data, token ? withToken(token) : undefined),
 };
 
 // ─── Friend network discovery ─────────────────────────────────────────────────
 
 export const friendNetwork = {
   getWithStatus: (token: string, friendId: string) =>
-    api.get<{ friend: FriendWithStatus }>(`/friends/${friendId}`, withToken(token)),
+    api.get<{ friend: FriendWithStatus }>(`/friends/${friendId}`, { ...withToken(token), timeout: 8000 }),
   getPublic: (friendId: string) =>
-    api.get<{ friend: AiFriendRecord }>(`/friends/${friendId}`),
+    api.get<{ friend: AiFriendRecord }>(`/friends/${friendId}`, { timeout: 8000 }),
   getNetwork: (friendId: string, token?: string) =>
     token
-      ? api.get<{ friends: FriendWithRelationship[] }>(`/friends/${friendId}/network`, withToken(token))
-      : api.get<{ friends: FriendWithRelationship[] }>(`/friends/${friendId}/network`),
+      ? api.get<{ friends: FriendWithRelationship[] }>(`/friends/${friendId}/network`, { ...withToken(token), timeout: 8000 })
+      : api.get<{ friends: FriendWithRelationship[] }>(`/friends/${friendId}/network`, { timeout: 8000 }),
   getPosts: (token: string, friendId: string) =>
     api.get<{ posts: FriendPost[] }>(`/friends/${friendId}/posts`, withToken(token)),
   addFriend: (token: string, friendId: string, referringFriendId?: string) =>
@@ -328,6 +340,24 @@ export const avatarApi = {
     api.put<{ success: boolean; avatarConfig: Record<string, unknown>; avatarBackground: string }>(
       '/children/me/avatar', { avatarConfig, avatarBackground }, withToken(token),
     ),
+};
+
+export interface NotificationItem {
+  id: string;
+  type: 'dm' | 'comment' | 'badge';
+  friendId: string | null;
+  friendName: string;
+  friendEmoji: string;
+  preview: string;
+  createdAt: string;
+  read: boolean;
+}
+
+export const childNotifications = {
+  get: (token: string) =>
+    api.get<{ notifications: NotificationItem[] }>('/notifications', withToken(token)),
+  markRead: (token: string, notificationId: string) =>
+    api.put<{ success: boolean }>(`/notifications/${notificationId}`, {}, withToken(token)),
 };
 
 export const devApi = {

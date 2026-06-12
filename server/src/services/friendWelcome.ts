@@ -49,6 +49,20 @@ export async function triggerWelcomeFlow(
 
   if (!childRow || !newFriendRow || !referringFriendRow) return;
 
+  // DB-level idempotency guard — catches duplicate calls when Redis is unavailable
+  const existingConv = await db('conversations')
+    .where({ child_id: childId, friend_id: newFriendId })
+    .first();
+  if (existingConv) {
+    const existingMsg = await db('messages')
+      .where({ conversation_id: String(existingConv.id), sender_type: 'ai' })
+      .first();
+    if (existingMsg) {
+      console.log('[friends] Welcome message already exists (DB guard), skipping duplicate');
+      return;
+    }
+  }
+
   const child           = toChildType(childRow);
   const newFriend       = toFriendType(newFriendRow);
   const referringFriend = toFriendType(referringFriendRow);

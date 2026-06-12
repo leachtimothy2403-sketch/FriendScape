@@ -15,6 +15,7 @@ interface OnboardingState {
   preReader: boolean;
   specialNeedsDetails: string[];  // e.g. ["autism", "dyslexia"]
   avatarTheme: string;
+  avatarStyle: 'human' | 'animal';
   mascotId: string;
   interests: string[];
   freeInterest: string;
@@ -23,6 +24,7 @@ interface OnboardingState {
   personalityFreeText: string;
   avatarConfig: AvatarConfig | null;
   avatarBackground: string;
+  humanFaceStyle: string;
 
   // Actions
   initParentEmail: () => Promise<void>;
@@ -34,6 +36,7 @@ interface OnboardingState {
   setPreReader: (v: boolean) => void;
   setSpecialNeedsDetails: (v: string[]) => void;
   setAvatarTheme: (v: string) => void;
+  setAvatarStyle: (v: 'human' | 'animal') => void;
   setMascotId: (v: string) => void;
   setInterests: (v: string[]) => void;
   setFreeInterest: (v: string) => void;
@@ -42,6 +45,7 @@ interface OnboardingState {
   setPersonalityFreeText: (v: string) => void;
   setAvatarConfig: (v: AvatarConfig) => void;
   setAvatarBackground: (v: string) => void;
+  setHumanFaceStyle: (v: string) => void;
   resetStore: () => void;
 }
 
@@ -55,6 +59,7 @@ const DEFAULTS = {
   preReader:           false,
   specialNeedsDetails: [] as string[],
   avatarTheme:         '',
+  avatarStyle:         'human' as 'human' | 'animal',
   mascotId:            '',
   interests:           [] as string[],
   freeInterest:        '',
@@ -63,6 +68,7 @@ const DEFAULTS = {
   personalityFreeText: '',
   avatarConfig:        null as AvatarConfig | null,
   avatarBackground:    '#EEEDFE',
+  humanFaceStyle:      '',
 };
 
 // Use localStorage on web so data survives page reloads; AsyncStorage on native.
@@ -88,6 +94,7 @@ export const useOnboardingStore = create<OnboardingState>()(
       setPreReader:           (v) => set({ preReader: v }),
       setSpecialNeedsDetails: (v) => set({ specialNeedsDetails: v }),
       setAvatarTheme:         (v) => set({ avatarTheme: v }),
+      setAvatarStyle:         (v) => set({ avatarStyle: v }),
       setMascotId:            (v) => set({ mascotId: v }),
       setInterests:           (v) => set({ interests: v }),
       setFreeInterest:        (v) => set({ freeInterest: v }),
@@ -96,6 +103,7 @@ export const useOnboardingStore = create<OnboardingState>()(
       setPersonalityFreeText: (v) => set({ personalityFreeText: v }),
       setAvatarConfig:        (v) => set({ avatarConfig: v }),
       setAvatarBackground:    (v) => set({ avatarBackground: v }),
+      setHumanFaceStyle:      (v) => set({ humanFaceStyle: v }),
       resetStore:             ()  => set(DEFAULTS),
     }),
     {

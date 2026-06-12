@@ -4,6 +4,8 @@ import {
   getFeed,
   createPost,
   reactToPost,
+  getPostComments,
+  addComment,
   getChildFeed,
   deletePost,
   likePost,
@@ -19,6 +21,8 @@ router.post('/generate-daily', generateDailyPosts);
 router.get('/feed', getFeed);
 router.post('/', createPost);
 router.post('/:postId/react', reactToPost);
+router.get('/:postId/comments', getPostComments);
+router.post('/:postId/comments', addComment);
 
 // Legacy parent-dashboard endpoints
 router.get('/feed/:childId', getChildFeed);

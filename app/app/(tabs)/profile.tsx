@@ -10,12 +10,12 @@ import { useTranslation } from 'react-i18next';
 import { Colors, Mascots } from '@/constants/theme';
 import { useLanguageStore } from '@/store/languageStore';
 import {
-  childProfileApi, avatarApi,
+  childProfileApi,
   ChildProfile, MemoryItem, FriendWithStats, ProfilePost, ModerationResult,
 } from '@/services/api';
 import MigoLogo from '@/components/MigoLogo';
-import Avatar from '@/components/Avatar';
-import type { AvatarConfig } from '@/types/avatar';
+import EmojiAvatar from '@/components/EmojiAvatar';
+import DevResetButton from '@/components/DevResetButton';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -247,7 +247,7 @@ export default function ProfileScreen() {
   const [selectedPost,     setSelectedPost]     = useState<ProfilePost | null>(null);
   const [childToken,        setChildToken]        = useState<string | null>(null);
   const [preReader,         setPreReader]         = useState(false);
-  const [avatarConfig,      setAvatarConfig]      = useState<AvatarConfig | null>(null);
+  const [childEmoji,        setChildEmoji]        = useState('👦');
   const [avatarBackground,  setAvatarBackground]  = useState('#EEEDFE');
   const [confirmSignOut,    setConfirmSignOut]    = useState(false);
   const [customText,        setCustomText]        = useState('');
@@ -275,12 +275,13 @@ export default function ProfileScreen() {
       setPreReader(pr === 'true');
 
       try {
-        const [profileRes, postsRes, friendsRes, memoriesRes, avatarRes] = await Promise.all([
+        const [profileRes, postsRes, friendsRes, memoriesRes, storedEmoji, storedBg] = await Promise.all([
           childProfileApi.getProfile(tok),
           childProfileApi.getPosts(tok),
           childProfileApi.getFriendsList(tok),
           childProfileApi.getMemories(tok),
-          avatarApi.get(tok).catch(() => ({ data: { avatarConfig: null, avatarBackground: null } })),
+          AsyncStorage.getItem('childEmoji'),
+          AsyncStorage.getItem('avatarBackground'),
         ]);
         if (!cancelled) {
           setProfile(profileRes.data);
@@ -288,8 +289,8 @@ export default function ProfileScreen() {
           setPosts(postsRes.data.posts);
           setFriends(friendsRes.data.friends);
           setMemories(memoriesRes.data.memories);
-          if (avatarRes.data.avatarConfig) setAvatarConfig(avatarRes.data.avatarConfig as unknown as AvatarConfig);
-          if (avatarRes.data.avatarBackground) setAvatarBackground(avatarRes.data.avatarBackground);
+          if (storedEmoji) setChildEmoji(storedEmoji);
+          if (storedBg) setAvatarBackground(storedBg);
         }
       } catch (e) {
         console.error('[profile] load failed:', e);
@@ -422,10 +423,8 @@ export default function ProfileScreen() {
           <View style={s.avatarRow}>
             <View style={{ position: 'relative' }}>
               <View style={s.avatarRing}>
-                <View style={[s.avatarCircle, avatarConfig ? { backgroundColor: avatarBackground } : null]}>
-                  {avatarConfig
-                    ? <Avatar config={avatarConfig} background={avatarBackground} size={60} />
-                    : <Text style={{ fontSize: 36 }}>{mascotEmoji}</Text>}
+                <View style={[s.avatarCircle, { backgroundColor: avatarBackground }]}>
+                  <EmojiAvatar emoji={childEmoji} background={avatarBackground} size={60} />
                 </View>
               </View>
               <TouchableOpacity
@@ -771,6 +770,8 @@ export default function ProfileScreen() {
           </View>
         </Modal>
       )}
+
+      {__DEV__ && <DevResetButton />}
     </SafeAreaView>
   );
 }

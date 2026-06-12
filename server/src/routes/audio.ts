@@ -1,12 +1,11 @@
-import { Router, Response } from 'express';
-import { AuthRequest, requireAuth } from '../middleware/auth';
-import { generateSpeech } from '../services/audio.service';
+import { Router, Request, Response } from 'express';
+import { generateSpeech, transcribeAudio } from '../services/audio.service';
 
 const router = Router();
 
 // POST /audio/generate
-// Requires child JWT.  Returns a URL to the generated mp3.
-router.post('/generate', requireAuth, async (req: AuthRequest, res: Response) => {
+// Auth optional — works during onboarding before child account is created.
+router.post('/generate', async (req: Request, res: Response) => {
   try {
     const { text, characterId, language, messageId } = req.body as {
       text?: string;
@@ -29,6 +28,27 @@ router.post('/generate', requireAuth, async (req: AuthRequest, res: Response) =>
   } catch (err) {
     console.error('[audio] generateSpeech error:', err);
     res.status(500).json({ error: 'Failed to generate audio' });
+  }
+});
+
+// POST /audio/transcribe
+// Auth optional — works during onboarding before child account is created.
+router.post('/transcribe', async (req: Request, res: Response) => {
+  try {
+    const { audioBase64, mimeType, language } = req.body as {
+      audioBase64?: string;
+      mimeType?: string;
+      language?: string;
+    };
+    if (!audioBase64?.trim()) {
+      res.status(400).json({ error: 'audioBase64 is required' });
+      return;
+    }
+    const transcript = await transcribeAudio(audioBase64, mimeType ?? 'audio/m4a', language);
+    res.json({ transcript });
+  } catch (err) {
+    console.error('[audio] transcribeAudio error:', err);
+    res.status(500).json({ error: 'Failed to transcribe audio' });
   }
 });
 

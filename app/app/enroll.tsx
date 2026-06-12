@@ -71,7 +71,7 @@ export default function EnrollScreen() {
     setError('');
     setLoading(true);
     try {
-      const res = await auth.enroll({ parentEmail: trimmed });
+      const res = await auth.enroll({ parentEmail: trimmed, language });
       await AsyncStorage.setItem('pendingParentEmail', trimmed);
       if (res.data.status === 'already_approved') {
         router.replace('/celebration');

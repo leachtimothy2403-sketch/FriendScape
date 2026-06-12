@@ -161,7 +161,7 @@ export default function WaitingScreen() {
             </Text>
           ) : (
             <TouchableOpacity onPress={() => setShowPunchline(true)}>
-              <Text style={{ fontSize: 14, color: '#BDBDBD' }}>Tap to reveal… 👀</Text>
+              <Text style={{ fontSize: 14, color: '#BDBDBD' }}>{t('waiting.tapToReveal')}</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity style={{ marginTop: 16, alignItems: 'center' }} onPress={nextJoke}>

@@ -26,7 +26,8 @@ import messagesRoutes from './routes/messages';
 import parentRoutes   from './routes/parent';
 import aiRoutes       from './routes/ai';
 import audioRoutes    from './routes/audio';
-import badgesRoutes   from './routes/badges';
+import badgesRoutes          from './routes/badges';
+import notificationsRoutes   from './routes/notifications';
 import { errorHandler } from './middleware/errorHandler';
 import './jobs/nightlyMemory';
 import './jobs/dailyPosts';
@@ -62,7 +63,8 @@ app.use('/messages', messagesRoutes);
 app.use('/parent',   parentRoutes);
 app.use('/ai',       aiRoutes);
 app.use('/audio',    audioRoutes);
-app.use('/badges',   badgesRoutes);
+app.use('/badges',         badgesRoutes);
+app.use('/notifications',  notificationsRoutes);
 
 app.use(errorHandler);
 

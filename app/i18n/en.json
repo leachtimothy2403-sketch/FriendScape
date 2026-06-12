@@ -19,7 +19,8 @@
     "waitingFor": "Waiting for your parent to tap \"Yes\"…",
     "jokeLabel": "🧚 Miga says — while you wait!",
     "anotherJoke": "Another one! 😂",
-    "simulateButton": "Simulate parent approval (demo)"
+    "simulateButton": "Simulate parent approval (demo)",
+    "tapToReveal": "Tap to reveal… 👀"
   },
   "celebration": {
     "title": "Your parent said YES!! 🥳",
@@ -81,6 +82,8 @@
       "uploadDesc": "Turned into a cartoon — real photo deleted immediately",
       "buildAvatar": "Build an avatar",
       "buildDesc": "Choose hair, eyes, skin tone and accessories",
+      "buildAvatarDescription": "Design {{name}}'s unique avatar — face shape, hair, eyes, accessories and more!",
+      "openAvatarBuilder": "Open avatar builder",
       "skip": "Skip for now",
       "skipDesc": "Use a default avatar — set it up later",
       "privacyNote": "🔒 The real photo is used only to generate the cartoon and is permanently deleted right after.",
@@ -89,6 +92,20 @@
       "suggestingTheme": "Picking a theme for you…",
       "takePhoto": "Take a photo",
       "chooseFromLibrary": "Choose from library",
+      "avatarPreview": "{{name}}'s avatar preview",
+      "avatarStyleLabel": "What kind of avatar?",
+      "styleHuman": "Human",
+      "styleHumanDesc": "Build a custom avatar",
+      "styleAnimal": "Animal",
+      "styleAnimalDesc": "Pick an animal face",
+      "faceStyleClassic": "Classic",
+      "faceStyleSporty": "Sporty",
+      "faceStyleArtistic": "Artistic",
+      "faceStyleCool": "Cool",
+      "faceStyleSweet": "Sweet",
+      "faceStyleCowboy": "Cowboy",
+      "faceStyleSuperhero": "Superhero",
+      "faceStylePrincess": "Princess",
       "themes": {
         "princess": "Princess",
         "astronaut": "Astronaut",
@@ -101,6 +118,7 @@
       }
     },
     "mascot": {
+	  "mascotChooseHint": "In a moment you'll meet Miga, Pixel, Finn and Sage — they're all amazing, so take your time choosing!",
       "title": "Pick your guide!",
       "readToMe": "Read to me",
       "readingToYou": "Reading to you",
@@ -109,10 +127,12 @@
       "tapToHear": "🔊 Tap to hear what to do!",
       "skipIntro": "Skip intro →",
       "hearbutton": "Hear my voice",
-      "continuebutton": "Choose this friend →"
+      "continuebutton": "Choose this friend →",
+      "nextButton": "Next →"
     },
     "interests": {
       "title": "Just for {{name}}!",
+      "mascotSpeech": "Now the fun part!! Tap everything you love — this helps me find your perfect friends! Pick as many as you want! 🎉",
       "freeTextLabel": "Something else? Tell us! 🗣️",
       "freeTextPlaceholder": "Type something you love… or tap the mic to say it!",
       "continueButton": "Those are my favourites! →",
@@ -132,6 +152,11 @@
     "role": {
       "title": "Your Forever Guide",
       "badge": "🌟 Your forever guide",
+      "mascotIntro": "Hi, I'm {{name}}! 👋",
+      "mascotHappyPicked": {
+        "boy": "I'm so happy you picked me! Ask a parent to read about my role in Migo with you! 🎉",
+        "girl": "I'm so happy you picked me! Ask a parent to read about my role in Migo with you! 🎉"
+      },
       "cardHeader": "Your guide, helper & cheerleader — always",
       "role1": "I celebrate every win",
       "role1Desc": "Every badge, level-up, and milestone — I'll be the first to cheer for you",
@@ -179,13 +204,12 @@
       "q5_depends": "🤝 It depends",
       "q5_excited": "🎉 Super excited!",
       "q5_excited_desc": "I love meeting new people!",
-      "freeTextLabel": "Anything else Miga should know about you? 🌟",
+      "hearButton": "Hear me",
+      "freeTextLabel": "Anything else {{mascot}} should know about you? 🌟",
       "freeTextSub": "Your favourite show, something special about you, anything!",
-      "freeTextPlaceholder": "Tell Miga something special about you... (totally optional!)",
+      "freeTextPlaceholder": "Tell {{mascot}} something special about you... (totally optional!)",
+      "voiceRecorded": "✓ Voice recorded!",
       "continueButton": "These are so me! →"
-    },
-    "mascot": {
-      "mascotChooseHint": "In a moment you'll meet Miga, Pixel, Finn and Sage — they're all amazing, so take your time choosing!"
     },
     "pack": {
       "title": "Just for {{name}}!",
@@ -312,7 +336,11 @@
     "online": "Online now",
     "inputPlaceholder": "Message {{name}}…",
     "typing": "typing...",
-    "lookingAtPhoto": "Luna looks at your photo... 👀"
+    "lookingAtPhoto": "Luna looks at your photo... 👀",
+    "usuallyReplies": "🕐 Usually replies in a few minutes",
+    "sayHello": "Say hello to {{name}}!\nThey'd love to hear from you.",
+    "micPermissionDenied": "Microphone permission required",
+    "voiceError": "Could not transcribe audio"
   },
   "luna": {
     "photoAdded": "📸 Photo added — Luna can see it",
@@ -372,7 +400,16 @@
     "friendOf": "Friend of {{name}}",
     "addSuccess": "{{name}} is now your friend! 🎉",
     "friendsSince": "Friends since {{date}}",
-    "noFriendsYet": "Complete onboarding to meet your first friends!"
+    "noFriendsYet": "Complete onboarding to meet your first friends!",
+    "yourFriendshipWith": "Your friendship with {{name}}",
+    "levelNames": {
+      "1": "New friends",
+      "2": "Good friends",
+      "3": "Close friends",
+      "4": "Best friends",
+      "5": "Super BFFs",
+      "6": "Forever friends"
+    }
   },
   "badges": {
     "title": "Badges & Milestones",

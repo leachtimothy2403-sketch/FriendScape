@@ -23,7 +23,7 @@ export default function NotificationBanner({
       Animated.timing(translateY, {
         toValue: 0, duration: 350, useNativeDriver: true,
       }).start();
-      dismissTimer.current = setTimeout(() => slideOut(), 4000);
+      dismissTimer.current = setTimeout(() => slideOut(onDismiss), 4000);
     }
 
     if (!visible && isVisible.current) {
@@ -36,16 +36,15 @@ export default function NotificationBanner({
     };
   }, [visible]);
 
-  function slideOut() {
+  function slideOut(onComplete?: () => void) {
     if (dismissTimer.current) { clearTimeout(dismissTimer.current); dismissTimer.current = null; }
     Animated.timing(translateY, {
       toValue: -120, duration: 300, useNativeDriver: true,
-    }).start();
+    }).start(() => onComplete?.());
   }
 
   function handleDismiss() {
-    slideOut();
-    onDismiss();
+    slideOut(onDismiss);
   }
 
   if (!visible) return null;

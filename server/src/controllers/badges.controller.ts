@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import db from '../db';
 import { AuthRequest } from '../middleware/auth';
-import { sendMigaDM } from '../services/migaDM';
+import { sendMigaDM, sendMascotDM } from '../services/migaDM';
 
 // ── Progress helpers ──────────────────────────────────────────────────────────
 
@@ -103,8 +103,8 @@ export async function getBadges(req: AuthRequest, res: Response) {
 
     const badges = (definitions as Record<string, unknown>[]).map(def => ({
       id:                def.id,
-      name:              def.name,
-      description:       def.description,
+      name:              lang === 'fr' ? (def.name_fr ?? def.name) : def.name,
+      description:       lang === 'fr' ? (def.description_fr ?? def.description) : def.description,
       icon:              def.icon,
       category:          def.category,
       trigger_type:      def.trigger_type,
@@ -171,10 +171,9 @@ export async function checkBadges(req: AuthRequest, res: Response) {
         severity: 'info',
       }).catch((e: unknown) => console.error('[badges] alert insert failed:', e));
 
-      // Send Miga DM with celebration message
       if (lumiMsg) {
-        await sendMigaDM(childId, lumiMsg)
-          .catch((e: unknown) => console.error('[badges] Miga DM failed:', e));
+        await sendMascotDM(childId, String(childRow?.mascot || 'miga'), lumiMsg)
+          .catch((e: unknown) => console.error('[badges] mascot DM failed:', e));
       }
 
       newBadges.push({
@@ -240,8 +239,8 @@ export async function recalculateBadges(req: AuthRequest, res: Response) {
       }).catch((e: unknown) => console.error('[badges] alert insert failed:', e));
 
       if (lumiMsg) {
-        await sendMigaDM(childId, lumiMsg)
-          .catch((e: unknown) => console.error('[badges] Miga DM failed:', e));
+        await sendMascotDM(childId, String(childRow?.mascot || 'miga'), lumiMsg)
+          .catch((e: unknown) => console.error('[badges] mascot DM failed:', e));
       }
 
       newlyAwarded.push({ ...badge, lumi_message: lumiMsg, earned: true, earned_at: new Date().toISOString() });
@@ -294,8 +293,8 @@ export async function checkBadgesForChild(childId: string, trigger: string): Pro
       }).catch((e: unknown) => console.error('[badges] alert insert failed:', e));
 
       if (lumiMsg) {
-        await sendMigaDM(childId, lumiMsg)
-          .catch((e: unknown) => console.error('[badges] Miga DM failed:', e));
+        await sendMascotDM(childId, String(childRow?.mascot || 'miga'), lumiMsg)
+          .catch((e: unknown) => console.error('[badges] mascot DM failed:', e));
       }
 
       console.log(`[badges] 🏅 ${String(childRow?.name ?? childId)} earned "${badge.name as string}" ${badge.icon as string}`);

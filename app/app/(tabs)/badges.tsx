@@ -9,6 +9,7 @@ import {
   childBadges, childXP, childGraduation,
   BadgeDefinition, XPData, GraduationProgress,
 } from '@/services/api';
+import { useLanguageStore } from '@/store/languageStore';
 import AudioPlayer from '@/components/AudioPlayer';
 import { Colors } from '@/constants/theme';
 import MigoLogo from '@/components/MigoLogo';
@@ -217,6 +218,7 @@ function LockedModal({
 
 export default function BadgesScreen() {
   const { t } = useTranslation();
+  const { language } = useLanguageStore();
 
   const [loading,    setLoading]    = useState(true);
   const [badges,     setBadges]     = useState<BadgeDefinition[]>([]);

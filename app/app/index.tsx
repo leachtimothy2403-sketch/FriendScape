@@ -9,7 +9,7 @@ export default function Index() {
 
   useEffect(() => {
     async function check() {
-      const [token, profile] = await AsyncStorage.multiGet(['authToken', 'childProfile']);
+	  const [token, profile] = await AsyncStorage.multiGet(['childToken', 'childProfile']);
       if (token[1] && profile[1]) {
         setDestination('/(tabs)/feed');
       } else {

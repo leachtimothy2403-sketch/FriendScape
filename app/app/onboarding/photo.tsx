@@ -1,40 +1,49 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, Image, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 import { useOnboardingStore } from '@/store/onboardingStore';
-import api from '@/services/api';
+import { DEFAULT_AVATAR } from '@/types/avatar';
 
-type Mode = 'photo' | 'builder' | 'skip';
+type Mode = 'photo' | 'skip';
+
+const HUMAN_FACE_STYLES = [
+  { id: 'classic',   emoji: '👦', labelKey: 'onboarding.photo.faceStyleClassic'    },
+  { id: 'sporty',    emoji: '👧', labelKey: 'onboarding.photo.faceStyleSporty'     },
+  { id: 'artistic',  emoji: '🧑', labelKey: 'onboarding.photo.faceStyleArtistic'   },
+  { id: 'cool',      emoji: '👱', labelKey: 'onboarding.photo.faceStyleCool'       },
+  { id: 'sweet',     emoji: '🧒', labelKey: 'onboarding.photo.faceStyleSweet'      },
+  { id: 'cowboy',    emoji: '🤠', labelKey: 'onboarding.photo.faceStyleCowboy'     },
+  { id: 'superhero', emoji: '🦸', labelKey: 'onboarding.photo.faceStyleSuperhero'  },
+  { id: 'princess',  emoji: '👸', labelKey: 'onboarding.photo.faceStylePrincess'   },
+];
+
+const ANIMAL_OPTIONS = [
+  { id: 'cat',    emoji: '🐱' },
+  { id: 'dog',    emoji: '🐶' },
+  { id: 'fox',    emoji: '🦊' },
+  { id: 'rabbit', emoji: '🐰' },
+  { id: 'bear',   emoji: '🐻' },
+  { id: 'owl',    emoji: '🦉' },
+  { id: 'lion',   emoji: '🦁' },
+  { id: 'panda',  emoji: '🐼' },
+];
 
 export default function PhotoScreen() {
   const { t } = useTranslation();
-  const { childName, avatarTheme, setAvatarTheme } = useOnboardingStore();
+  const { childName, avatarTheme, setAvatarTheme, avatarStyle, setAvatarStyle, humanFaceStyle, setHumanFaceStyle, setAvatarConfig, setAvatarBackground } = useOnboardingStore();
 
-  const [mode, setMode]             = useState<Mode>('photo');
-  const [photoUri, setPhotoUri]     = useState<string | null>(null);
-  const [suggesting, setSuggesting] = useState(false);
+  const [mode, setMode]         = useState<Mode>('photo');
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
 
   const displayName = childName.trim() || 'your child';
   const initial     = childName.trim() ? childName.trim()[0].toUpperCase() : '?';
 
-  const THEMES = [
-    { id: 'princess',  emoji: '👑', label: t('onboarding.photo.themes.princess')  },
-    { id: 'astronaut', emoji: '🚀', label: t('onboarding.photo.themes.astronaut') },
-    { id: 'cat',       emoji: '🐱', label: t('onboarding.photo.themes.cat')       },
-    { id: 'superhero', emoji: '🦸', label: t('onboarding.photo.themes.superhero') },
-    { id: 'nature',    emoji: '🌸', label: t('onboarding.photo.themes.nature')    },
-    { id: 'wizard',    emoji: '🧙', label: t('onboarding.photo.themes.wizard')    },
-    { id: 'artist',    emoji: '🎨', label: t('onboarding.photo.themes.artist')    },
-    { id: 'dino',      emoji: '🦕', label: t('onboarding.photo.themes.dino')      },
-  ];
-
   const OPTION_CARDS: { id: Mode; emoji: string; title: string; subtitle: string }[] = [
-    { id: 'photo',   emoji: '📸', title: t('onboarding.photo.uploadPhoto'), subtitle: t('onboarding.photo.uploadDesc') },
-    { id: 'builder', emoji: '🎨', title: t('onboarding.photo.buildAvatar'), subtitle: t('onboarding.photo.buildDesc')  },
-    { id: 'skip',    emoji: '⏭️', title: t('onboarding.photo.skip'),        subtitle: t('onboarding.photo.skipDesc')   },
+    { id: 'photo', emoji: '📸', title: t('onboarding.photo.uploadPhoto'), subtitle: t('onboarding.photo.uploadDesc') },
+    { id: 'skip',  emoji: '⏭️', title: t('onboarding.photo.skip'),        subtitle: t('onboarding.photo.skipDesc')   },
   ];
 
   async function pickPhoto() {
@@ -44,34 +53,14 @@ export default function PhotoScreen() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.5,
-      base64: true,
+      quality: 1,
     });
     if (result.canceled) return;
-
-    const asset = result.assets[0];
-    setPhotoUri(asset.uri);
-
-    if (asset.base64) {
-      setSuggesting(true);
-      try {
-        const res = await api.post<{ theme: string }>('/children/generate-avatar', {
-          imageBase64: asset.base64,
-          mediaType: asset.mimeType ?? 'image/jpeg',
-        });
-        if (THEMES.some((t) => t.id === res.data.theme)) {
-          setAvatarTheme(res.data.theme);
-        }
-      } catch {
-        // theme suggestion failed — user can still pick manually
-      } finally {
-        setSuggesting(false);
-      }
-    }
+    setPhotoUri(result.assets[0].uri);
   }
 
-  const selectedTheme = THEMES.find((th) => th.id === avatarTheme);
-  const showThemeGrid = mode === 'photo' || mode === 'skip';
+  const selectedAnimal  = ANIMAL_OPTIONS.find((a) => a.id === avatarTheme);
+  const showStylePicker = true;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F7FF' }}>
@@ -181,27 +170,6 @@ export default function PhotoScreen() {
           </View>
         )}
 
-        {/* ── Builder mode content ── */}
-        {mode === 'builder' && (
-          <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 20, marginTop: 8, marginBottom: 20, alignItems: 'center' }}>
-            <Text style={{ fontSize: 13, color: '#888780', textAlign: 'center', marginBottom: 16, lineHeight: 20 }}>
-              Design {displayName}'s unique avatar — face shape, hair, eyes, accessories and more!
-            </Text>
-            <TouchableOpacity
-              onPress={() => router.push('/onboarding/avatar-builder' as never)}
-              style={{
-                backgroundColor: '#7F77DD',
-                borderRadius: 9999,
-                paddingVertical: 14,
-                paddingHorizontal: 32,
-              }}
-              activeOpacity={0.85}
-            >
-              <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>Open Avatar Builder</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
         {/* ── Skip mode content ── */}
         {mode === 'skip' && (
           <View style={{ alignItems: 'center', marginTop: 8, marginBottom: 20 }}>
@@ -215,62 +183,116 @@ export default function PhotoScreen() {
           </View>
         )}
 
-        {/* ── Theme grid (photo + skip modes) ── */}
-        {showThemeGrid && (
+        {/* ── Avatar style picker (photo + skip modes) ── */}
+        {showStylePicker && (
           <>
             <Text style={{ fontSize: 14, fontWeight: '600', color: '#2C2C2A', marginBottom: 12 }}>
-              {t('onboarding.photo.themeLabel', { name: displayName })}
+              {t('onboarding.photo.avatarStyleLabel')}
             </Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
-              {THEMES.map((th) => {
-                const sel = avatarTheme === th.id;
+            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
+              {(['human', 'animal'] as const).map((style) => {
+                const sel   = avatarStyle === style;
+                const label = style === 'human' ? t('onboarding.photo.styleHuman') : t('onboarding.photo.styleAnimal');
+                const desc  = style === 'human' ? t('onboarding.photo.styleHumanDesc') : t('onboarding.photo.styleAnimalDesc');
+                const emoji = style === 'human' ? '🧑' : '🐾';
                 return (
                   <TouchableOpacity
-                    key={th.id}
-                    onPress={() => setAvatarTheme(th.id)}
+                    key={style}
+                    onPress={() => setAvatarStyle(style)}
                     style={{
-                      width: '22%',
-                      aspectRatio: 1,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: 12,
+                      flex: 1,
+                      backgroundColor: sel ? '#EEEDFE' : '#fff',
                       borderWidth: 2,
                       borderColor: sel ? '#7F77DD' : '#E0E0E0',
-                      backgroundColor: sel ? '#EEEDFE' : '#fff',
+                      borderRadius: 16,
+                      padding: 14,
+                      alignItems: 'center',
                     }}
+                    activeOpacity={0.8}
                   >
-                    <Text style={{ fontSize: 22 }}>{th.emoji}</Text>
-                    <Text style={{ fontSize: 9, color: sel ? '#7F77DD' : '#888780', fontWeight: sel ? '700' : '400', marginTop: 3 }}>
-                      {th.label}
+                    <Text style={{ fontSize: 28, marginBottom: 6 }}>{emoji}</Text>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: sel ? '#7F77DD' : '#2C2C2A', marginBottom: 3 }}>
+                      {label}
                     </Text>
+                    <Text style={{ fontSize: 11, color: '#888780', textAlign: 'center' }}>{desc}</Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
 
-            {suggesting && (
-              <View style={{ alignItems: 'center', marginBottom: 12 }}>
-                <ActivityIndicator color="#7F77DD" />
-                <Text style={{ fontSize: 12, color: '#888780', marginTop: 6 }}>
-                  {t('onboarding.photo.suggestingTheme')}
-                </Text>
+            {/* Human face style grid */}
+            {avatarStyle === 'human' && (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
+                {HUMAN_FACE_STYLES.map((face) => {
+                  const sel = humanFaceStyle === face.id;
+                  return (
+                    <TouchableOpacity
+                      key={face.id}
+                      onPress={() => setHumanFaceStyle(face.id)}
+                      style={{
+                        width: '18%',
+                        aspectRatio: 1,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: 12,
+                        borderWidth: 2,
+                        borderColor: sel ? '#7F77DD' : '#E0E0E0',
+                        backgroundColor: sel ? '#EEEDFE' : '#fff',
+                      }}
+                    >
+                      <Text style={{ fontSize: 26 }}>{face.emoji}</Text>
+                      <Text style={{ fontSize: 9, color: sel ? '#7F77DD' : '#888780', textAlign: 'center', marginTop: 2 }}>
+                        {t(face.labelKey)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             )}
 
-            {!suggesting && avatarTheme !== '' && (
-              <View style={{ alignItems: 'center', marginBottom: 8 }}>
-                <View style={{
-                  width: 72, height: 72, borderRadius: 36,
-                  backgroundColor: '#EEEDFE',
-                  alignItems: 'center', justifyContent: 'center',
-                  borderWidth: 3, borderColor: '#7F77DD',
-                }}>
-                  <Text style={{ fontSize: 34 }}>{selectedTheme?.emoji ?? '🌟'}</Text>
+            {/* Animal selection grid */}
+            {avatarStyle === 'animal' && (
+              <>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
+                  {ANIMAL_OPTIONS.map((animal) => {
+                    const sel = avatarTheme === animal.id;
+                    return (
+                      <TouchableOpacity
+                        key={animal.id}
+                        onPress={() => setAvatarTheme(animal.id)}
+                        style={{
+                          width: '22%',
+                          aspectRatio: 1,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: 12,
+                          borderWidth: 2,
+                          borderColor: sel ? '#7F77DD' : '#E0E0E0',
+                          backgroundColor: sel ? '#EEEDFE' : '#fff',
+                        }}
+                      >
+                        <Text style={{ fontSize: 28 }}>{animal.emoji}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
-                <Text style={{ fontSize: 12, color: '#888780', marginTop: 6 }}>
-                  {initial}'s avatar preview
-                </Text>
-              </View>
+
+                {avatarTheme !== '' && (
+                  <View style={{ alignItems: 'center', marginBottom: 8 }}>
+                    <View style={{
+                      width: 72, height: 72, borderRadius: 36,
+                      backgroundColor: '#EEEDFE',
+                      alignItems: 'center', justifyContent: 'center',
+                      borderWidth: 3, borderColor: '#7F77DD',
+                    }}>
+                      <Text style={{ fontSize: 34 }}>{selectedAnimal?.emoji ?? '🐾'}</Text>
+                    </View>
+                    <Text style={{ fontSize: 12, color: '#888780', marginTop: 6 }}>
+                      {t('onboarding.photo.avatarPreview', { name: displayName })}
+                    </Text>
+                  </View>
+                )}
+              </>
             )}
           </>
         )}
@@ -278,7 +300,36 @@ export default function PhotoScreen() {
         {/* ── Buttons ── */}
         <View style={{ marginTop: 12 }}>
           <TouchableOpacity
-            onPress={() => router.push('/onboarding/mascot')}
+            onPress={() => {
+              if (mode !== 'builder') {
+                setAvatarConfig(DEFAULT_AVATAR);
+                const humanBg: Record<string, string> = {
+                  princess:  '#FFD6E7',
+                  cowboy:    '#F5DEB3',
+                  superhero: '#D6E4FF',
+                  classic:   '#E8F5E9',
+                  sporty:    '#E3F2FD',
+                  artistic:  '#F3E5F5',
+                  cool:      '#E0F4FF',
+                  sweet:     '#FCE4EC',
+                };
+                const animalBg: Record<string, string> = {
+                  cat:    '#FFF3E0',
+                  dog:    '#E8F5E9',
+                  fox:    '#FFF8E1',
+                  rabbit: '#FCE4EC',
+                  bear:   '#EFEBE9',
+                  owl:    '#F3E5F5',
+                  lion:   '#FFF8E1',
+                  panda:  '#F5F5F5',
+                };
+                const bg = avatarStyle === 'animal'
+                  ? (animalBg[avatarTheme] ?? '#EEEDFE')
+                  : (humanBg[humanFaceStyle] ?? '#EEEDFE');
+                setAvatarBackground(bg);
+              }
+              router.push('/onboarding/mascot');
+            }}
             style={{ backgroundColor: '#7F77DD', borderRadius: 9999, paddingVertical: 16, alignItems: 'center', marginBottom: 12 }}
             activeOpacity={0.85}
           >

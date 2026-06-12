@@ -129,13 +129,14 @@ export async function getFeed(req: AuthRequest, res: Response) {
     // Fetch comments for all posts
     const commentRows = postIds.length
       ? await db('post_comments as pc')
-          .join('ai_friends as af', 'af.id', 'pc.author_id')
+          .leftJoin('ai_friends as af', 'af.id', 'pc.author_id')
+          .leftJoin('children as ch', 'ch.id', 'pc.author_id')
           .whereIn('pc.post_id', postIds)
           .select(
-            'pc.post_id', 'pc.content',
+            'pc.post_id', 'pc.content', 'pc.author_type',
             'pc.created_at as comment_at',
-            'af.name as author_name',
-            'af.cover_emojis as author_emojis',
+            db.raw("COALESCE(af.name, ch.name) as author_name"),
+            db.raw("COALESCE(af.cover_emojis, '😊') as author_emojis"),
           )
           .orderBy('pc.created_at', 'asc')
       : [];
@@ -278,6 +279,103 @@ export async function reactToPost(req: AuthRequest, res: Response) {
   } catch (err) {
     console.error('[posts] reactToPost error:', err);
     res.status(500).json({ error: 'Failed to react to post' });
+  }
+}
+
+// ─── GET /posts/:postId/comments ─────────────────────────────────────────────
+export async function getPostComments(req: AuthRequest, res: Response) {
+  const childId = req.childId;
+  if (!childId) { res.status(401).json({ error: 'Child authentication required' }); return; }
+
+  try {
+    const post = await db('posts').where({ id: req.params.postId, child_id: childId }).first();
+    if (!post) { res.status(404).json({ error: 'Post not found' }); return; }
+
+    const commentRows = await db('post_comments as pc')
+      .leftJoin('ai_friends as af', 'af.id', 'pc.author_id')
+      .leftJoin('children as ch', 'ch.id', 'pc.author_id')
+      .where('pc.post_id', req.params.postId)
+      .select(
+        'pc.content', 'pc.author_type',
+        'pc.created_at as comment_at',
+        db.raw("COALESCE(af.name, ch.name) as author_name"),
+        db.raw("COALESCE(af.cover_emojis, '😊') as author_emojis"),
+      )
+      .orderBy('pc.created_at', 'asc');
+
+    const comments = (commentRows as Record<string, unknown>[]).map((c) => ({
+      authorName:  String(c.author_name ?? ''),
+      authorEmoji: firstEmoji(c.author_emojis ? String(c.author_emojis) : null),
+      content:     String(c.content ?? ''),
+      createdAt:   String(c.comment_at ?? ''),
+    }));
+
+    res.json({ comments });
+  } catch (err) {
+    console.error('[posts] getPostComments error:', err);
+    res.status(500).json({ error: 'Failed to fetch comments' });
+  }
+}
+
+// ─── POST /posts/:postId/comments ────────────────────────────────────────────
+export async function addComment(req: AuthRequest, res: Response) {
+  const childId = req.childId;
+  if (!childId) { res.status(401).json({ error: 'Child authentication required' }); return; }
+
+  try {
+    const { text } = req.body as { text?: string };
+    if (!text?.trim()) { res.status(400).json({ error: 'text is required' }); return; }
+
+    const post = await db('posts').where({ id: req.params.postId, child_id: childId }).first();
+    if (!post) { res.status(404).json({ error: 'Post not found' }); return; }
+
+    const [comment] = await db('post_comments')
+      .insert({ post_id: req.params.postId, author_id: childId, author_type: 'child', content: text.trim() })
+      .returning('*');
+
+    res.status(201).json({ comment });
+
+    // If the post belongs to an AI friend, have them reply to the child's comment
+    if ((post as Record<string, unknown>).author_type === 'ai') {
+      const friendId    = String((post as Record<string, unknown>).author_id);
+      const postId      = req.params.postId;
+      const commentText = text.trim();
+      const childIdStr  = childId;
+      const isDev       = process.env.NODE_ENV === 'development';
+      const delay       = isDev
+        ? 3000  + Math.random() * 5000
+        : 5000  + Math.random() * 3000;
+
+      setTimeout(() => void (async () => {
+        try {
+          const [childRow, friendRow] = await Promise.all([
+            db('children').where({ id: childIdStr }).first(),
+            db('ai_friends').where({ id: friendId }).first(),
+          ]);
+          if (!childRow || !friendRow) return;
+
+          const child   = toChildType(childRow);
+          const friend  = toFriendType(friendRow);
+          const lang    = (childRow.language as string) || 'en';
+
+          const memoryRow   = await db('child_memories').where({ child_id: childIdStr, friend_id: friendId }).first();
+          const memoryBrief = memoryRow ? buildMemoryBrief(toMemoryType(memoryRow)) : null;
+
+          const reply = await generatePostComment(friend, child, commentText, memoryBrief, lang);
+          await db('post_comments').insert({
+            post_id:     postId,
+            author_id:   friendId,
+            author_type: 'ai',
+            content:     reply.text,
+          });
+        } catch (err) {
+          console.error('[posts] AI reply comment failed:', err);
+        }
+      })(), delay);
+    }
+  } catch (err) {
+    console.error('[posts] addComment error:', err);
+    res.status(500).json({ error: 'Failed to add comment' });
   }
 }
 

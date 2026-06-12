@@ -9,12 +9,13 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 import { useOnboardingStore } from '@/store/onboardingStore';
+import AudioPlayer from '@/components/AudioPlayer';
 
 // ─── Mascot map ───────────────────────────────────────────────────────────────
 const MASCOT_MAP: Record<string, { emoji: string; name: string; audio: number }> = {
   pixel: { emoji: '🤖', name: 'Pixel', audio: require('../../assets/audio/pixel_intro.mp3') },
   finn:  { emoji: '🦊', name: 'Finn',  audio: require('../../assets/audio/finn_intro.mp3')  },
-  miga:  { emoji: '🧚', name: 'Miga',  audio: require('../../assets/audio/lumi_intro.mp3')  },
+  miga:  { emoji: '🧚', name: 'Miga',  audio: require('../../assets/audio/miga_intro.mp3')  },
   sage:  { emoji: '🦉', name: 'Sage',  audio: require('../../assets/audio/sage_intro.mp3')  },
 };
 
@@ -23,6 +24,7 @@ export default function RoleScreen() {
   const { t } = useTranslation();
   const { mascotId } = useOnboardingStore();
   const mascot = MASCOT_MAP[mascotId] ?? MASCOT_MAP.miga;
+  const mascotGender = ['finn', 'pixel'].includes(mascotId) ? 'boy' : 'girl';
 
   const ROLES = [
     { bg: '#EEEDFE', icon: '🎉', title: t('onboarding.role.role1'),
@@ -82,9 +84,30 @@ export default function RoleScreen() {
         </View>
 
         {/* Floating mascot — tap to play audio */}
-        <TouchableOpacity onPress={playIntro} activeOpacity={0.8} style={{ alignItems: 'center', marginBottom: 28 }}>
+        <TouchableOpacity onPress={playIntro} activeOpacity={0.8} style={{ alignItems: 'center', marginBottom: 12 }}>
           <Animated.Text style={[{ fontSize: 60 }, floatStyle]}>{mascot.emoji}</Animated.Text>
         </TouchableOpacity>
+
+        {/* Mascot "happy you picked me" bubble */}
+        <View style={{
+          backgroundColor: '#fff', borderRadius: 16, borderTopLeftRadius: 4,
+          borderWidth: 1.5, borderColor: '#E0E0E0', padding: 12,
+          marginBottom: 28,
+        }}>
+          <Text style={{ fontSize: 13, color: '#2C2C2A', lineHeight: 20, textAlign: 'center' }}>
+            {t(`onboarding.role.mascotHappyPicked.${mascotGender}`)}
+          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'center', marginTop: 8 }}>
+            <AudioPlayer
+              text={t(`onboarding.role.mascotHappyPicked.${mascotGender}`)}
+              characterId={mascotId}
+              size="sm"
+            />
+            <Text style={{ fontSize: 11, color: '#888780', fontWeight: '600', marginLeft: 6 }}>
+              {t('onboarding.mascot.hearbutton')}
+            </Text>
+          </View>
+        </View>
 
         {/* Card */}
         <View style={{
@@ -102,7 +125,7 @@ export default function RoleScreen() {
           <View style={{ backgroundColor: '#EEEDFE', padding: 16, flexDirection: 'row', alignItems: 'center' }}>
             <Text style={{ fontSize: 40, marginRight: 12 }}>{mascot.emoji}</Text>
             <View>
-              <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#2C2C2A' }}>Hi, I'm {mascot.name}! 👋</Text>
+              <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#2C2C2A' }}>{t('onboarding.role.mascotIntro', { name: mascot.name })}</Text>
               <Text style={{ fontSize: 12, color: '#7F77DD', marginTop: 2 }}>{t('onboarding.role.cardHeader')}</Text>
             </View>
           </View>

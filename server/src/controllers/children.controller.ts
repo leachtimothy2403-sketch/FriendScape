@@ -416,10 +416,10 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
     const introDelay    = process.env.NODE_ENV === 'development' ? 30_000 : 5 * 60 * 1000;
 
     setTimeout(() => {
-      void import('../services/migaDM').then(({ sendMigaDM }) =>
-        sendMigaDM(childIdStr, lunaIntroMsg)
-          .then(() => console.log(`[luna] 📬 Miga intro DM sent to ${String(child.name)}`))
-          .catch((e: unknown) => console.error('[luna] Miga intro DM failed:', e)),
+      void import('../services/migaDM').then(({ sendMascotDM }) =>
+        sendMascotDM(childIdStr, String(child.mascot || 'miga'), lunaIntroMsg)
+          .then(() => console.log(`[luna] 📬 ${String(child.mascot)} intro DM sent to ${String(child.name)}`))
+          .catch((e: unknown) => console.error('[luna] Mascot intro DM failed:', e)),
       );
     }, introDelay);
 
@@ -576,7 +576,7 @@ export async function getMyGraduation(req: AuthRequest, res: Response) {
 
     // Award Graduate badge automatically when all milestones complete
     if (progress.allComplete) {
-      const { sendMigaDM } = await import('../services/migaDM');
+      const { sendMascotDM } = await import('../services/migaDM');
       const graduateBadge = await db('badge_definitions')
         .where({ trigger_type: 'graduation' })
         .first() as Record<string, unknown> | undefined;
@@ -597,7 +597,7 @@ export async function getMyGraduation(req: AuthRequest, res: Response) {
             ? (graduateBadge.lumi_message_fr ?? graduateBadge.lumi_message) as string | null
             : graduateBadge.lumi_message as string | null;
 
-          if (lumiMsg) await sendMigaDM(childId, lumiMsg).catch(() => {});
+          if (lumiMsg) await sendMascotDM(childId, String(childRow?.mascot || 'miga'), lumiMsg).catch(() => {});
 
           await db('parent_alerts').insert({
             child_id: childId,
@@ -1073,7 +1073,10 @@ export async function generateAvatar(req: Request, res: Response) {
     return;
   }
 
-  const imgMediaType = (mediaType === 'image/png' || mediaType === 'image/webp') ? mediaType : 'image/jpeg';
+  const imgMediaType: 'image/jpeg' | 'image/png' | 'image/webp' =
+    mediaType === 'image/png'  ? 'image/png'  :
+    mediaType === 'image/webp' ? 'image/webp' :
+    'image/jpeg';
 
   try {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });

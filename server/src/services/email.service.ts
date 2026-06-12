@@ -85,21 +85,47 @@ export async function sendApprovalEmail(
   parentEmail: string,
   approvalToken: string,
   _childDeviceId?: string,
+  language?: string,
 ): Promise<void> {
   const apiBase = process.env.API_URL || 'http://localhost:3001';
   const approveUrl = `${apiBase}/auth/approve?token=${approvalToken}`;
   const declineUrl = `${apiBase}/auth/decline?token=${approvalToken}`;
+  const fr = language === 'fr';
 
-  console.log(`[email] sendApprovalEmail called → to: ${parentEmail}`);
+  console.log(`[email] sendApprovalEmail called → to: ${parentEmail}, lang: ${language ?? 'en'}`);
   console.log(`[email]   approve URL: ${approveUrl}`);
+
+  const subject = fr ? 'Votre enfant veut rejoindre Migo 🌟' : 'Your child wants to join Migo 🌟';
+  const heading = fr ? 'Votre enfant veut rejoindre Migo !' : 'Your child wants to join Migo!';
+  const intro   = fr
+    ? 'Un monde social sûr et amusant pour les enfants de 5 à 12 ans. Des amis IA, aucun étranger réel, contrôle parental total.'
+    : 'A safe, AI-powered social world for children aged 5–12. AI friends, no real strangers, full parent control.';
+  const safetyPoints = fr
+    ? [
+        ['🚫', 'Aucun étranger réel',   'Votre enfant parle uniquement à des amis IA créés par nous — jamais à de vrais utilisateurs.'],
+        ['👨‍👩‍👧', 'Tableau de bord parent', 'Consultez toutes les conversations et mettez l\'application en pause à tout moment.'],
+        ['🏛️', 'Conforme RGPD',         'Conçu dès le départ pour respecter les lois sur la vie privée des enfants.'],
+        ['🚨', 'Alertes d\'urgence',     'Notification immédiate si une conversation soulève une préoccupation.'],
+      ]
+    : [
+        ['🚫', 'No real strangers',  'Your child only talks to AI friends we create — never real users.'],
+        ['👨‍👩‍👧', 'Parent dashboard', 'You see every conversation and can pause the app any time.'],
+        ['🏛️', 'COPPA compliant',    'Built from the ground up to meet children\'s privacy laws.'],
+        ['🚨', 'Crisis alerts',      'Instant notification if any conversation raises a concern.'],
+      ];
+  const approveLabel = fr ? '✅ Oui, approuver Migo !' : '✅ Yes, approve Migo!';
+  const declineLabel = fr ? 'Non merci — refuser cette demande' : 'No thanks — decline this request';
+  const footerNote   = fr
+    ? '🔒 Nous utilisons votre e-mail uniquement pour cette demande. Nous ne vous enverrons jamais de publicité et ne partagerons pas votre adresse.<br>Ce lien expire dans 48 heures.'
+    : '🔒 We only use your email to ask for this permission. We will never send you marketing email or share your address.<br>This link expires in 48 hours.';
 
   try {
     const info = await transporter.sendMail({
     from: FROM,
     to: parentEmail,
-    subject: 'Your child wants to join Migo 🌟',
+    subject,
     html: `<!DOCTYPE html>
-<html lang="en">
+<html lang="${fr ? 'fr' : 'en'}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -119,19 +145,14 @@ export async function sendApprovalEmail(
         <!-- Body -->
         <tr><td style="background:#fff;padding:40px;border-radius:0 0 20px 20px;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
 
-          <h2 style="margin:0 0 16px;color:#2C2C2A;font-size:22px">Your child wants to join Migo!</h2>
+          <h2 style="margin:0 0 16px;color:#2C2C2A;font-size:22px">${heading}</h2>
           <p style="margin:0 0 24px;color:#888780;font-size:15px;line-height:1.6">
-            A safe, AI-powered social world for children aged 5–12. AI friends, no real strangers, full parent control.
+            ${intro}
           </p>
 
           <!-- Safety points -->
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:32px">
-            ${[
-              ['🚫', 'No real strangers', 'Your child only talks to AI friends we create — never real users.'],
-              ['👨‍👩‍👧', 'Parent dashboard', 'You see every conversation and can pause the app any time.'],
-              ['🏛️', 'COPPA compliant', 'Built from the ground up to meet children\'s privacy laws.'],
-              ['🚨', 'Crisis alerts', 'Instant notification if any conversation raises a concern.'],
-            ].map(([emoji, title, desc]) => `
+            ${safetyPoints.map(([emoji, title, desc]) => `
             <tr><td style="padding:12px 16px;background:#F8F7FF;border-radius:12px;margin-bottom:8px;display:block">
               <table width="100%" cellpadding="0" cellspacing="0"><tr>
                 <td width="36" style="font-size:22px;vertical-align:top">${emoji}</td>
@@ -150,21 +171,20 @@ export async function sendApprovalEmail(
             <tr><td align="center">
               <a href="${approveUrl}"
                 style="display:inline-block;background:#5DCAA5;color:#fff;text-decoration:none;font-size:17px;font-weight:700;padding:18px 48px;border-radius:9999px;letter-spacing:0.2px">
-                ✅ Yes, approve Migo!
+                ${approveLabel}
               </a>
             </td></tr>
           </table>
 
           <!-- Decline link -->
           <p style="text-align:center;margin:0 0 32px">
-            <a href="${declineUrl}" style="color:#BDBDBD;font-size:13px">No thanks — decline this request</a>
+            <a href="${declineUrl}" style="color:#BDBDBD;font-size:13px">${declineLabel}</a>
           </p>
 
           <!-- Footer -->
           <hr style="border:none;border-top:1px solid #EEEEEE;margin:0 0 24px">
           <p style="margin:0;color:#BDBDBD;font-size:12px;text-align:center;line-height:1.6">
-            🔒 We only use your email to ask for this permission. We will never send you marketing email or share your address.<br>
-            This link expires in 48 hours.
+            ${footerNote}
           </p>
 
         </td></tr>

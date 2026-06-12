@@ -4,16 +4,15 @@ import {
   AppState, AppStateStatus, StyleSheet, Platform, KeyboardAvoidingView,
 } from 'react-native';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { router } from 'expo-router';
+import { router, usePathname } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
-import { childAuth, childPosts, childSession, childProfileApi, FriendWithStats } from '@/services/api';
+import { childAuth, childPosts, childSession, childProfileApi, childMessages, childNotifications, FriendWithStats } from '@/services/api';
+import { useNotificationStore } from '@/store/notificationStore';
 import MigoLogo from '@/components/MigoLogo';
-import Avatar from '@/components/Avatar';
+import EmojiAvatar from '@/components/EmojiAvatar';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { Colors, Mascots } from '@/constants/theme';
-import { DEFAULT_AVATAR } from '@/types/avatar';
-import type { AvatarConfig } from '@/types/avatar';
 import AudioPlayer from '@/components/AudioPlayer';
 import { requestPermission } from '@/utils/webNotifications';
 
@@ -39,11 +38,19 @@ interface FeedPost {
 }
 
 const THEME_EMOJI: Record<string, string> = {
-  animals: '🐻',
-  space:   '🚀',
-  fantasy: '🧚',
-  ocean:   '🐬',
-  jungle:  '🦁',
+  animals:  '🐻',
+  space:    '🚀',
+  fantasy:  '🧚',
+  ocean:    '🐬',
+  jungle:   '🦁',
+  cat:      '🐱',
+  dog:      '🐶',
+  fox:      '🦊',
+  rabbit:   '🐰',
+  bear:     '🐻',
+  owl:      '🦉',
+  lion:     '🦁',
+  panda:    '🐼',
 };
 
 const FRIEND_BG: Record<string, string> = {
@@ -89,17 +96,27 @@ export default function FeedScreen() {
   const [newPostText, setNewPostText] = useState('');
   const [newPostMood, setNewPostMood] = useState('');
   const [posting, setPosting]         = useState(false);
-  const [avatarConfig, setAvatarConfig] = useState<AvatarConfig | null>(null);
+  const [childEmoji, setChildEmoji]           = useState<string>('👦');
   const [avatarBackground, setAvatarBackground] = useState<string>('#EEEDFE');
 
-  const childTokenRef = useRef<string | null>(null);
-  const refreshTimer  = useRef<ReturnType<typeof setInterval> | null>(null);
+  const childTokenRef        = useRef<string | null>(null);
+  const refreshTimer         = useRef<ReturnType<typeof setInterval> | null>(null);
+  const commentsTimer        = useRef<ReturnType<typeof setInterval> | null>(null);
+  const dmPollTimer          = useRef<ReturnType<typeof setInterval> | null>(null);
+  const visiblePostIds       = useRef<Set<string>>(new Set());
+  const lastCheckRef         = useRef(new Date().toISOString());
+  const shownNotificationIds = useRef<Set<string>>(new Set());
+  const SHOWN_IDS_KEY = 'shownNotificationIds';
+  const MAX_SHOWN_IDS = 500;
 
-  const avatarTheme = useOnboardingStore((s) => s.avatarTheme);
+  const { showNotification, unreadCount, setUnreadCount } = useNotificationStore();
+  const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
+  useEffect(() => { pathnameRef.current = pathname; }, [pathname]);
+
   const mascotId    = useOnboardingStore((s) => s.mascotId);
   const resetStore  = useOnboardingStore((s) => s.resetStore);
 
-  const avatarEmoji = THEME_EMOJI[avatarTheme] || '🐻';
   const mascotEmoji = Mascots[mascotId]?.emoji  || '🌟';
 
   useEffect(() => {
@@ -128,17 +145,32 @@ export default function FeedScreen() {
         childSession.start(token).catch(() => {});
         console.log('[feed] generating posts...');
 
-        try {
-          const profileRes = await childProfileApi.getProfile(token);
-          if (!cancelled) {
-            setAvatarConfig((profileRes.data.avatarConfig as unknown as AvatarConfig) ?? null);
-            setAvatarBackground(profileRes.data.avatarBackground ?? '#EEEDFE');
-          }
-        } catch (e) {
-          console.error('[feed] profile fetch failed:', e);
+        const [storedEmoji, storedBg] = await Promise.all([
+          AsyncStorage.getItem('childEmoji'),
+          AsyncStorage.getItem('avatarBackground'),
+        ]);
+        if (!cancelled) {
+          if (storedEmoji) setChildEmoji(storedEmoji);
+          setAvatarBackground(storedBg ?? '#EEEDFE');
         }
 
+        try {
+          const storedIds = await AsyncStorage.getItem(SHOWN_IDS_KEY);
+          if (storedIds) {
+            const parsed = JSON.parse(storedIds) as string[];
+            shownNotificationIds.current = new Set(parsed);
+          }
+        } catch {}
+
         await loadFeed(token, true);
+
+        try {
+          const notifRes = await childNotifications.get(token);
+          const unreadCount = notifRes.data.notifications.filter(n => !n.read).length;
+          setUnreadCount(unreadCount);
+        } catch {
+          setUnreadCount(0);
+        }
       }
 
       if (!cancelled) setLoading(false);
@@ -150,7 +182,7 @@ export default function FeedScreen() {
 
     void init();
     return () => { cancelled = true; };
-  }, []);
+  }, [setUnreadCount]);
 
   // End session when app goes to background
   useEffect(() => {
@@ -161,6 +193,67 @@ export default function FeedScreen() {
     });
     return () => sub.remove();
   }, []);
+
+  // Poll comments for visible posts every 15 seconds
+  useEffect(() => {
+    if (!childToken || loading) return;
+
+    commentsTimer.current = setInterval(async () => {
+      const token = childTokenRef.current;
+      if (!token || visiblePostIds.current.size === 0) return;
+
+      const ids = [...visiblePostIds.current];
+      const results = await Promise.allSettled(
+        ids.map((id) => childPosts.getComments(token, id)),
+      );
+
+      setPosts((prev) =>
+        prev.map((p) => {
+          const idx = ids.indexOf(p.id);
+          if (idx === -1) return p;
+          const result = results[idx];
+          if (result.status !== 'fulfilled') return p;
+          return { ...p, comments: result.value.data.comments };
+        }),
+      );
+    }, 15000);
+
+    return () => {
+      if (commentsTimer.current) { clearInterval(commentsTimer.current); commentsTimer.current = null; }
+    };
+  }, [childToken, loading]);
+
+  // Poll for unread DM messages every 20 seconds to surface notification banners
+  useEffect(() => {
+    if (!childToken || loading) return;
+    lastCheckRef.current = new Date().toISOString();
+
+    dmPollTimer.current = setInterval(async () => {
+      const token = childTokenRef.current;
+      if (!token) return;
+      const since = lastCheckRef.current;
+      lastCheckRef.current = new Date().toISOString();
+      try {
+        const res = await childMessages.getUnread(token, since);
+        for (const item of res.data.messages) {
+          if (pathnameRef.current === `/dm/${item.friendId}`) continue;
+          if (item.id && shownNotificationIds.current.has(item.id)) continue;
+          showNotification({ friendId: item.friendId, friendName: item.friendName, friendEmoji: item.friendEmoji, message: item.message });
+          if (item.id) {
+            shownNotificationIds.current.add(item.id);
+            const ids = [...shownNotificationIds.current];
+            if (ids.length > MAX_SHOWN_IDS) ids.splice(0, ids.length - MAX_SHOWN_IDS);
+            shownNotificationIds.current = new Set(ids);
+            AsyncStorage.setItem(SHOWN_IDS_KEY, JSON.stringify(ids)).catch(() => {});
+          }
+        }
+      } catch {}
+    }, 20000);
+
+    return () => {
+      if (dmPollTimer.current) { clearInterval(dmPollTimer.current); dmPollTimer.current = null; }
+    };
+  }, [childToken, loading]);
 
   useEffect(() => {
     if (posts.length === 0 && childToken && !loading) {
@@ -282,18 +375,44 @@ export default function FeedScreen() {
     })
     .map(f => ({ id: f.id, name: f.name, emojis: f.cover_emojis ?? '🌟' }));
 
+  async function submitComment(postId: string, text: string) {
+    if (!childToken) return;
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? { ...p, comments: [...p.comments, { authorName: t('feed.you'), authorEmoji: '😊', content: text, createdAt: new Date().toISOString() }] }
+          : p,
+      ),
+    );
+    try {
+      await childPosts.comment(childToken, postId, text);
+    } catch (e) {
+      console.error('[feed] submitComment error:', e);
+      void loadFeed(childToken, true);
+    }
+  }
+
   const renderPost = useCallback(
     ({ item }: { item: FeedPost }) => (
       <PostCard
         post={item}
-        avatarEmoji={avatarEmoji}
+        avatarEmoji={childEmoji}
         onReact={(emoji) => void handleReact(item.id, emoji)}
-        onReply={() => router.push(`/dm/${item.author_id}` as never)}
+        onSubmitComment={(text) => submitComment(item.id, text)}
         t={t}
       />
     ),
-    [avatarEmoji, childToken, t],
+    [childEmoji, childToken, t],
   );
+
+  const onViewableItemsChanged = useCallback(
+    ({ viewableItems }: { viewableItems: Array<{ item: FeedPost }> }) => {
+      visiblePostIds.current = new Set(viewableItems.map((v) => v.item.id));
+    },
+    [],
+  );
+
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
 
   return (
     <SafeAreaView style={s.screen}>
@@ -312,21 +431,11 @@ export default function FeedScreen() {
               : <Text style={s.refreshIcon}>🔄</Text>
             }
           </TouchableOpacity>
-          <View>
+          <TouchableOpacity onPress={() => router.push('/notifications' as never)}>
             <Text style={{ fontSize: 22 }}>🔔</Text>
-            <View style={s.redDot} />
-          </View>
-          {avatarConfig ? (
-            <Avatar
-              config={avatarConfig}
-              background={avatarBackground}
-              size={36}
-            />
-          ) : (
-            <View style={s.avatarCircle}>
-              <Text style={{ fontSize: 20 }}>{avatarEmoji}</Text>
-            </View>
-          )}
+            {unreadCount > 0 && <View style={s.redDot} />}
+          </TouchableOpacity>
+          <EmojiAvatar emoji={childEmoji} background={avatarBackground} size={36} />
         </View>
       </View>
 
@@ -338,6 +447,8 @@ export default function FeedScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderPost}
           showsVerticalScrollIndicator={false}
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.purple} />
           }
@@ -444,14 +555,26 @@ export default function FeedScreen() {
 }
 
 function PostCard({
-  post, avatarEmoji, onReact, onReply, t,
+  post, avatarEmoji, onReact, onSubmitComment, t,
 }: {
   post: FeedPost;
   avatarEmoji: string;
   onReact: (emoji: string) => void;
-  onReply: () => void;
+  onSubmitComment: (text: string) => Promise<void>;
   t: (key: string) => string;
 }) {
+  const [showInput, setShowInput]       = useState(false);
+  const [commentText, setCommentText]   = useState('');
+  const [submitting, setSubmitting]     = useState(false);
+
+  async function handleSubmit() {
+    if (!commentText.trim() || submitting) return;
+    setSubmitting(true);
+    const text = commentText.trim();
+    setCommentText('');
+    setShowInput(false);
+    try { await onSubmitComment(text); } finally { setSubmitting(false); }
+  }
   const isOwn      = post.author_type === 'child';
   const name       = isOwn ? t('feed.you') : (post.friend_name ?? 'Friend');
   const friendBg   = isOwn ? '#E1F5EE' : (FRIEND_BG[name]   ?? '#EEEDFE');
@@ -539,12 +662,37 @@ function PostCard({
         </View>
 
         {!isOwn && (
-          <TouchableOpacity onPress={onReply} style={s.replyBtn}>
-            <Text style={{ fontSize: 14 }}>🎤</Text>
+          <TouchableOpacity onPress={() => setShowInput((v) => !v)} style={s.replyBtn}>
+            <Text style={{ fontSize: 14 }}>💬</Text>
             <Text style={s.replyBtnText}>{t('feed.replyButton')}</Text>
           </TouchableOpacity>
         )}
       </View>
+
+      {showInput && (
+        <View style={s.commentInputRow}>
+          <TextInput
+            value={commentText}
+            onChangeText={setCommentText}
+            placeholder="Write a comment…"
+            placeholderTextColor="#B4B2A9"
+            style={s.commentInputField}
+            autoFocus
+            onSubmitEditing={() => void handleSubmit()}
+            returnKeyType="send"
+          />
+          <TouchableOpacity
+            onPress={() => void handleSubmit()}
+            disabled={!commentText.trim() || submitting}
+            style={[s.commentSendBtn, (!commentText.trim() || submitting) && { backgroundColor: '#C8C6E8' }]}
+          >
+            {submitting
+              ? <ActivityIndicator color="#fff" size="small" />
+              : <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Send</Text>
+            }
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -651,4 +799,13 @@ const s = StyleSheet.create({
                    paddingHorizontal: 8, paddingVertical: 4 },
   devResetText:  { fontSize: 11, color: '#CC0000', fontWeight: '700' },
   refreshIcon:   { fontSize: 20, color: '#B4B2A9' },
+
+  commentInputRow:  { flexDirection: 'row', alignItems: 'center', gap: 8,
+                      paddingHorizontal: 14, paddingVertical: 10,
+                      borderTopWidth: 1, borderTopColor: Colors.bg },
+  commentInputField:{ flex: 1, backgroundColor: Colors.bg, borderRadius: 20,
+                      paddingHorizontal: 14, paddingVertical: 8,
+                      fontSize: 14, color: '#2C2C2A' },
+  commentSendBtn:   { backgroundColor: Colors.purple, borderRadius: 9999,
+                      paddingHorizontal: 16, paddingVertical: 8 },
 });

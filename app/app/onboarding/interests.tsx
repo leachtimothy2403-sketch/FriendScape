@@ -12,13 +12,17 @@ import { Audio } from 'expo-av';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useOnboardingStore } from '@/store/onboardingStore';
+import { useLanguageStore } from '@/store/languageStore';
+import { audioApi } from '@/services/api';
+import AudioPlayer from '@/components/AudioPlayer';
 
-const MASCOT_MAP: Record<string, { emoji: string; audio: number }> = {
-  pixel: { emoji: '🤖', audio: require('../../assets/audio/pixel_intro.mp3') },
-  finn:  { emoji: '🦊', audio: require('../../assets/audio/finn_intro.mp3')  },
-  miga:  { emoji: '🧚', audio: require('../../assets/audio/lumi_intro.mp3')  },
-  sage:  { emoji: '🦉', audio: require('../../assets/audio/sage_intro.mp3')  },
+const MASCOT_MAP: Record<string, { emoji: string }> = {
+  pixel: { emoji: '🤖' },
+  finn:  { emoji: '🦊' },
+  miga:  { emoji: '🧚' },
+  sage:  { emoji: '🦉' },
 };
 
 const INTERESTS_BASE = [
@@ -49,6 +53,7 @@ export default function InterestsScreen() {
     freeInterest, setFreeInterest,
   } = useOnboardingStore();
 
+  const { language } = useLanguageStore();
   const displayName = childName.trim() || 'you';
   const mascot      = MASCOT_MAP[mascotId] ?? MASCOT_MAP.miga;
 
@@ -57,7 +62,6 @@ export default function InterestsScreen() {
   const [isRecording, setIsRecording]     = useState(false);
   const [voiceRecorded, setVoiceRecorded] = useState(false);
   const recordingRef = useRef<Audio.Recording | null>(null);
-  const soundRef     = useRef<Audio.Sound | null>(null);
 
   const floatY = useSharedValue(0);
   const pulse  = useSharedValue(1);
@@ -72,22 +76,12 @@ export default function InterestsScreen() {
       -1, false,
     );
     return () => {
-      soundRef.current?.unloadAsync();
       recordingRef.current?.stopAndUnloadAsync();
     };
   }, []);
 
   const floatStyle = useAnimatedStyle(() => ({ transform: [{ translateY: floatY.value }] }));
   const pulseStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
-
-  async function playMascotAudio() {
-    try {
-      await soundRef.current?.unloadAsync();
-      const { sound } = await Audio.Sound.createAsync(mascot.audio);
-      soundRef.current = sound;
-      await sound.playAsync();
-    } catch { /* file not yet copied */ }
-  }
 
   function toggleInterest(name: string) {
     setInterests(
@@ -105,10 +99,37 @@ export default function InterestsScreen() {
       setIsRecording(false);
       try {
         await recordingRef.current?.stopAndUnloadAsync();
+        const uri = recordingRef.current?.getURI();
+        recordingRef.current = null;
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+        if (!uri) return;
+
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.responseType = 'arraybuffer';
+          xhr.onload = () => {
+            const bytes = new Uint8Array(xhr.response as ArrayBuffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+            resolve(btoa(binary));
+          };
+          xhr.onerror = reject;
+          xhr.open('GET', uri);
+          xhr.send();
+        });
+
+        const token = await AsyncStorage.getItem('childToken');
+        const result = await audioApi.transcribe(token, {
+          audioBase64: base64,
+          mimeType: 'audio/m4a',
+          language,
+        });
+        const transcript = result.data.transcript?.trim();
+        if (transcript) {
+          setFreeInterest(transcript);
+          setVoiceRecorded(true);
+        }
       } catch { /* ignore */ }
-      recordingRef.current = null;
-      setVoiceRecorded(true);
-      setFreeInterest((freeInterest + ' [voice note]').trim());
     } else {
       try {
         const { granted } = await Audio.requestPermissionsAsync();
@@ -163,11 +184,9 @@ export default function InterestsScreen() {
 
         {/* Mascot speech bubble */}
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 28 }}>
-          <TouchableOpacity onPress={() => void playMascotAudio()} activeOpacity={0.8}>
-            <Animated.Text style={[{ fontSize: 36, marginRight: 10, marginTop: 4 }, floatStyle]}>
-              {mascot.emoji}
-            </Animated.Text>
-          </TouchableOpacity>
+          <Animated.Text style={[{ fontSize: 36, marginRight: 10, marginTop: 4 }, floatStyle]}>
+            {mascot.emoji}
+          </Animated.Text>
           <View style={{ flex: 1 }}>
             <View style={{
               backgroundColor: '#fff',
@@ -178,19 +197,16 @@ export default function InterestsScreen() {
               padding: 12,
             }}>
               <Text style={{ fontSize: 13, color: '#2C2C2A', lineHeight: 20 }}>
-                Now the fun part!! Tap everything you love — this helps me find your perfect friends! Pick as many as you want! 🎉
+                {t('onboarding.interests.mascotSpeech')}
               </Text>
-              <TouchableOpacity
-                onPress={() => void playMascotAudio()}
-                style={{
-                  flexDirection: 'row', alignItems: 'center',
-                  alignSelf: 'flex-start', marginTop: 8,
-                  backgroundColor: '#F0F0F0', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20,
-                }}
-              >
-                <Text style={{ fontSize: 12, marginRight: 4 }}>🔊</Text>
-                <Text style={{ fontSize: 11, color: '#888780', fontWeight: '600' }}>{t('discover.hearMe')}</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginTop: 8 }}>
+                <AudioPlayer
+                  text={t('onboarding.interests.mascotSpeech')}
+                  characterId={mascotId || 'miga'}
+                  size="sm"
+                />
+                <Text style={{ fontSize: 11, color: '#888780', fontWeight: '600', marginLeft: 6 }}>{t('discover.hearMe')}</Text>
+              </View>
             </View>
           </View>
         </View>

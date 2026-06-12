@@ -9,15 +9,23 @@ import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { children as childrenApi, childAuth } from '@/services/api';
-import Avatar from '@/components/Avatar';
+import EmojiAvatar from '@/components/EmojiAvatar';
 import { useOnboardingStore } from '@/store/onboardingStore';
-import type { AvatarConfig } from '@/types/avatar';
 
 const MASCOT: Record<string, { emoji: string; name: string }> = {
   pixel: { emoji: '🤖', name: 'Pixel' },
   finn:  { emoji: '🦊', name: 'Finn'  },
   miga:  { emoji: '🧚', name: 'Miga'  },
   sage:  { emoji: '🦉', name: 'Sage'  },
+};
+
+const HUMAN_EMOJI: Record<string, string> = {
+  classic: '👦', sporty: '👧', artistic: '🧑', cool: '👱',
+  sweet: '🧒', cowboy: '🤠', superhero: '🦸', princess: '👸',
+};
+const ANIMAL_EMOJI: Record<string, string> = {
+  cat: '🐱', dog: '🐶', fox: '🦊', rabbit: '🐰',
+  bear: '🐻', owl: '🦉', lion: '🦁', panda: '🐼',
 };
 
 const PACK_NAME: Record<string, string> = {
@@ -32,6 +40,7 @@ const PARENT_DASHBOARD = 'http://localhost:3000';
 // Module-level guard: survives React Strict Mode's mount→unmount→remount cycle.
 // useRef resets to false on each remount, so it cannot protect against double-invocation.
 let _createChildStarted = false;
+export function resetCreateChildGuard() { _createChildStarted = false; }
 
 function PulsingDot({ delay }: { delay: number }) {
   const scale = useSharedValue(1);
@@ -72,6 +81,9 @@ export default function AllSetScreen() {
   const mascot    = MASCOT[store.mascotId]     ?? { emoji: '🧚', name: 'Miga' };
   const packName  = PACK_NAME[store.avatarPack] ?? store.avatarPack;
   const childName = store.childName.trim() || 'you';
+  const childEmoji = store.avatarStyle === 'animal'
+    ? (ANIMAL_EMOJI[store.avatarTheme] ?? '🐾')
+    : (HUMAN_EMOJI[store.humanFaceStyle] ?? '👦');
 
   type AssignedFriend = { id: string; name: string; coverEmojis: string; introMessage: string };
 
@@ -177,8 +189,11 @@ export default function AllSetScreen() {
         name:     data.name,
         mascotId: data.mascotId,
       }));
+      await AsyncStorage.setItem('avatarBackground', store.avatarBackground || '#EEEDFE');
+      await AsyncStorage.setItem('childEmoji', childEmoji);
 
       setStatus('success');
+      if (__DEV__) { handleLaunch(); }
     } catch (err: unknown) {
       console.error('[allset] createChild error:', err);
       const e = err as { message?: string; response?: { status?: number; data?: { error?: string } } };
@@ -187,7 +202,7 @@ export default function AllSetScreen() {
         ? (serverMsg ?? e?.message ?? t('common.error'))
         : t('common.error');
       setErrorMsg(msg);
-      calledRef.current = false;
+      _createChildStarted = false;
       setStatus('error');
     }
   }
@@ -257,32 +272,19 @@ export default function AllSetScreen() {
       <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 20, paddingBottom: 40 }}>
 
         <View style={{ alignItems: 'center', marginBottom: 20 }}>
-          {store.avatarConfig ? (
-            <Animated.View style={[{ alignItems: 'center', justifyContent: 'center' }, celebStyle]}>
-              <View
-                style={{
-                  width: 120,
-                  height: 120,
-                  borderRadius: 60,
-                  backgroundColor: store.avatarBackground || '#EEEDFE',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  shadowColor: store.avatarBackground || '#EEEDFE',
-                  shadowOpacity: 0.3,
-                  shadowRadius: 12,
-                  elevation: 8,
-                }}
-              >
-                <Avatar
-                  config={store.avatarConfig}
-                  background={store.avatarBackground || '#EEEDFE'}
-                  size={96}
-                />
-              </View>
-            </Animated.View>
-          ) : (
-            <Animated.Text style={[{ fontSize: 80 }, celebStyle]}>🎉</Animated.Text>
-          )}
+          <Animated.View style={[{ alignItems: 'center', justifyContent: 'center' }, celebStyle]}>
+            <View
+              style={{
+                width: 120, height: 120, borderRadius: 60,
+                backgroundColor: store.avatarBackground || '#EEEDFE',
+                alignItems: 'center', justifyContent: 'center',
+                shadowColor: store.avatarBackground || '#EEEDFE',
+                shadowOpacity: 0.3, shadowRadius: 12, elevation: 8,
+              }}
+            >
+              <EmojiAvatar emoji={childEmoji} background={store.avatarBackground || '#EEEDFE'} size={96} />
+            </View>
+          </Animated.View>
         </View>
 
         <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#2C2C2A', textAlign: 'center', marginBottom: 8 }}>

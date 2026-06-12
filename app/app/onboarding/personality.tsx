@@ -11,12 +11,17 @@ import { Audio } from 'expo-av';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { useLanguageStore } from '@/store/languageStore';
+import { audioApi } from '@/services/api';
+import AudioPlayer from '@/components/AudioPlayer';
 
-const MIGA_HEAR_AUDIO = {
-  en: require('../../assets/audio/miga_hear.mp3'),
-  fr: require('../../assets/audio/miga_hear_fr.mp3'),
+const MASCOT_EMOJI: Record<string, string> = {
+  pixel: '🤖',
+  finn:  '🦊',
+  miga:  '🧚',
+  sage:  '🦉',
 };
 
 interface Option {
@@ -89,11 +94,14 @@ export default function PersonalityScreen() {
   const {
     childName,
     gender,
+    mascotId,
     personalityTraits, setPersonalityTraits,
     personalityFreeText, setPersonalityFreeText,
   } = useOnboardingStore();
 
   const displayName = childName.trim() || 'you';
+  const mascotEmoji = MASCOT_EMOJI[mascotId] ?? '🧚';
+  const mascotName  = mascotId ? (mascotId.charAt(0).toUpperCase() + mascotId.slice(1)) : 'Miga';
 
   // selections: one chosen traitId per question group
   const [selections, setSelections] = useState<Record<string, string>>(() => {
@@ -105,9 +113,13 @@ export default function PersonalityScreen() {
     return init;
   });
 
-  const scrollRef = useRef<ScrollView>(null);
-  const soundRef  = useRef<Audio.Sound | null>(null);
-  const floatY   = useSharedValue(0);
+  const scrollRef   = useRef<ScrollView>(null);
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const floatY      = useSharedValue(0);
+  const pulse       = useSharedValue(1);
+
+  const [isRecording, setIsRecording]     = useState(false);
+  const [voiceRecorded, setVoiceRecorded] = useState(false);
 
   useEffect(() => {
     Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
@@ -118,19 +130,74 @@ export default function PersonalityScreen() {
       ),
       -1, false,
     );
-    return () => { void soundRef.current?.unloadAsync(); };
+    return () => { recordingRef.current?.stopAndUnloadAsync(); };
   }, []);
 
   const floatStyle = useAnimatedStyle(() => ({ transform: [{ translateY: floatY.value }] }));
+  const pulseStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
 
-  async function playMigaHear() {
-    try {
-      await soundRef.current?.unloadAsync();
-      const src = language === 'fr' ? MIGA_HEAR_AUDIO.fr : MIGA_HEAR_AUDIO.en;
-      const { sound } = await Audio.Sound.createAsync(src);
-      soundRef.current = sound;
-      await sound.playAsync();
-    } catch { /* audio not yet available */ }
+  async function handleMicPress() {
+    if (Platform.OS === 'web') return;
+    if (isRecording) {
+      pulse.value = withTiming(1);
+      setIsRecording(false);
+      try {
+        await recordingRef.current?.stopAndUnloadAsync();
+        const uri = recordingRef.current?.getURI();
+        recordingRef.current = null;
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+        if (!uri) return;
+
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.responseType = 'arraybuffer';
+          xhr.onload = () => {
+            const bytes = new Uint8Array(xhr.response as ArrayBuffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+            resolve(btoa(binary));
+          };
+          xhr.onerror = reject;
+          xhr.open('GET', uri);
+          xhr.send();
+        });
+
+        const token = await AsyncStorage.getItem('childToken');
+        const result = await audioApi.transcribe(token, {
+          audioBase64: base64,
+          mimeType: 'audio/m4a',
+          language,
+        });
+        const transcript = result.data.transcript?.trim();
+        if (transcript) {
+          if (personalityFreeText.length + transcript.length <= MAX_FREE_TEXT) {
+            setPersonalityFreeText((personalityFreeText + ' ' + transcript).trim());
+          } else {
+            setPersonalityFreeText(transcript.slice(0, MAX_FREE_TEXT));
+          }
+          setVoiceRecorded(true);
+        }
+      } catch { /* ignore */ }
+    } else {
+      try {
+        const { granted } = await Audio.requestPermissionsAsync();
+        if (!granted) return;
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+        const { recording } = await Audio.Recording.createAsync(
+          Audio.RecordingOptionsPresets.HIGH_QUALITY,
+        );
+        recordingRef.current = recording;
+        setIsRecording(true);
+        setVoiceRecorded(false);
+        pulse.value = withRepeat(
+          withSequence(
+            withTiming(1.25, { duration: 500 }),
+            withTiming(1,    { duration: 500 }),
+          ),
+          -1, false,
+        );
+      } catch { /* permission denied or unavailable */ }
+    }
   }
 
   function selectTrait(questionId: string, traitId: string) {
@@ -173,7 +240,7 @@ export default function PersonalityScreen() {
           <View style={{ width: '77%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
         </View>
         <Text style={{ fontSize: 13, color: '#888780', marginBottom: 16 }}>
-          Step 7 of 9 · Just for you!
+          {t('onboarding.stepOf', { current: 7, total: 9 })} · {t('onboarding.step7sub')}
         </Text>
 
         {/* Badge */}
@@ -186,13 +253,11 @@ export default function PersonalityScreen() {
           </Text>
         </View>
 
-        {/* Miga bubble */}
+        {/* Mascot bubble */}
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 28 }}>
-          <TouchableOpacity onPress={() => void playMigaHear()} activeOpacity={0.8}>
-            <Animated.Text style={[{ fontSize: 36, marginRight: 10, marginTop: 4 }, floatStyle]}>
-              🧚
-            </Animated.Text>
-          </TouchableOpacity>
+          <Animated.Text style={[{ fontSize: 36, marginRight: 10, marginTop: 4 }, floatStyle]}>
+            {mascotEmoji}
+          </Animated.Text>
           <View style={{ flex: 1 }}>
             <View style={{
               backgroundColor: '#fff', borderRadius: 16, borderTopLeftRadius: 4,
@@ -201,17 +266,14 @@ export default function PersonalityScreen() {
               <Text style={{ fontSize: 13, color: '#2C2C2A', lineHeight: 20 }}>
                 {t(gender === 'girl' ? 'onboarding.personality.migaBubble_girl' : 'onboarding.personality.migaBubble')}
               </Text>
-              <TouchableOpacity
-                onPress={() => void playMigaHear()}
-                style={{
-                  flexDirection: 'row', alignItems: 'center',
-                  alignSelf: 'flex-start', marginTop: 8,
-                  backgroundColor: '#F0F0F0', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20,
-                }}
-              >
-                <Text style={{ fontSize: 12, marginRight: 4 }}>🔊</Text>
-                <Text style={{ fontSize: 11, color: '#888780', fontWeight: '600' }}>Hear me</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginTop: 8 }}>
+                <AudioPlayer
+                  text={t(gender === 'girl' ? 'onboarding.personality.migaBubble_girl' : 'onboarding.personality.migaBubble')}
+                  characterId={mascotId || 'miga'}
+                  size="sm"
+                />
+                <Text style={{ fontSize: 11, color: '#888780', fontWeight: '600', marginLeft: 6 }}>{t('onboarding.personality.hearButton')}</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -225,6 +287,9 @@ export default function PersonalityScreen() {
             <View style={{ gap: 8 }}>
               {q.options.map((opt) => {
                 const selected = selections[q.id] === opt.id;
+                const labelKey = gender === 'girl' && language === 'fr'
+                  ? `onboarding.personality.${opt.labelKey}_girl`
+                  : `onboarding.personality.${opt.labelKey}`;
                 return (
                   <TouchableOpacity
                     key={opt.id}
@@ -244,7 +309,7 @@ export default function PersonalityScreen() {
                       fontWeight: '600',
                       color: selected ? '#534AB7' : '#2C2C2A',
                     }}>
-                      {t(`onboarding.personality.${opt.labelKey}`)}
+                      {t(labelKey)}
                     </Text>
                     {opt.descKey && (
                       <Text style={{ fontSize: 12, color: selected ? '#7F77DD' : '#888780', marginTop: 2 }}>
@@ -262,30 +327,53 @@ export default function PersonalityScreen() {
         <View style={{
           backgroundColor: '#fff', borderRadius: 14,
           borderWidth: 1.5, borderColor: '#E8E6FF',
-          padding: 14, marginTop: 4, marginBottom: 28,
+          padding: 14, marginTop: 4, marginBottom: voiceRecorded ? 8 : 28,
         }}>
           <Text style={{ fontSize: 13, fontWeight: '700', color: '#2C2C2A', marginBottom: 2 }}>
-            {t('onboarding.personality.freeTextLabel')}
+            {t('onboarding.personality.freeTextLabel', { mascot: mascotName })}
           </Text>
           <Text style={{ fontSize: 11, color: '#888780', marginBottom: 10 }}>
             {t('onboarding.personality.freeTextSub')}
           </Text>
-          <TextInput
-            multiline
-            value={personalityFreeText}
-            onChangeText={handleFreeText}
-            placeholder={t('onboarding.personality.freeTextPlaceholder')}
-            placeholderTextColor="#BDBDBD"
-            onFocus={() => { setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100); }}
-            style={{
-              fontSize: 14, color: '#2C2C2A',
-              minHeight: 80, textAlignVertical: 'top',
-            }}
-          />
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+            <TextInput
+              multiline
+              value={personalityFreeText}
+              onChangeText={handleFreeText}
+              placeholder={t('onboarding.personality.freeTextPlaceholder', { mascot: mascotName })}
+              placeholderTextColor="#BDBDBD"
+              onFocus={() => { setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100); }}
+              style={{
+                flex: 1, fontSize: 14, color: '#2C2C2A',
+                minHeight: 80, textAlignVertical: 'top',
+              }}
+            />
+            {Platform.OS !== 'web' && (
+              <Animated.View style={[pulseStyle, { marginLeft: 10, flexShrink: 0 }]}>
+                <TouchableOpacity
+                  onPress={() => void handleMicPress()}
+                  style={{
+                    width: 38, height: 38, borderRadius: 19,
+                    backgroundColor: isRecording ? '#D85A30' : '#EF9F27',
+                    alignItems: 'center', justifyContent: 'center',
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={{ fontSize: 18 }}>{isRecording ? '⏹️' : '🎤'}</Text>
+                </TouchableOpacity>
+              </Animated.View>
+            )}
+          </View>
           <Text style={{ fontSize: 11, color: '#B4B2A9', textAlign: 'right', marginTop: 6 }}>
             {personalityFreeText.length}/{MAX_FREE_TEXT}
           </Text>
         </View>
+
+        {voiceRecorded && (
+          <Text style={{ fontSize: 12, color: '#5DCAA5', fontWeight: '600', marginBottom: 20 }}>
+            {t('onboarding.personality.voiceRecorded')}
+          </Text>
+        )}
 
         {/* Continue */}
         <TouchableOpacity
@@ -306,7 +394,7 @@ export default function PersonalityScreen() {
           onPress={() => router.back()}
           style={{ paddingVertical: 12, alignItems: 'center' }}
         >
-          <Text style={{ color: '#BDBDBD', fontSize: 14 }}>← Back</Text>
+          <Text style={{ color: '#BDBDBD', fontSize: 14 }}>← {t('common.back')}</Text>
         </TouchableOpacity>
       </ScrollView>
       </KeyboardAvoidingView>

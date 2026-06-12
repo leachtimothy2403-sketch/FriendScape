@@ -276,7 +276,7 @@ export default function DiscoverScreen() {
 
       <TextInput
         style={s.search}
-        placeholder="Search by name or interest…"
+        placeholder={t('discover.searchPlaceholder')}
         placeholderTextColor={Colors.gray[400]}
         value={search}
         onChangeText={setSearch}

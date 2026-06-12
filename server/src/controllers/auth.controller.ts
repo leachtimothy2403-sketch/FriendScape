@@ -9,6 +9,7 @@ import {
   sendApprovalEmail,
 } from '../services/email.service';
 import { AuthRequest } from '../middleware/auth';
+import redis from '../services/redis.service';
 
 export async function register(req: Request, res: Response) {
   try {
@@ -134,7 +135,7 @@ export async function childLogin(req: Request, res: Response) {
 
 export async function enroll(req: Request, res: Response) {
   try {
-    const { parentEmail } = req.body as { parentEmail?: string };
+    const { parentEmail, language } = req.body as { parentEmail?: string; language?: string };
 
     if (!parentEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(parentEmail)) {
       res.status(400).json({ error: 'Please enter a valid email address' });
@@ -160,7 +161,7 @@ export async function enroll(req: Request, res: Response) {
     });
 
     try {
-      await sendApprovalEmail(parentEmail, approvalToken);
+      await sendApprovalEmail(parentEmail, approvalToken, undefined, language);
     } catch (emailErr) {
       console.error('Failed to send approval email (enrollment still created):', emailErr);
       if (process.env.NODE_ENV === 'production') throw emailErr;
@@ -383,6 +384,11 @@ export async function devReset(req: Request, res: Response) {
         .orWhereIn('connected_friend_id', genIdList)
         .del();
       nGeneratedFriends = await db('ai_friends').where({ is_generated: true }).delete();
+    }
+
+    if (redis.status === 'ready') {
+      await redis.flushdb();
+      console.log('[dev] ✅ Redis flushed');
     }
 
     console.log(`[dev] 🗑️  Database reset — ${nChildren} children, ${nGeneratedFriends} generated friends deleted`);

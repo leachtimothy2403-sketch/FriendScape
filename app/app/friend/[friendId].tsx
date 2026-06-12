@@ -11,6 +11,7 @@ import {
   FriendWithStatus, FriendWithRelationship, FriendPost,
 } from '@/services/api';
 import { Colors } from '@/constants/theme';
+import { useLanguageStore } from '@/store/languageStore';
 
 // Cover colour per friend name
 const COVER_COLOR: Record<string, string> = {
@@ -22,15 +23,12 @@ const COVER_COLOR: Record<string, string> = {
   'Prof Max': '#F0F0FF', Miga: '#F0EEFF',
 };
 
-const LEVEL_NAMES: Record<number, string> = {
-  1: 'New Friends', 2: 'Good Friends', 3: 'Close Friends',
-  4: 'Best Friends', 5: 'Super BFFs', 6: 'Forever Friends',
-};
 const LEVEL_XP_AT: Record<number, number> = { 1: 100, 2: 300, 3: 600, 4: 1000, 5: 1500 };
 
 function firstEmoji(str: string | null | undefined) { return str ? ([...str][0] ?? '🌟') : '🌟'; }
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' });
+function fmtDate(iso: string, lang: string) {
+  const locale = lang === 'fr' ? 'fr-FR' : 'en-GB';
+  return new Date(iso).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 function RelBadge({ type, via }: { type?: string; via?: string }) {
@@ -76,6 +74,7 @@ function NetworkCard({
 
 export default function FriendProfileScreen() {
   const { t } = useTranslation();
+  const { language } = useLanguageStore();
   const { friendId, via } = useLocalSearchParams<{ friendId: string; via?: string }>();
 
   const [friend,              setFriend]             = useState<FriendWithStatus | null>(null);
@@ -210,14 +209,14 @@ export default function FriendProfileScreen() {
         {/* Friendship stats card */}
         {isAdded && friend.friendship ? (
           <View style={s.statsCard}>
-            <Text style={s.statsTitle}>Your friendship with {friend.name}</Text>
-            <Text style={s.statsLevel}>{LEVEL_NAMES[friend.friendship.level] ?? 'Friends'}</Text>
+            <Text style={s.statsTitle}>{t('friends.yourFriendshipWith', { name: friend.name })}</Text>
+            <Text style={s.statsLevel}>{t(`friends.levelNames.${friend.friendship.level}`)}</Text>
             <View style={s.xpBar}><View style={[s.xpFill, { width: `${Math.round(xpFraction * 100)}%` as `${number}%` }]} /></View>
             <Text style={s.statsXP}>{friend.friendship.xp} XP</Text>
             <View style={s.statsRow}>
               <View style={s.statItem}><Text style={s.statValue}>{friend.friendship.messagesCount}</Text><Text style={s.statLabel}>Messages</Text></View>
               <View style={s.statItem}>
-                <Text style={s.statValue}>{fmtDate(friend.friendship.activatedAt)}</Text>
+                <Text style={s.statValue}>{fmtDate(friend.friendship.activatedAt, language)}</Text>
                 <Text style={s.statLabel}>{t('friends.friendsSince', { date: '' }).replace(' ', '')}</Text>
               </View>
             </View>

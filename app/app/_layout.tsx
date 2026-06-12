@@ -32,6 +32,10 @@ export default function RootLayout() {
           name="dm/[friendId]"
           options={{ animation: 'slide_from_right' }}
         />
+        <Stack.Screen
+          name="notifications"
+          options={{ animation: 'slide_from_right' }}
+        />
       </Stack>
       <NotificationBanner
         visible={notification !== null}

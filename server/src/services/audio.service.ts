@@ -23,10 +23,10 @@ const VOICE_IDS: Record<'en' | 'fr', Record<string, string>> = {
     zara:      'ThT5KcBeYPX3keUQqHPh', // Dorothy
     coachmike: 'pNInz6obpgDQGcFmaJgB', // Adam
     msluna:    'EXAVITQu4vr4xnSDxMaL', // Bella
-    miga:      'ThT5KcBeYPX3keUQqHPh', // Dorothy
-    finn:      'VR6AewLTigWG4xSOukaG', // Arnold
-    pixel:     'ErXwobaYiN019PkySvjV', // Antoni
-    sage:      'pNInz6obpgDQGcFmaJgB', // Adam
+    miga:      'EXAVITQu4vr4xnSDxMaL', // Bella
+    finn:      'pNInz6obpgDQGcFmaJgB', // Adam
+    pixel:     'VR6AewLTigWG4xSOukaG', // Arnold
+    sage:      'ErXwobaYiN019PkySvjV', // Antoni
   },
   fr: {
     mia:       'Xb7hH8MSUJpSbSDYk0k2', // Alice (multilingual)
@@ -34,10 +34,10 @@ const VOICE_IDS: Record<'en' | 'fr', Record<string, string>> = {
     zara:      'Xb7hH8MSUJpSbSDYk0k2', // Alice
     coachmike: 'onwK4e9ZLuTAKqWW03F9', // Daniel
     msluna:    'Xb7hH8MSUJpSbSDYk0k2', // Alice
-    miga:      'Xb7hH8MSUJpSbSDYk0k2', // Alice
-    finn:      'onwK4e9ZLuTAKqWW03F9', // Daniel
-    pixel:     'onwK4e9ZLuTAKqWW03F9', // Daniel
-    sage:      'onwK4e9ZLuTAKqWW03F9', // Daniel
+    miga:      'Xb7hH8MSUJpSbSDYk0k2', // Alice (female)
+    finn:      'onwK4e9ZLuTAKqWW03F9', // Daniel (male)
+    pixel:     'onwK4e9ZLuTAKqWW03F9', // Daniel (neutral→male)
+    sage:      'Xb7hH8MSUJpSbSDYk0k2', // Alice (neutral→female)
   },
 };
 
@@ -57,6 +57,21 @@ async function streamToBuffer(stream: Readable | NodeJS.ReadableStream): Promise
     chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
   }
   return Buffer.concat(chunks);
+}
+
+export async function transcribeAudio(
+  audioBase64: string,
+  mimeType: string,
+  language?: string,
+): Promise<string> {
+  const buffer = Buffer.from(audioBase64, 'base64');
+  const blob = new Blob([buffer], { type: mimeType });
+  const result = await elevenlabs.speechToText.convert({
+    file: blob,
+    model_id: 'scribe_v1',
+    language_code: language === 'fr' ? 'fra' : 'eng',
+  });
+  return result.text;
 }
 
 export async function generateSpeech(
@@ -81,28 +96,9 @@ export async function generateSpeech(
   }
 
   // 3. Call ElevenLabs
-  const lang = language === 'fr' ? 'fr' : 'en';
-
-  // Check DB for a voice_id assigned at generation time (generated friends)
-  let voiceId: string | undefined;
-  let voiceModel: string | undefined;
-  try {
-    const friendRow = await db('ai_friends')
-      .where({ name: characterId })
-      .select('voice_id', 'voice_model')
-      .first() as { voice_id: string | null; voice_model: string | null } | undefined;
-    if (friendRow?.voice_id) {
-      voiceId    = friendRow.voice_id;
-      voiceModel = friendRow.voice_model ?? undefined;
-    }
-  } catch { /* db unavailable — fall through to map */ }
-
-  if (!voiceId) {
-    const voiceMap = VOICE_IDS[lang];
-    voiceId = voiceMap[characterId.toLowerCase()] ?? DEFAULT_VOICE[lang];
-  }
-
-  const modelId = voiceModel ?? (lang === 'fr' ? 'eleven_multilingual_v2' : 'eleven_monolingual_v1');
+  const lang    = language === 'fr' ? 'fr' : 'en';
+  const voiceId = VOICE_IDS[lang][characterId.toLowerCase()] ?? DEFAULT_VOICE[lang];
+  const modelId = lang === 'fr' ? 'eleven_multilingual_v2' : 'eleven_monolingual_v1';
 
   const audioStream = await elevenlabs.textToSpeech.convert(voiceId, {
     text,
