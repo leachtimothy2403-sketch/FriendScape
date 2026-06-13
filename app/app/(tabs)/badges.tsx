@@ -307,7 +307,7 @@ export default function BadgesScreen() {
         {xpData ? (
           <View style={s.xpCard}>
             <View style={s.xpRow}>
-              <Text style={s.xpLevel}>⭐ Level {xpData.level} — {xpData.level_name}</Text>
+              <Text style={s.xpLevel}>{t(`badges.levelNames.${xpData.level}`)}</Text>
               <Text style={s.xpNumbers}>
                 {xpData.total_xp} / {xpData.next_level_threshold ?? '∞'} XP
               </Text>

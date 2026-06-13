@@ -5,6 +5,7 @@ import {
 import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from 'react-i18next';
 import { childNotifications, type NotificationItem } from '@/services/api';
 import { useNotificationStore } from '@/store/notificationStore';
 import { Colors } from '@/constants/theme';
@@ -23,17 +24,18 @@ function relativeTime(iso: string): string {
   return 'Yesterday';
 }
 
-function typeLabel(type: NotificationItem['type']): string {
-  if (type === 'dm') return 'sent you a message';
-  if (type === 'comment') return 'commented on your post';
-  return 'Badge earned!';
-}
-
 export default function NotificationsScreen() {
   const [items, setItems]     = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [token, setToken]     = useState<string | null>(null);
   const { decrementUnreadCount, setUnreadCount } = useNotificationStore();
+  const { t } = useTranslation();
+
+  const typeLabel = (type: NotificationItem['type']): string => {
+    if (type === 'dm') return 'sent you a message';
+    if (type === 'comment') return 'commented on your post';
+    return t('notifications.badgeEarned');
+  };
 
   useEffect(() => {
     void load();

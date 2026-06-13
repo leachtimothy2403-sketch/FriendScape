@@ -50,6 +50,7 @@ export async function getNotifications(req: AuthRequest, res: Response) {
         .where('p.author_type', 'child')
         .where('pc.author_type', 'ai')
         .where('pc.created_at', '>=', since)
+        .where('pc.read', false)
         .select(
           'pc.id',
           'pc.content',
@@ -63,15 +64,19 @@ export async function getNotifications(req: AuthRequest, res: Response) {
 
       db('child_badges as cb')
         .join('badge_definitions as bd', 'cb.badge_id', 'bd.id')
+        .join('children as c', 'cb.child_id', 'c.id')
         .where('cb.child_id', childId)
         .where('cb.earned_at', '>=', since)
         .select(
           'cb.id',
           'cb.earned_at',
           'cb.seen',
-          'bd.name as badge_name',
+          'bd.name',
+          'bd.name_fr',
           'bd.icon as badge_icon',
           'bd.description',
+          'bd.description_fr',
+          'c.language',
         )
         .orderBy('cb.earned_at', 'desc')
         .limit(20),
@@ -98,16 +103,21 @@ export async function getNotifications(req: AuthRequest, res: Response) {
         createdAt: r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
         read: false,
       })),
-      ...badgeRows.map((r) => ({
-        id: `badge-${r.id as string}`,
-        type: 'badge' as const,
-        friendId: null,
-        friendName: r.badge_name as string,
-        friendEmoji: r.badge_icon as string,
-        preview: r.description as string,
-        createdAt: r.earned_at instanceof Date ? r.earned_at.toISOString() : String(r.earned_at),
-        read: Boolean(r.seen),
-      })),
+      ...badgeRows.map((r) => {
+        const lang = (r.language as string) === 'fr' ? 'fr' : 'en';
+        const badgeName = lang === 'fr' ? (r.name_fr ?? r.name) : r.name;
+        const badgeDesc = lang === 'fr' ? (r.description_fr ?? r.description) : r.description;
+        return {
+          id: `badge-${r.id as string}`,
+          type: 'badge' as const,
+          friendId: null,
+          friendName: badgeName as string,
+          friendEmoji: r.badge_icon as string,
+          preview: badgeDesc as string,
+          createdAt: r.earned_at instanceof Date ? r.earned_at.toISOString() : String(r.earned_at),
+          read: Boolean(r.seen),
+        };
+      }),
     ]
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 20);

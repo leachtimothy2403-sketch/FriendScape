@@ -425,6 +425,13 @@
     "awesome": "Awesome! 🎉",
     "earnedOn": "Earned on {{date}}",
     "xpToNext": "{{xp}} more XP to reach Level {{next}}!",
+    "levelNames": {
+      "1": "Level 1 · just getting started",
+      "2": "Level 2 · picking up speed",
+      "3": "Level 3 · on a roll",
+      "4": "Level 4 · almost there",
+      "5": "Level 5 · Migo legend"
+    },
     "graduationMilestones": {
       "joined": "Join Migo",
       "firstPost": "Share your first post",
@@ -432,6 +439,9 @@
       "digitalLesson": "Complete a digital citizenship lesson",
       "introducedFriend": "Introduce a friend"
     }
+  },
+  "notifications": {
+    "badgeEarned": "Badge earned!"
   },
   "tabs": {
     "home": "Home",

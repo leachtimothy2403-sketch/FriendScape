@@ -593,16 +593,28 @@ export async function getMyGraduation(req: AuthRequest, res: Response) {
 
           const childRow = await db('children').where({ id: childId }).first();
           const lang = (childRow?.language as string) === 'fr' ? 'fr' : 'en';
+          const gender = (childRow?.gender as string)?.toLowerCase();
           const lumiMsg = lang === 'fr'
             ? (graduateBadge.lumi_message_fr ?? graduateBadge.lumi_message) as string | null
             : graduateBadge.lumi_message as string | null;
+
+          const childName = String(childRow?.name ?? (lang === 'fr' ? 'Votre enfant' : 'Your child'));
+          let alertMsg: string;
+          if (lang === 'fr') {
+            const pronoun = gender === 'girl' ? 'Elle' : 'Il';
+            const adjective = gender === 'girl' ? 'prête' : 'prêt';
+            const badgeName = (graduateBadge.name_fr ?? graduateBadge.name) as string;
+            alertMsg = `${childName} a obtenu le badge ${badgeName} ! ${pronoun} est ${adjective} pour le monde réel ! 🎓`;
+          } else {
+            alertMsg = `${childName} has earned the Graduation badge! They are ready for the real world! 🎓`;
+          }
 
           if (lumiMsg) await sendMascotDM(childId, String(childRow?.mascot || 'miga'), lumiMsg).catch(() => {});
 
           await db('parent_alerts').insert({
             child_id: childId,
             type:     'milestone',
-            message:  `${String(childRow?.name ?? 'Your child')} has earned the Graduation badge! They are ready for the real world! 🎓`,
+            message:  alertMsg,
             severity: 'info',
           }).catch(() => {});
         }

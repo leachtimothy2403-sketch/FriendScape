@@ -163,11 +163,17 @@ export async function checkBadges(req: AuthRequest, res: Response) {
         ? (badge.lumi_message_fr ?? badge.lumi_message) as string | null
         : badge.lumi_message as string | null;
 
+      const badgeName = lang === 'fr' ? (badge.name_fr ?? badge.name) : badge.name;
+      const childName = String(childRow?.name ?? (lang === 'fr' ? 'Votre enfant' : 'Your child'));
+      const alertMsg = lang === 'fr'
+        ? `${childName} a obtenu le badge "${badgeName as string}" ! ${badge.icon as string}`
+        : `${childName} earned the "${badgeName as string}" badge! ${badge.icon as string}`;
+
       // Save parent alert
       await db('parent_alerts').insert({
         child_id: childId,
         type:     'milestone',
-        message:  `${String(childRow?.name ?? 'Your child')} earned the "${badge.name as string}" badge! ${badge.icon as string}`,
+        message:  alertMsg,
         severity: 'info',
       }).catch((e: unknown) => console.error('[badges] alert insert failed:', e));
 
@@ -231,10 +237,16 @@ export async function recalculateBadges(req: AuthRequest, res: Response) {
         ? (badge.lumi_message_fr ?? badge.lumi_message) as string | null
         : badge.lumi_message as string | null;
 
+      const badgeName = lang === 'fr' ? (badge.name_fr ?? badge.name) : badge.name;
+      const childName = String(childRow?.name ?? (lang === 'fr' ? 'Votre enfant' : 'Your child'));
+      const alertMsg = lang === 'fr'
+        ? `${childName} a obtenu le badge "${badgeName as string}" ! ${badge.icon as string}`
+        : `${childName} earned the "${badgeName as string}" badge! ${badge.icon as string}`;
+
       await db('parent_alerts').insert({
         child_id: childId,
         type:     'milestone',
-        message:  `${String(childRow?.name ?? 'Your child')} earned the "${badge.name as string}" badge! ${badge.icon as string}`,
+        message:  alertMsg,
         severity: 'info',
       }).catch((e: unknown) => console.error('[badges] alert insert failed:', e));
 
@@ -244,7 +256,7 @@ export async function recalculateBadges(req: AuthRequest, res: Response) {
       }
 
       newlyAwarded.push({ ...badge, lumi_message: lumiMsg, earned: true, earned_at: new Date().toISOString() });
-      console.log(`[badges] 🏅 recalculate: ${String(childRow?.name ?? childId)} earned "${badge.name as string}" ${badge.icon as string}`);
+      console.log(`[badges] 🏅 recalculate: ${String(childRow?.name ?? childId)} earned "${badgeName as string}" ${badge.icon as string}`);
     }
 
     res.json({ newlyAwarded });
@@ -285,10 +297,16 @@ export async function checkBadgesForChild(childId: string, trigger: string): Pro
         ? (badge.lumi_message_fr ?? badge.lumi_message) as string | null
         : badge.lumi_message as string | null;
 
+      const badgeName = lang === 'fr' ? (badge.name_fr ?? badge.name) : badge.name;
+      const childName = String(childRow?.name ?? (lang === 'fr' ? 'Votre enfant' : 'Your child'));
+      const alertMsg = lang === 'fr'
+        ? `${childName} a obtenu le badge "${badgeName as string}" ! ${badge.icon as string}`
+        : `${childName} earned the "${badgeName as string}" badge! ${badge.icon as string}`;
+
       await db('parent_alerts').insert({
         child_id: childId,
         type:     'milestone',
-        message:  `${String(childRow?.name ?? 'Your child')} earned the "${badge.name as string}" badge! ${badge.icon as string}`,
+        message:  alertMsg,
         severity: 'info',
       }).catch((e: unknown) => console.error('[badges] alert insert failed:', e));
 
@@ -297,7 +315,7 @@ export async function checkBadgesForChild(childId: string, trigger: string): Pro
           .catch((e: unknown) => console.error('[badges] mascot DM failed:', e));
       }
 
-      console.log(`[badges] 🏅 ${String(childRow?.name ?? childId)} earned "${badge.name as string}" ${badge.icon as string}`);
+      console.log(`[badges] 🏅 ${String(childRow?.name ?? childId)} earned "${badgeName as string}" ${badge.icon as string}`);
     }
   } catch (err) {
     console.error('[badges] checkBadgesForChild error:', err);

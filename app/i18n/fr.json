@@ -441,6 +441,13 @@
     "awesome": "Super ! 🎉",
     "earnedOn": "Obtenu le {{date}}",
     "xpToNext": "{{xp}} XP de plus pour atteindre le Niveau {{next}} !",
+    "levelNames": {
+      "1": "Niveau 1 · Les premiers pas",
+      "2": "Niveau 2 · Tu prends ton élan",
+      "3": "Niveau 3 · En pleine forme",
+      "4": "Niveau 4 · Presque au sommet",
+      "5": "Niveau 5 · Légende Migo"
+    },
     "graduationMilestones": {
       "joined": "Rejoindre Migo",
       "firstPost": "Partager ton premier post",
@@ -448,6 +455,9 @@
       "digitalLesson": "Compléter une leçon de citoyenneté numérique",
       "introducedFriend": "Présenter un ami"
     }
+  },
+  "notifications": {
+    "badgeEarned": "Badge obtenu !"
   },
   "tabs": {
     "home": "Accueil",

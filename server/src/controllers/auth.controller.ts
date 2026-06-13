@@ -391,6 +391,10 @@ export async function devReset(req: Request, res: Response) {
       console.log('[dev] ✅ Redis flushed');
     }
 
+    // Re-seed core data
+    await db.seed.run({ specific: '02_badges.ts' });
+    await db.seed.run({ specific: '01_ai_friends.ts' });
+
     console.log(`[dev] 🗑️  Database reset — ${nChildren} children, ${nGeneratedFriends} generated friends deleted`);
 
     res.json({
