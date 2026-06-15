@@ -38,7 +38,8 @@ export default function DevResetButton() {
       resetOnboardingStore();
       clearNotification();
       setUnreadCount(0);
-      setResult({ text: `✅ ${deleted.children} children deleted`, color: '#2D7D46' });
+      const msg = deleted ? `✅ ${deleted.children} children deleted` : '✅ Database reset started';
+      setResult({ text: msg, color: '#2D7D46' });
       setTimeout(() => { setResetting(false); router.replace('/enroll' as never); }, 2000);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? String(err);

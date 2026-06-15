@@ -352,61 +352,62 @@ export async function devReset(req: Request, res: Response) {
   }
 
   try {
-    // Delete in FK-safe order
-    await db('child_sessions').del();
-    await db('child_badges').del();
-    await db('learning_sessions').del();
-    await db('post_comments').del();
-    await db('post_reactions').del();
-    await db('parent_alerts').del();
-    await db('messages').del();
-    await db('conversations').del();
-    await db('posts').del();
-    await db('child_memories').del();
-    await db('child_friends').del();
-
-    const childCount = await db('children').count('id as n').first();
-    const nChildren  = Number((childCount as { n: string } | undefined)?.n ?? 0);
-    await db('children').del();
-
-    const enrollCount = await db('enrollments').count('id as n').first();
-    const nEnrollments = Number((enrollCount as { n: string } | undefined)?.n ?? 0);
-    await db('enrollments').del();
-
-    // Remove generated AI friends (preserve seeded ones)
-    const genIds = await db('ai_friends').where({ is_generated: true }).select('id') as { id: string }[];
-    const genIdList = genIds.map((r) => r.id);
-
-    let nGeneratedFriends = 0;
-    if (genIdList.length > 0) {
-      await db('ai_friend_network')
-        .whereIn('ai_friend_id', genIdList)
-        .orWhereIn('connected_friend_id', genIdList)
-        .del();
-      nGeneratedFriends = await db('ai_friends').where({ is_generated: true }).delete();
-    }
-
-    if (redis.status === 'ready') {
-      await redis.flushdb();
-      console.log('[dev] ✅ Redis flushed');
-    }
-
-    // Re-seed core data
-    await db.seed.run({ specific: '02_badges.ts' });
-    await db.seed.run({ specific: '01_ai_friends.ts' });
-
-    console.log(`[dev] 🗑️  Database reset — ${nChildren} children, ${nGeneratedFriends} generated friends deleted`);
-
+    // Send response immediately, do async work after
     res.json({
       success: true,
-      message: 'Database reset complete',
-      deleted: {
-        children:         nChildren,
-        enrollments:      nEnrollments,
-        generatedFriends: nGeneratedFriends,
-        posts:            0,
-        messages:         0,
-      },
+      message: 'Database reset started',
+    });
+
+    // Heavy work happens async in background
+    setImmediate(async () => {
+      try {
+        // Delete in FK-safe order
+        await db('child_sessions').del();
+        await db('child_badges').del();
+        await db('learning_sessions').del();
+        await db('post_comments').del();
+        await db('post_reactions').del();
+        await db('parent_alerts').del();
+        await db('messages').del();
+        await db('conversations').del();
+        await db('posts').del();
+        await db('child_memories').del();
+        await db('child_friends').del();
+
+        const childCount = await db('children').count('id as n').first();
+        const nChildren  = Number((childCount as { n: string } | undefined)?.n ?? 0);
+        await db('children').del();
+
+        const enrollCount = await db('enrollments').count('id as n').first();
+        const nEnrollments = Number((enrollCount as { n: string } | undefined)?.n ?? 0);
+        await db('enrollments').del();
+
+        // Remove generated AI friends (preserve seeded ones)
+        const genIds = await db('ai_friends').where({ is_generated: true }).select('id') as { id: string }[];
+        const genIdList = genIds.map((r) => r.id);
+
+        let nGeneratedFriends = 0;
+        if (genIdList.length > 0) {
+          await db('ai_friend_network')
+            .whereIn('ai_friend_id', genIdList)
+            .orWhereIn('connected_friend_id', genIdList)
+            .del();
+          nGeneratedFriends = await db('ai_friends').where({ is_generated: true }).delete();
+        }
+
+        if (redis.status === 'ready') {
+          await redis.flushdb();
+          console.log('[dev] ✅ Redis flushed');
+        }
+
+        // Re-seed core data
+        await db.seed.run({ specific: '02_badges.ts' });
+        await db.seed.run({ specific: '01_ai_friends.ts' });
+
+        console.log(`[dev] 🗑️  Database reset — ${nChildren} children, ${nGeneratedFriends} generated friends deleted`);
+      } catch (err) {
+        console.error('[dev] devReset background error:', err);
+      }
     });
   } catch (err) {
     console.error('[dev] devReset error:', err);

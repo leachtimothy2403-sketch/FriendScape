@@ -1,7 +1,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.1.15:3001';
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.1.51:3001';
 console.log('API_URL:', API_URL);
 
 const api = axios.create({
@@ -364,8 +364,8 @@ export const devApi = {
   reset: () => api.post<{
     success: boolean;
     message: string;
-    deleted: { children: number; enrollments: number; generatedFriends: number; posts: number; messages: number };
-  }>('/auth/dev-reset'),
+    deleted?: { children: number; enrollments: number; generatedFriends: number; posts: number; messages: number };
+  }>('/auth/dev-reset', {}, { timeout: 60000 }),
 };
 
 export const gameApi = {
