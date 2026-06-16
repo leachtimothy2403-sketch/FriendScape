@@ -26,6 +26,7 @@ import messagesRoutes from './routes/messages';
 import parentRoutes   from './routes/parent';
 import aiRoutes       from './routes/ai';
 import audioRoutes    from './routes/audio';
+import avatarRoutes   from './routes/avatar';
 import badgesRoutes          from './routes/badges';
 import notificationsRoutes   from './routes/notifications';
 import { errorHandler } from './middleware/errorHandler';
@@ -63,6 +64,7 @@ app.use('/messages', messagesRoutes);
 app.use('/parent',   parentRoutes);
 app.use('/ai',       aiRoutes);
 app.use('/audio',    audioRoutes);
+app.use('/avatar',   avatarRoutes);
 app.use('/badges',         badgesRoutes);
 app.use('/notifications',  notificationsRoutes);
 

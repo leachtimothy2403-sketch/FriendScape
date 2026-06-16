@@ -29,29 +29,30 @@ export default function DevResetButton() {
   }
 
   async function doReset() {
-    setResetting(true);
-    setResult(null);
-    try {
-      const res = await devApi.reset();
-      const { deleted } = res.data;
-      await AsyncStorage.clear();
-      resetOnboardingStore();
-      clearNotification();
-      setUnreadCount(0);
-      const msg = deleted ? `✅ ${deleted.children} children deleted` : '✅ Database reset started';
-      setResult({ text: msg, color: '#2D7D46' });
-      setTimeout(() => { setResetting(false); router.replace('/enroll' as never); }, 2000);
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? String(err);
-      setResult({ text: `❌ ${msg}`, color: '#C0392B' });
-      setResetting(false);
-    }
-  }
+  setResetting(true);
+  setResult(null);
+
+  // Fire reset FIRST
+  devApi.reset().catch(() => {});
+
+  // Wait briefly to ensure HTTP request is sent before we wipe storage
+  await new Promise(r => setTimeout(r, 800));
+
+  // NOW clear local state
+  await AsyncStorage.clear();
+  resetOnboardingStore();
+  clearNotification();
+  setUnreadCount(0);
+
+  setResult({ text: '✅ Database reset started', color: '#2D7D46' });
+  setTimeout(() => { setResetting(false); router.replace('/enroll' as never); }, 2000);
+}
 
   async function clearCache() {
     setClearing(true);
     setResult(null);
     try {
+      await AsyncStorage.removeItem('hasSeenTour');
       await AsyncStorage.clear();
       resetOnboardingStore();
       clearNotification();

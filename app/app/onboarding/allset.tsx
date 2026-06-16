@@ -170,6 +170,7 @@ export default function AllSetScreen() {
       personalityFreeText: store.personalityFreeText,
       avatarConfig:        store.avatarConfig ?? undefined,
       avatarBackground:    store.avatarBackground,
+      cartoonUrl:          store.cartoonUrl || undefined,
     };
 
     try {
@@ -191,6 +192,7 @@ export default function AllSetScreen() {
       }));
       await AsyncStorage.setItem('avatarBackground', store.avatarBackground || '#EEEDFE');
       await AsyncStorage.setItem('childEmoji', childEmoji);
+      if (data.avatarUrl) await AsyncStorage.setItem('childAvatarUrl', data.avatarUrl);
 
       setStatus('success');
       if (__DEV__) { handleLaunch(); }

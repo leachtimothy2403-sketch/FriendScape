@@ -25,6 +25,7 @@ interface OnboardingState {
   avatarConfig: AvatarConfig | null;
   avatarBackground: string;
   humanFaceStyle: string;
+  cartoonUrl: string;
 
   // Actions
   initParentEmail: () => Promise<void>;
@@ -46,6 +47,7 @@ interface OnboardingState {
   setAvatarConfig: (v: AvatarConfig) => void;
   setAvatarBackground: (v: string) => void;
   setHumanFaceStyle: (v: string) => void;
+  setCartoonUrl: (v: string) => void;
   resetStore: () => void;
 }
 
@@ -69,6 +71,7 @@ const DEFAULTS = {
   avatarConfig:        null as AvatarConfig | null,
   avatarBackground:    '#EEEDFE',
   humanFaceStyle:      '',
+  cartoonUrl:          '',
 };
 
 // Use localStorage on web so data survives page reloads; AsyncStorage on native.
@@ -104,6 +107,7 @@ export const useOnboardingStore = create<OnboardingState>()(
       setAvatarConfig:        (v) => set({ avatarConfig: v }),
       setAvatarBackground:    (v) => set({ avatarBackground: v }),
       setHumanFaceStyle:      (v) => set({ humanFaceStyle: v }),
+      setCartoonUrl:          (v) => set({ cartoonUrl: v }),
       resetStore:             ()  => set(DEFAULTS),
     }),
     {

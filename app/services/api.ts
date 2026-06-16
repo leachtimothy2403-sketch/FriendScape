@@ -1,7 +1,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.1.51:3001';
+export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.1.15:3001';
 console.log('API_URL:', API_URL);
 
 const api = axios.create({
@@ -9,6 +9,8 @@ const api = axios.create({
   timeout: 30000,
   headers: { 'Content-Type': 'application/json' },
 });
+
+console.log('[api] API_URL:', API_URL);
 
 api.interceptors.request.use(async (config) => {
   if (!config.headers.Authorization) {
@@ -204,6 +206,7 @@ export interface AiFriendRecord {
   name: string;
   bio: string;
   cover_emojis: string;
+  avatar_url?: string | null;
   personality: string[];
   interests: string[];
   is_star_friend: boolean;
@@ -263,6 +266,7 @@ export interface ChildProfile {
   bio: string | null;
   avatarConfig?: Record<string, unknown>;
   avatarBackground?: string;
+  avatarUrl?: string | null;
   stats: {
     totalPosts: number;
     totalFriends: number;
@@ -365,7 +369,7 @@ export const devApi = {
     success: boolean;
     message: string;
     deleted?: { children: number; enrollments: number; generatedFriends: number; posts: number; messages: number };
-  }>('/auth/dev-reset', {}, { timeout: 60000 }),
+  }>('/auth/dev-reset', {}, { timeout: 5000 }),
 };
 
 export const gameApi = {

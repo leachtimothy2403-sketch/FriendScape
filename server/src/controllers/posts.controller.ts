@@ -7,6 +7,7 @@ import {
   buildMemoryBrief,
 } from '../services/ai.service';
 import { toChildType, toFriendType, toMemoryType } from '../utils/db-mappers';
+import { generatePostImage } from '../services/avatar.service';
 import { checkBadgesForChild } from './badges.controller';
 
 function firstEmoji(str: string | null | undefined): string {
@@ -68,22 +69,39 @@ export async function generateDailyPosts(req: AuthRequest, res: Response) {
     // Claude generates friendId as a name-slug — resolve back to the real DB UUID by matching on name.
     const friendByName = new Map(friends.map((f) => [f.name.toLowerCase(), f.id]));
 
-    const saved = await Promise.all(
-      result.posts.map((post) => {
-        const authorId = friendByName.get(post.friendName.toLowerCase()) ?? post.friendId;
-        return db('posts')
-          .insert({
-            child_id:     childId,
-            author_id:    authorId,
-            author_type:  'ai',
-            content:      post.text,
-            scene_emojis: post.sceneEmojis,
-            mood:         post.mood,
-          })
-          .returning('*')
-          .then((rows: Record<string, unknown>[]) => rows[0]);
-      }),
-    );
+    const saved: Record<string, unknown>[] = [];
+    for (const post of result.posts) {
+      const authorId  = friendByName.get(post.friendName.toLowerCase()) ?? post.friendId;
+      const friendRow = (friendRows as Record<string, unknown>[]).find(
+        (f) => String(f.name ?? '').toLowerCase() === post.friendName.toLowerCase(),
+      );
+      const friendAge = (friendRow?.age as number) ?? 10;
+      const avatarUrl = friendRow?.avatar_url ? String(friendRow.avatar_url) : null;
+
+      let imageUrl: string | null = null;
+      if (avatarUrl) {
+        try {
+          imageUrl = await generatePostImage(post.text, post.friendName, friendAge, post.sceneEmojis, avatarUrl);
+        } catch (err) {
+          console.warn('[avatar] post image failed:', err);
+        }
+      }
+
+      const [insertedPost] = await db('posts')
+        .insert({
+          child_id:     childId,
+          author_id:    authorId,
+          author_type:  'ai',
+          content:      post.text,
+          scene_emojis: post.sceneEmojis,
+          mood:         post.mood,
+          image_url:    imageUrl,
+        })
+        .returning('*');
+
+      saved.push(insertedPost as Record<string, unknown>);
+      console.log(`[posts] ✅ Post saved for ${post.friendName}`);
+    }
 
     res.json({ generated: true, posts: saved });
   } catch (err) {
@@ -106,8 +124,10 @@ export async function getFeed(req: AuthRequest, res: Response) {
       .where('posts.child_id', childId)
       .select(
         'posts.*',
+        'posts.image_url',
         'ai_friends.name as friend_name',
         'ai_friends.cover_emojis as friend_cover_emojis',
+        'ai_friends.avatar_url as friend_avatar_url',
       )
       .orderBy('posts.created_at', 'desc')
       .limit(20);
@@ -137,19 +157,21 @@ export async function getFeed(req: AuthRequest, res: Response) {
             'pc.created_at as comment_at',
             db.raw("COALESCE(af.name, ch.name) as author_name"),
             db.raw("COALESCE(af.cover_emojis, '😊') as author_emojis"),
+            'af.avatar_url as author_avatar_url',
           )
           .orderBy('pc.created_at', 'asc')
       : [];
 
-    const commentsMap: Record<string, Array<{ authorName: string; authorEmoji: string; content: string; createdAt: string }>> = {};
+    const commentsMap: Record<string, Array<{ authorName: string; authorEmoji: string; authorAvatarUrl: string | null; content: string; createdAt: string }>> = {};
     for (const c of commentRows as Record<string, unknown>[]) {
       const pid = c.post_id as string;
       if (!commentsMap[pid]) commentsMap[pid] = [];
       commentsMap[pid].push({
-        authorName:  String(c.author_name ?? ''),
-        authorEmoji: firstEmoji(c.author_emojis ? String(c.author_emojis) : null),
-        content:     String(c.content ?? ''),
-        createdAt:   String(c.comment_at ?? ''),
+        authorName:     String(c.author_name ?? ''),
+        authorEmoji:    firstEmoji(c.author_emojis ? String(c.author_emojis) : null),
+        authorAvatarUrl: (c.author_avatar_url as string | null) ?? null,
+        content:        String(c.content ?? ''),
+        createdAt:      String(c.comment_at ?? ''),
       });
     }
 

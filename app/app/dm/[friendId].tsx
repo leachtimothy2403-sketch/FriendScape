@@ -95,6 +95,7 @@ export default function DMScreen() {
   const [gameLoading, setGameLoading]         = useState(false);
   const [lastMessageHadPhoto, setLastMessageHadPhoto] = useState(false);
   const [isRecording, setIsRecording]                 = useState(false);
+  const [friendAvatarUrl, setFriendAvatarUrl]         = useState<string | null>(null);
 
   const listRef        = useRef<FlatList<DisplayItem>>(null);
   const inputRef       = useRef<TextInput>(null);
@@ -175,16 +176,18 @@ export default function DMScreen() {
           childFriends.getStatus(friendId).catch(() => null),
         ]);
 
-        const friend  = friendRes.data.friend as Record<string, unknown>;
-        const name    = String(friend.name ?? 'Friend');
-        const emoji = [...(String(friend.cover_emojis || '🌟'))][0] ?? '🌟';
-        const teacher = Boolean(friend.is_teacher);
+        const friend    = friendRes.data.friend as Record<string, unknown>;
+        const name      = String(friend.name ?? 'Friend');
+        const emoji     = [...(String(friend.cover_emojis || '🌟'))][0] ?? '🌟';
+        const teacher   = Boolean(friend.is_teacher);
+        const avatarUrl = friend.avatar_url ? String(friend.avatar_url) : null;
 
         if (!cancelled) {
           setFriendName(name);
           setFriendEmoji(emoji);
           setFriendBg(FRIEND_BG[name] ?? '#EEEDFE');
           setIsTeacher(teacher);
+          setFriendAvatarUrl(avatarUrl);
 
           const loadedMsgs = (msgRes.data.messages as ChatMessage[]).reverse();
           setMessages(loadedMsgs);
@@ -582,7 +585,10 @@ export default function DMScreen() {
           style={{ flexDirection: 'row', flex: 1, alignItems: 'center' }}
         >
           <View style={[s.friendAvatar, { backgroundColor: friendBg }]}>
-            <Text style={{ fontSize: 22 }}>{friendEmoji}</Text>
+            {friendAvatarUrl
+              ? <Image source={{ uri: friendAvatarUrl }} style={{ width: 44, height: 44, borderRadius: 22 }} />
+              : <Text style={{ fontSize: 22 }}>{friendEmoji}</Text>
+            }
           </View>
           <View style={{ flex: 1, marginLeft: 10 }}>
             <Text style={s.friendNameText}>{friendName}</Text>
@@ -614,6 +620,7 @@ export default function DMScreen() {
               emoji={friendEmoji}
               bg={friendBg}
               inverted={useInverted}
+              avatarUrl={friendAvatarUrl}
             />
           }
         />
@@ -841,12 +848,15 @@ function TypingBubble({ lookingAtPhoto }: { lookingAtPhoto?: boolean }) {
   );
 }
 
-function GreetingCard({ name, emoji, bg, inverted }: { name: string; emoji: string; bg: string; inverted: boolean }) {
+function GreetingCard({ name, emoji, bg, inverted, avatarUrl }: { name: string; emoji: string; bg: string; inverted: boolean; avatarUrl?: string | null }) {
   const { t } = useTranslation();
   return (
     <View style={[s.greeting, inverted && { transform: [{ scaleY: -1 }] }]}>
       <View style={[s.greetingAvatar, { backgroundColor: bg }]}>
-        <Text style={{ fontSize: 40 }}>{emoji}</Text>
+        {avatarUrl
+          ? <Image source={{ uri: avatarUrl }} style={{ width: 80, height: 80, borderRadius: 40 }} />
+          : <Text style={{ fontSize: 40 }}>{emoji}</Text>
+        }
       </View>
       <Text style={s.greetingText}>{t('dm.sayHello', { name })}</Text>
     </View>

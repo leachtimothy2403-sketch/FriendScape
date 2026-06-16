@@ -4,6 +4,7 @@ import {
   generateDailyPosts as generateDailyPostsAI,
   buildMemoryBrief,
 } from '../services/ai.service';
+import { generatePostImage } from '../services/avatar.service';
 import { toChildType, toFriendType, toMemoryType } from '../utils/db-mappers';
 
 cron.schedule('0 8 * * *', async () => {
@@ -54,19 +55,33 @@ cron.schedule('0 8 * * *', async () => {
 
         const friendByName = new Map(friends.map(f => [f.name.toLowerCase(), f.id]));
 
-        await Promise.all(
-          result.posts.map(post => {
-            const authorId = friendByName.get(post.friendName.toLowerCase()) ?? post.friendId;
-            return db('posts').insert({
-              child_id:    childId,
-              author_id:   authorId,
-              author_type: 'ai',
-              content:     post.text,
-              scene_emojis: post.sceneEmojis,
-              mood:        post.mood,
-            });
-          }),
-        );
+        for (const post of result.posts) {
+          const authorId  = friendByName.get(post.friendName.toLowerCase()) ?? post.friendId;
+          const friendRow = (friendRows as Record<string, unknown>[]).find(
+            (f) => String(f.name ?? '').toLowerCase() === post.friendName.toLowerCase(),
+          );
+          const friendAge = (friendRow?.age as number) ?? 10;
+          const avatarUrl = friendRow?.avatar_url ? String(friendRow.avatar_url) : null;
+
+          let imageUrl: string | null = null;
+          if (avatarUrl) {
+            try {
+              imageUrl = await generatePostImage(post.text, post.friendName, friendAge, post.sceneEmojis, avatarUrl);
+            } catch (err) {
+              console.warn('[avatar] post image failed:', err);
+            }
+          }
+
+          await db('posts').insert({
+            child_id:    childId,
+            author_id:   authorId,
+            author_type: 'ai',
+            content:     post.text,
+            scene_emojis: post.sceneEmojis,
+            mood:        post.mood,
+            image_url:   imageUrl,
+          });
+        }
 
         console.log(`[posts] ✅ ${child.name}: ${result.posts.length} posts generated`);
         generated++;

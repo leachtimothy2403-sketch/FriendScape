@@ -11,6 +11,7 @@ import {
 } from '../services/ai.service';
 import { toChildType } from '../utils/db-mappers';
 import Anthropic from '@anthropic-ai/sdk';
+import { generateFriendPortrait } from '../services/avatar.service';
 
 // ─── Authed CRUD ──────────────────────────────────────────────────────────────
 
@@ -145,6 +146,7 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
       avatarPack,
       personalityTraits, personalityFreeText,
       avatarConfig, avatarBackground,
+      cartoonUrl,
     } = req.body as Record<string, unknown>;
 
     // 1. Validate required fields
@@ -211,6 +213,7 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
         personality_completed: traitsArray.length > 0,
         avatar_config:         avatarConfig ? JSON.stringify(avatarConfig) : null,
         avatar_background:     avatarBackground ? String(avatarBackground) : null,
+        avatar_url:            cartoonUrl ? String(cartoonUrl) : null,
       })
       .returning('*');
 
@@ -277,6 +280,10 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
           voice_model:        lang === 'fr' ? 'eleven_multilingual_v2' : 'eleven_monolingual_v1',
         })
         .returning('*');
+
+      generateFriendPortrait(gf.name, gf.age, gf.gender, gf.personality, lang)
+        .then(url => db('ai_friends').where({ id: newFriend.id }).update({ avatar_url: url }))
+        .catch(err => console.warn('[avatar] friend portrait failed:', err));
 
       await db('child_friends').insert({
         child_id:         child.id,
@@ -366,6 +373,9 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
               voice_model:        lang === 'fr' ? 'eleven_multilingual_v2' : 'eleven_monolingual_v1',
             })
             .returning('*');
+          generateFriendPortrait(conn.name, ageNum, 'other', [], lang)
+            .then(url => db('ai_friends').where({ id: mini.id }).update({ avatar_url: url }))
+            .catch(err => console.warn('[avatar] friend portrait failed (mini):', err));
           await db('ai_friend_network')
             .insert({
               ai_friend_id:             newFriend.id,
@@ -404,6 +414,7 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
       childId:        child.id,
       name:           child.name,
       mascotId:       child.mascot,
+      avatarUrl:      (child.avatar_url as string | null) ?? null,
       assignedFriends,
     });
 
@@ -667,6 +678,7 @@ export async function getMyProfile(req: AuthRequest, res: Response) {
       bio:             (child.bio as string | null) ?? null,
       avatarConfig:    avatarConfig,
       avatarBackground:(child.avatar_background as string) ?? null,
+      avatarUrl:       (child.avatar_url as string | null) ?? null,
       stats: {
         totalPosts:   Number((postsCount   as { count: string } | undefined)?.count   ?? 0),
         totalFriends: Number((friendsCount as { count: string } | undefined)?.count   ?? 0),
@@ -921,6 +933,10 @@ export async function regenerateFriends(req: AuthRequest, res: Response) {
         })
         .returning('*');
 
+      generateFriendPortrait(gf.name, gf.age, gf.gender, gf.personality, lang)
+        .then(url => db('ai_friends').where({ id: newFriend.id }).update({ avatar_url: url }))
+        .catch(err => console.warn('[avatar] friend portrait failed:', err));
+
       await db('child_friends').insert({
         child_id:         childId,
         friend_id:        newFriend.id,
@@ -994,7 +1010,7 @@ export async function getMyFriendsList(req: AuthRequest, res: Response) {
       .join('ai_friends as af', 'af.id', 'cf.friend_id')
       .where('cf.child_id', childId)
       .select(
-        'af.id', 'af.name', 'af.bio', 'af.cover_emojis',
+        'af.id', 'af.name', 'af.bio', 'af.cover_emojis', 'af.avatar_url',
         'af.personality', 'af.interests', 'af.is_star_friend',
         'af.is_teacher', 'af.age', 'af.gender', 'af.relationship_type',
         'cf.friendship_level', 'cf.friendship_xp', 'cf.activated_at',

@@ -1,6 +1,6 @@
 import {
   View, Text, SafeAreaView, ScrollView, TouchableOpacity,
-  ActivityIndicator, StyleSheet,
+  ActivityIndicator, StyleSheet, Image,
 } from 'react-native';
 import { useState, useEffect, useCallback } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -57,7 +57,9 @@ function NetworkCard({
       style={s.networkCard}
     >
       <View style={[s.networkAvatar, { backgroundColor: coverColor }]}>
-        <Text style={{ fontSize: 24 }}>{firstEmoji(f.cover_emojis)}</Text>
+        {f.avatar_url
+          ? <Image source={{ uri: f.avatar_url }} style={{ width: 46, height: 46, borderRadius: 23 }} />
+          : <Text style={{ fontSize: 24 }}>{firstEmoji(f.cover_emojis)}</Text>}
       </View>
       <Text style={s.networkName} numberOfLines={1}>{f.name}</Text>
       <Text style={s.networkRel} numberOfLines={1}>{f.relationship_type?.replace('_', ' ')}</Text>
@@ -183,7 +185,9 @@ export default function FriendProfileScreen() {
         {/* Profile info */}
         <View style={s.profileSection}>
           <View style={[s.avatarCircle, { backgroundColor: coverColor }]}>
-            <Text style={{ fontSize: 36 }}>{mainEmoji}</Text>
+            {friend.avatar_url
+              ? <Image source={{ uri: friend.avatar_url }} style={{ width: 70, height: 70, borderRadius: 35 }} />
+              : <Text style={{ fontSize: 36 }}>{mainEmoji}</Text>}
           </View>
 
           <Text style={s.friendName}>{friend.name}</Text>

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, SafeAreaView, ScrollView, TouchableOpacity,
   TextInput, Modal, ActivityIndicator, StyleSheet,
-  Dimensions, KeyboardAvoidingView, Platform,
+  Dimensions, KeyboardAvoidingView, Platform, Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
@@ -249,6 +249,7 @@ export default function ProfileScreen() {
   const [preReader,         setPreReader]         = useState(false);
   const [childEmoji,        setChildEmoji]        = useState('👦');
   const [avatarBackground,  setAvatarBackground]  = useState('#EEEDFE');
+  const [childAvatarUrl,    setChildAvatarUrl]    = useState<string | null>(null);
   const [confirmSignOut,    setConfirmSignOut]    = useState(false);
   const [customText,        setCustomText]        = useState('');
   const [checkingCustom,    setCheckingCustom]    = useState(false);
@@ -275,13 +276,14 @@ export default function ProfileScreen() {
       setPreReader(pr === 'true');
 
       try {
-        const [profileRes, postsRes, friendsRes, memoriesRes, storedEmoji, storedBg] = await Promise.all([
+        const [profileRes, postsRes, friendsRes, memoriesRes, storedEmoji, storedBg, storedAvatarUrl] = await Promise.all([
           childProfileApi.getProfile(tok),
           childProfileApi.getPosts(tok),
           childProfileApi.getFriendsList(tok),
           childProfileApi.getMemories(tok),
           AsyncStorage.getItem('childEmoji'),
           AsyncStorage.getItem('avatarBackground'),
+          AsyncStorage.getItem('childAvatarUrl'),
         ]);
         if (!cancelled) {
           setProfile(profileRes.data);
@@ -291,6 +293,7 @@ export default function ProfileScreen() {
           setMemories(memoriesRes.data.memories);
           if (storedEmoji) setChildEmoji(storedEmoji);
           if (storedBg) setAvatarBackground(storedBg);
+          if (storedAvatarUrl) setChildAvatarUrl(storedAvatarUrl);
         }
       } catch (e) {
         console.error('[profile] load failed:', e);
@@ -424,16 +427,21 @@ export default function ProfileScreen() {
             <View style={{ position: 'relative' }}>
               <View style={s.avatarRing}>
                 <View style={[s.avatarCircle, { backgroundColor: avatarBackground }]}>
-                  <EmojiAvatar emoji={childEmoji} background={avatarBackground} size={60} />
+                  {childAvatarUrl
+                    ? <Image source={{ uri: childAvatarUrl }} style={{ width: 60, height: 60, borderRadius: 30 }} />
+                    : <EmojiAvatar emoji={childEmoji} background={avatarBackground} size={60} />
+                  }
                 </View>
               </View>
-              <TouchableOpacity
-                onPress={() => router.push('/profile/edit-avatar' as never)}
-                style={s.avatarEditBtn}
-                activeOpacity={0.8}
-              >
-                <Text style={{ fontSize: 13 }}>✏️</Text>
-              </TouchableOpacity>
+              {!childAvatarUrl && (
+                <TouchableOpacity
+                  onPress={() => router.push('/profile/edit-avatar' as never)}
+                  style={s.avatarEditBtn}
+                  activeOpacity={0.8}
+                >
+                  <Text style={{ fontSize: 13 }}>✏️</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             <View style={{ flex: 1 }}>

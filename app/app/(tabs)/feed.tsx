@@ -1,7 +1,7 @@
 import {
   View, Text, SafeAreaView, ScrollView, FlatList, TouchableOpacity,
   Modal, TextInput, RefreshControl, ActivityIndicator, Animated,
-  AppState, AppStateStatus, StyleSheet, Platform, KeyboardAvoidingView,
+  AppState, AppStateStatus, StyleSheet, Platform, KeyboardAvoidingView, Image, Dimensions,
 } from 'react-native';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { router, usePathname } from 'expo-router';
@@ -15,12 +15,16 @@ import { useOnboardingStore } from '@/store/onboardingStore';
 import { Colors, Mascots } from '@/constants/theme';
 import AudioPlayer from '@/components/AudioPlayer';
 import { requestPermission } from '@/utils/webNotifications';
+import { useLanguageStore } from '@/store/languageStore';
+import TourOverlay from '@/components/TourOverlay';
+import { TOUR_STEPS } from '@/constants/tourSteps';
 
 interface PostComment {
-  authorName:  string;
-  authorEmoji: string;
-  content:     string;
-  createdAt:   string;
+  authorName:     string;
+  authorEmoji:    string;
+  authorAvatarUrl?: string | null;
+  content:        string;
+  createdAt:      string;
 }
 
 interface FeedPost {
@@ -33,6 +37,8 @@ interface FeedPost {
   created_at: string;
   friend_name: string | null;
   friend_cover_emojis: string | null;
+  friend_avatar_url?: string | null;
+  image_url?: string | null;
   reactions: Record<string, number>;
   comments: PostComment[];
 }
@@ -98,11 +104,18 @@ export default function FeedScreen() {
   const [posting, setPosting]         = useState(false);
   const [childEmoji, setChildEmoji]           = useState<string>('👦');
   const [avatarBackground, setAvatarBackground] = useState<string>('#EEEDFE');
+  const [childAvatarUrl, setChildAvatarUrl]   = useState<string | null>(null);
+  const [showTour, setShowTour]   = useState(false);
+  const [tourStep, setTourStep]   = useState(0);
+  const [tourSpots, setTourSpots] = useState<Record<string, { x: number; y: number; width: number; height: number }>>({});
 
   const childTokenRef        = useRef<string | null>(null);
   const refreshTimer         = useRef<ReturnType<typeof setInterval> | null>(null);
   const commentsTimer        = useRef<ReturnType<typeof setInterval> | null>(null);
   const dmPollTimer          = useRef<ReturnType<typeof setInterval> | null>(null);
+  const friendsRowRef  = useRef<View>(null);
+  const postButtonRef  = useRef<View>(null);
+  const friendPostRef  = useRef<View>(null);
   const visiblePostIds       = useRef<Set<string>>(new Set());
   const lastCheckRef         = useRef(new Date().toISOString());
   const shownNotificationIds = useRef<Set<string>>(new Set());
@@ -118,6 +131,7 @@ export default function FeedScreen() {
   const resetStore  = useOnboardingStore((s) => s.resetStore);
 
   const mascotEmoji = Mascots[mascotId]?.emoji  || '🌟';
+  const { language } = useLanguageStore();
 
   useEffect(() => {
     let cancelled = false;
@@ -145,13 +159,26 @@ export default function FeedScreen() {
         childSession.start(token).catch(() => {});
         console.log('[feed] generating posts...');
 
-        const [storedEmoji, storedBg] = await Promise.all([
+        const [storedEmoji, storedBg, storedAvatarUrl] = await Promise.all([
           AsyncStorage.getItem('childEmoji'),
           AsyncStorage.getItem('avatarBackground'),
+          AsyncStorage.getItem('childAvatarUrl'),
         ]);
         if (!cancelled) {
           if (storedEmoji) setChildEmoji(storedEmoji);
           setAvatarBackground(storedBg ?? '#EEEDFE');
+          if (storedAvatarUrl) {
+            setChildAvatarUrl(storedAvatarUrl);
+          } else {
+            try {
+              const profileRes = await childProfileApi.getProfile(token);
+              const url = profileRes.data.avatarUrl;
+              if (url && !cancelled) {
+                await AsyncStorage.setItem('childAvatarUrl', url);
+                setChildAvatarUrl(url);
+              }
+            } catch {}
+          }
         }
 
         try {
@@ -163,6 +190,14 @@ export default function FeedScreen() {
         } catch {}
 
         await loadFeed(token, true);
+
+        const seen = await AsyncStorage.getItem('hasSeenTour');
+        if (!seen) {
+          setTimeout(() => {
+            measureRefs();
+            setShowTour(true);
+          }, 3000);
+        }
 
         try {
           const notifRes = await childNotifications.get(token);
@@ -193,6 +228,23 @@ export default function FeedScreen() {
     });
     return () => sub.remove();
   }, []);
+
+  // Check server for avatar_url 10s after mount — catches cartoon arriving after onboarding
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      const token = childTokenRef.current;
+      if (!token || childAvatarUrl) return;
+      try {
+        const profileRes = await childProfileApi.getProfile(token);
+        const url = profileRes.data.avatarUrl;
+        if (url) {
+          await AsyncStorage.setItem('childAvatarUrl', url);
+          setChildAvatarUrl(url);
+        }
+      } catch {}
+    }, 10000);
+    return () => clearTimeout(timer);
+  }, [childAvatarUrl]);
 
   // Poll comments for visible posts every 15 seconds
   useEffect(() => {
@@ -310,6 +362,50 @@ export default function FeedScreen() {
     router.replace('/enroll' as never);
   }
 
+  function measureRefs() {
+    const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+    setTourSpots({
+      discover_tab: { x: screenWidth * 0.25 - 30, y: screenHeight - 83, width: 60, height: 49 },
+      badges_tab:   { x: screenWidth * 0.50 - 30, y: screenHeight - 83, width: 60, height: 49 },
+      me_tab:       { x: screenWidth * 0.75 - 30, y: screenHeight - 83, width: 60, height: 49 },
+      audio_button: { x: screenWidth - 70, y: screenHeight * 0.28, width: 44, height: 44 },
+    });
+    friendsRowRef.current?.measure((_fx, _fy, width, height, px, py) => {
+      setTourSpots(prev => ({
+        ...prev,
+        friends_row: { x: px, y: py, width, height },
+        dm_hint:     { x: px, y: py, width, height },
+      }));
+    });
+    postButtonRef.current?.measure((_fx, _fy, width, height, px, py) => {
+      setTourSpots(prev => ({ ...prev, post_button: { x: px, y: py, width, height } }));
+    });
+    friendPostRef.current?.measure((_fx, _fy, _w, _h, px, py) => {
+      const { width: sw, height: sh } = Dimensions.get('window');
+      setTourSpots(prev => ({
+        ...prev,
+        friend_post: { x: 14, y: py > 0 ? py : sh * 0.55, width: sw - 28, height: 180 },
+      }));
+    });
+  }
+
+  function handleTourNext() {
+    let next = tourStep + 1;
+    while (next < TOUR_STEPS.length && (tourSpots[TOUR_STEPS[next].id]?.width ?? 0) === 0) {
+      next++;
+    }
+    if (next >= TOUR_STEPS.length) {
+      void completeTour();
+    } else {
+      setTourStep(next);
+    }
+  }
+
+  async function completeTour() {
+    await AsyncStorage.setItem('hasSeenTour', 'true');
+    setShowTour(false);
+  }
+
   const onRefresh = useCallback(() => {
     if (!childToken) return;
     setRefreshing(true);
@@ -360,6 +456,17 @@ export default function FeedScreen() {
     }
   }
 
+  const computedSteps = TOUR_STEPS.map(step => ({
+    ...step,
+    spotlight: {
+      shape: step.spotlight.shape,
+      x: tourSpots[step.id]?.x ?? 0,
+      y: tourSpots[step.id]?.y ?? 0,
+      width: tourSpots[step.id]?.width ?? 0,
+      height: tourSpots[step.id]?.height ?? 0,
+    },
+  }));
+
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
   const postedTodayIds = new Set(
     posts
@@ -373,7 +480,7 @@ export default function FeedScreen() {
       const bScore = postedTodayIds.has(b.id) ? 0 : 1;
       return aScore - bScore;
     })
-    .map(f => ({ id: f.id, name: f.name, emojis: f.cover_emojis ?? '🌟' }));
+    .map(f => ({ id: f.id, name: f.name, emojis: f.cover_emojis ?? '🌟', avatar_url: f.avatar_url ?? null }));
 
   async function submitComment(postId: string, text: string) {
     if (!childToken) return;
@@ -397,12 +504,13 @@ export default function FeedScreen() {
       <PostCard
         post={item}
         avatarEmoji={childEmoji}
+        childAvatarUrl={childAvatarUrl}
         onReact={(emoji) => void handleReact(item.id, emoji)}
         onSubmitComment={(text) => submitComment(item.id, text)}
         t={t}
       />
     ),
-    [childEmoji, childToken, t],
+    [childEmoji, childAvatarUrl, childToken, t],
   );
 
   const onViewableItemsChanged = useCallback(
@@ -435,7 +543,10 @@ export default function FeedScreen() {
             <Text style={{ fontSize: 22 }}>🔔</Text>
             {unreadCount > 0 && <View style={s.redDot} />}
           </TouchableOpacity>
-          <EmojiAvatar emoji={childEmoji} background={avatarBackground} size={36} />
+          {childAvatarUrl
+            ? <Image source={{ uri: childAvatarUrl }} style={{ width: 36, height: 36, borderRadius: 18 }} />
+            : <EmojiAvatar emoji={childEmoji} background={avatarBackground} size={36} />
+          }
         </View>
       </View>
 
@@ -455,36 +566,45 @@ export default function FeedScreen() {
           ListHeaderComponent={
             <View>
               {storyFriends.length > 0 && (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ paddingLeft: 14, paddingRight: 6, paddingVertical: 14 }}
-                >
-                  {storyFriends.map((f) => (
-                    <TouchableOpacity
-                      key={f.id}
-                      onPress={() => router.push(`/friend/${f.id}` as never)}
-                      style={{ alignItems: 'center', marginRight: 14 }}
-                    >
-                      <View style={s.storyRingOuter}>
-                        <View style={s.storyRingInner}>
-                          <Text style={{ fontSize: 28 }}>{firstEmoji(f.emojis)}</Text>
+                <View ref={friendsRowRef}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ paddingLeft: 14, paddingRight: 6, paddingVertical: 14 }}
+                  >
+                    {storyFriends.map((f) => (
+                      <TouchableOpacity
+                        key={f.id}
+                        onPress={() => router.push(`/friend/${f.id}` as never)}
+                        style={{ alignItems: 'center', marginRight: 14 }}
+                      >
+                        <View style={s.storyRingOuter}>
+                          <View style={s.storyRingInner}>
+                            {f.avatar_url
+                              ? <Image source={{ uri: f.avatar_url }} style={{ width: 52, height: 52, borderRadius: 26 }} />
+                              : <Text style={{ fontSize: 28 }}>{firstEmoji(f.emojis)}</Text>
+                            }
+                          </View>
                         </View>
-                      </View>
-                      <Text style={s.storyName}>{f.name}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+                        <Text style={s.storyName}>{f.name}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
               )}
 
               <View style={{ paddingHorizontal: 14, paddingBottom: 8 }}>
-                <TouchableOpacity
-                  onPress={() => setShowNewPost(true)}
-                  style={s.newPostPill}
-                >
-                  <Text style={s.newPostText}>{t('feed.newPost')}</Text>
-                </TouchableOpacity>
+                <View ref={postButtonRef}>
+                  <TouchableOpacity
+                    onPress={() => setShowNewPost(true)}
+                    style={s.newPostPill}
+                  >
+                    <Text style={s.newPostText}>{t('feed.newPost')}</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
+
+              <View ref={friendPostRef} />
             </View>
           }
           ListEmptyComponent={
@@ -494,6 +614,18 @@ export default function FeedScreen() {
               <ActivityIndicator color={Colors.purple} size="large" />
             </View>
           }
+        />
+      )}
+
+      {showTour && 'discover_tab' in tourSpots && (
+        <TourOverlay
+          steps={computedSteps}
+          currentStep={tourStep}
+          onNext={handleTourNext}
+          onSkip={() => void completeTour()}
+          mascotEmoji={mascotEmoji}
+          mascotId={mascotId}
+          language={language}
         />
       )}
 
@@ -555,10 +687,11 @@ export default function FeedScreen() {
 }
 
 function PostCard({
-  post, avatarEmoji, onReact, onSubmitComment, t,
+  post, avatarEmoji, childAvatarUrl, onReact, onSubmitComment, t,
 }: {
   post: FeedPost;
   avatarEmoji: string;
+  childAvatarUrl: string | null;
   onReact: (emoji: string) => void;
   onSubmitComment: (text: string) => Promise<void>;
   t: (key: string) => string;
@@ -579,14 +712,20 @@ function PostCard({
   const name       = isOwn ? t('feed.you') : (post.friend_name ?? 'Friend');
   const friendBg   = isOwn ? '#E1F5EE' : (FRIEND_BG[name]   ?? '#EEEDFE');
   const friendTint = isOwn ? '#E1F5EE' : (FRIEND_TINT[name] ?? '#F0EFFF');
-  const emoji      = isOwn ? avatarEmoji : firstEmoji(post.friend_cover_emojis);
+  const emoji          = isOwn ? avatarEmoji : firstEmoji(post.friend_cover_emojis);
+  const friendAvatarUrl = !isOwn ? (post.friend_avatar_url ?? null) : null;
   const sceneChars = post.scene_emojis ? [...post.scene_emojis] : [];
 
   return (
     <View style={s.card}>
       <View style={s.cardHeader}>
         <View style={[s.friendAvatar, { backgroundColor: friendBg }]}>
-          <Text style={{ fontSize: 24 }}>{emoji}</Text>
+          {isOwn && childAvatarUrl
+            ? <Image source={{ uri: childAvatarUrl }} style={{ width: 44, height: 44, borderRadius: 22 }} />
+            : (!isOwn && friendAvatarUrl)
+              ? <Image source={{ uri: friendAvatarUrl }} style={{ width: 44, height: 44, borderRadius: 22 }} />
+              : <Text style={{ fontSize: 24 }}>{emoji}</Text>
+          }
         </View>
 
         <View style={{ flex: 1 }}>
@@ -614,12 +753,20 @@ function PostCard({
         )}
       </View>
 
-      {!isOwn && sceneChars.length > 0 && (
-        <View style={[s.sceneStrip, { backgroundColor: friendTint }]}>
-          {sceneChars.slice(0, 5).map((ch, i) => (
-            <Text key={i} style={{ fontSize: 52 }}>{ch}</Text>
-          ))}
-        </View>
+      {!isOwn && (
+        post.image_url
+          ? <Image
+              source={{ uri: post.image_url }}
+              style={{ width: '100%', aspectRatio: 1, borderRadius: 12, marginVertical: 8 }}
+              resizeMode="cover"
+            />
+          : sceneChars.length > 0 && (
+              <View style={[s.sceneStrip, { backgroundColor: friendTint }]}>
+                {sceneChars.slice(0, 5).map((ch, i) => (
+                  <Text key={i} style={{ fontSize: 52 }}>{ch}</Text>
+                ))}
+              </View>
+            )
       )}
 
       <Text style={s.postContent}>{post.content}</Text>
@@ -629,7 +776,10 @@ function PostCard({
           {post.comments.slice(0, 2).map((c, i) => (
             <View key={i} style={s.commentRow}>
               <View style={s.commentAvatar}>
-                <Text style={{ fontSize: 13 }}>{c.authorEmoji}</Text>
+                {c.authorAvatarUrl
+                  ? <Image source={{ uri: c.authorAvatarUrl }} style={{ width: 24, height: 24, borderRadius: 12 }} />
+                  : <Text style={{ fontSize: 13 }}>{c.authorEmoji}</Text>
+                }
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={s.commentName}>{c.authorName}</Text>

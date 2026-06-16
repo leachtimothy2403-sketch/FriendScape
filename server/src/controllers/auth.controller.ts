@@ -134,44 +134,38 @@ export async function childLogin(req: Request, res: Response) {
 // ─── Enrollment flow ──────────────────────────────────────────────────────────
 
 export async function enroll(req: Request, res: Response) {
-  try {
-    const { parentEmail, language } = req.body as { parentEmail?: string; language?: string };
+  const { parentEmail, language } = req.body as { parentEmail?: string; language?: string };
 
-    if (!parentEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(parentEmail)) {
-      res.status(400).json({ error: 'Please enter a valid email address' });
-      return;
-    }
-
-    const approved = await db('enrollments')
-      .where({ parent_email: parentEmail, status: 'approved' })
-      .first();
-    if (approved) {
-      res.json({ status: 'already_approved' });
-      return;
-    }
-
-    const approvalToken = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
-
-    await db('enrollments').insert({
-      parent_email: parentEmail,
-      approval_token: approvalToken,
-      status: 'pending',
-      expires_at: expiresAt,
-    });
-
-    try {
-      await sendApprovalEmail(parentEmail, approvalToken, undefined, language);
-    } catch (emailErr) {
-      console.error('Failed to send approval email (enrollment still created):', emailErr);
-      if (process.env.NODE_ENV === 'production') throw emailErr;
-    }
-
-    res.json({ status: 'pending', message: 'Approval email sent' });
-  } catch (err) {
-    console.error('Enroll error:', err);
-    res.status(500).json({ error: 'Failed to send approval email. Please try again.' });
+  if (!parentEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(parentEmail)) {
+    res.status(400).json({ error: 'Please enter a valid email address' });
+    return;
   }
+
+  const approved = await db('enrollments')
+    .where({ parent_email: parentEmail, status: 'approved' })
+    .first();
+  if (approved) {
+    res.json({ status: 'already_approved' });
+    return;
+  }
+
+  const approvalToken = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
+
+  await db('enrollments').insert({
+    parent_email: parentEmail,
+    approval_token: approvalToken,
+    status: 'pending',
+    expires_at: expiresAt,
+  });
+
+  // Send response immediately
+  res.json({ status: 'pending', message: 'Approval email sent' });
+
+  // Fire and forget the email
+  sendApprovalEmail(parentEmail, approvalToken, undefined, language).catch((emailErr) => {
+    console.error('Failed to send approval email (enrollment still created):', emailErr);
+  });
 }
 
 export async function approve(req: Request, res: Response) {

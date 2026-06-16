@@ -1,0 +1,66 @@
+export interface TourStep {
+  id: string;
+  spotlight: { x: number; y: number; width: number; height: number; shape: 'circle' | 'rect' };
+  text: string;
+  textFr: string;
+  position: 'top' | 'bottom';
+}
+
+export const TOUR_STEPS: TourStep[] = [
+  {
+    id: 'friends_row',
+    spotlight: { x: 0, y: 0, width: 0, height: 0, shape: 'rect' },
+    text: "These are your friends! Tap one to chat with them 💬",
+    textFr: "Voici tes amis ! Appuie sur l'un d'eux pour lui écrire 💬",
+    position: 'bottom',
+  },
+  {
+    id: 'audio_button',
+    spotlight: { x: 0, y: 0, width: 0, height: 0, shape: 'circle' },
+    text: "Tap this button and I will read my messages to you! Try it now 🔊",
+    textFr: "Appuie sur ce bouton et je lirai mes messages pour toi ! Essaie maintenant 🔊",
+    position: 'bottom',
+  },
+  {
+    id: 'post_button',
+    spotlight: { x: 0, y: 0, width: 0, height: 0, shape: 'rect' },
+    text: "Share your news here — your friends will see it! ✏️",
+    textFr: "Partage tes nouvelles ici — tes amis pourront les voir ! ✏️",
+    position: 'top',
+  },
+  {
+    id: 'friend_post',
+    spotlight: { x: 0, y: 0, width: 0, height: 0, shape: 'rect' },
+    text: "See what your friends are up to! React or reply to their posts 😊",
+    textFr: "Vois ce que font tes amis ! Réagis ou réponds à leurs messages 😊",
+    position: 'top',
+  },
+  {
+    id: 'discover_tab',
+    spotlight: { x: 0, y: 0, width: 0, height: 0, shape: 'circle' },
+    text: "Discover new friends here — your world is getting bigger! 🌍",
+    textFr: "Découvre de nouveaux amis ici — ton monde s'agrandit ! 🌍",
+    position: 'top',
+  },
+  {
+    id: 'badges_tab',
+    spotlight: { x: 0, y: 0, width: 0, height: 0, shape: 'circle' },
+    text: "Collect badges as you use Migo — can you get them all? 🏅",
+    textFr: "Collectionne des badges en utilisant Migo — tu peux tous les avoir ? 🏅",
+    position: 'top',
+  },
+  {
+    id: 'me_tab',
+    spotlight: { x: 0, y: 0, width: 0, height: 0, shape: 'circle' },
+    text: "This is your profile — it's all about you! 😊",
+    textFr: "C'est ton profil — c'est tout toi ! 😊",
+    position: 'top',
+  },
+  {
+    id: 'dm_hint',
+    spotlight: { x: 0, y: 0, width: 0, height: 0, shape: 'rect' },
+    text: "Tap a friend's bubble to send them a message! They can't wait to hear from you 💜",
+    textFr: "Appuie sur la bulle d'un ami pour lui envoyer un message ! Il t'attend 💜",
+    position: 'bottom',
+  },
+];

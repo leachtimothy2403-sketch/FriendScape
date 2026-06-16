@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { DEFAULT_AVATAR } from '@/types/avatar';
+import { API_URL } from '@/services/api';
 
 type Mode = 'photo' | 'skip';
 
@@ -33,7 +34,7 @@ const ANIMAL_OPTIONS = [
 
 export default function PhotoScreen() {
   const { t } = useTranslation();
-  const { childName, avatarTheme, setAvatarTheme, avatarStyle, setAvatarStyle, humanFaceStyle, setHumanFaceStyle, setAvatarConfig, setAvatarBackground } = useOnboardingStore();
+  const { childName, avatarTheme, setAvatarTheme, avatarStyle, setAvatarStyle, humanFaceStyle, setHumanFaceStyle, setAvatarConfig, setAvatarBackground, setCartoonUrl } = useOnboardingStore();
 
   const [mode, setMode]         = useState<Mode>('photo');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
@@ -42,8 +43,8 @@ export default function PhotoScreen() {
   const initial     = childName.trim() ? childName.trim()[0].toUpperCase() : '?';
 
   const OPTION_CARDS: { id: Mode; emoji: string; title: string; subtitle: string }[] = [
-    { id: 'photo', emoji: '📸', title: t('onboarding.photo.uploadPhoto'), subtitle: t('onboarding.photo.uploadDesc') },
-    { id: 'skip',  emoji: '⏭️', title: t('onboarding.photo.skip'),        subtitle: t('onboarding.photo.skipDesc')   },
+    { id: 'photo', emoji: '📸', title: 'Generate from my photo', subtitle: t('onboarding.photo.uploadDesc') },
+    { id: 'skip',  emoji: '🎨', title: 'Choose an avatar',       subtitle: t('onboarding.photo.skipDesc')   },
   ];
 
   async function pickPhoto() {
@@ -59,8 +60,21 @@ export default function PhotoScreen() {
     setPhotoUri(result.assets[0].uri);
   }
 
+  async function takePhoto() {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') return;
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+    if (result.canceled) return;
+    setPhotoUri(result.assets[0].uri);
+  }
+
   const selectedAnimal  = ANIMAL_OPTIONS.find((a) => a.id === avatarTheme);
-  const showStylePicker = true;
+  const showStylePicker = mode === 'skip';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F7FF' }}>
@@ -149,16 +163,24 @@ export default function PhotoScreen() {
                 <Text style={{ fontSize: 40, marginBottom: 8 }}>📷</Text>
               )}
               <Text style={{ fontSize: 14, color: '#888780', textAlign: 'center' }}>
-                {photoUri ? t('common.retry') : t('onboarding.photo.tapToChoosePhoto')}
+                {photoUri ? t('onboarding.photo.changePhoto') : t('onboarding.photo.tapToChoosePhoto')}
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => void pickPhoto()}
-              style={{ backgroundColor: '#7F77DD', borderRadius: 9999, paddingVertical: 12, alignItems: 'center', marginBottom: 12 }}
+              style={{ backgroundColor: '#7F77DD', borderRadius: 9999, paddingVertical: 12, alignItems: 'center', marginBottom: 10 }}
               activeOpacity={0.85}
             >
               <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>{t('onboarding.photo.chooseFromLibrary')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => void takePhoto()}
+              style={{ backgroundColor: '#534AB7', borderRadius: 9999, paddingVertical: 12, alignItems: 'center', marginBottom: 12 }}
+              activeOpacity={0.85}
+            >
+              <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>📷 Take a photo</Text>
             </TouchableOpacity>
 
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#E8F8F3', borderRadius: 12, padding: 12, marginBottom: 20 }}>
@@ -301,6 +323,30 @@ export default function PhotoScreen() {
         <View style={{ marginTop: 12 }}>
           <TouchableOpacity
             onPress={() => {
+              if (mode === 'photo' && photoUri) {
+                void (async () => {
+                  try {
+                    const response = await fetch(photoUri);
+                    const blob = await response.blob();
+                    const base64 = await new Promise<string>((resolve) => {
+                      const reader = new FileReader();
+                      reader.onloadend = () => resolve(reader.result as string);
+                      reader.readAsDataURL(blob);
+                    });
+                    const avatarRes = await fetch(API_URL + '/avatar/generate', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ imageBase64: base64 }),
+                    });
+                    if (avatarRes.ok) {
+                      const data = await avatarRes.json() as { cartoonUrl?: string };
+                      if (data.cartoonUrl) setCartoonUrl(data.cartoonUrl);
+                    }
+                  } catch (e) {
+                    console.warn('[photo] avatar generation failed:', e);
+                  }
+                })();
+              }
               if (mode !== 'builder') {
                 setAvatarConfig(DEFAULT_AVATAR);
                 const humanBg: Record<string, string> = {

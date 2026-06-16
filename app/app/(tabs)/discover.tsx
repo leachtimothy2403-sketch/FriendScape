@@ -1,6 +1,6 @@
 import {
   View, Text, SafeAreaView, ScrollView, TouchableOpacity,
-  ActivityIndicator, TextInput, StyleSheet,
+  ActivityIndicator, TextInput, StyleSheet, Image,
 } from 'react-native';
 import { useState, useEffect, useCallback } from 'react';
 import { router } from 'expo-router';
@@ -35,7 +35,10 @@ function MyFriendBubble({ friend }: { friend: MyChildFriend }) {
       style={s.myFriendBubble}
     >
       <View style={[s.myFriendAvatar, { backgroundColor: bg }]}>
-        <Text style={{ fontSize: 26 }}>{firstEmoji(friend.cover_emojis)}</Text>
+        {friend.avatar_url
+          ? <Image source={{ uri: friend.avatar_url }} style={{ width: 56, height: 56, borderRadius: 28 }} />
+          : <Text style={{ fontSize: 26 }}>{firstEmoji(friend.cover_emojis)}</Text>
+        }
       </View>
       <Text style={s.myFriendName} numberOfLines={1}>{friend.name}</Text>
       <TouchableOpacity
@@ -76,7 +79,10 @@ function NetworkCard({
       style={s.networkCard}
     >
       <View style={[s.networkAvatar, { backgroundColor: bg }]}>
-        <Text style={{ fontSize: 28 }}>{firstEmoji(f.cover_emojis)}</Text>
+        {f.avatar_url
+          ? <Image source={{ uri: f.avatar_url }} style={{ width: 52, height: 52, borderRadius: 26 }} />
+          : <Text style={{ fontSize: 28 }}>{firstEmoji(f.cover_emojis)}</Text>
+        }
       </View>
       <Text style={s.networkName} numberOfLines={1}>{f.name}</Text>
       <Text style={s.networkRel} numberOfLines={1}>{(f.relationship_type ?? f.network_relationship_type ?? '').replace(/_/g, ' ')}</Text>
@@ -116,7 +122,10 @@ function StarCard({
       style={s.starCard}
     >
       <View style={[s.starAvatar, { backgroundColor: bg }]}>
-        <Text style={{ fontSize: 32 }}>{firstEmoji(friend.cover_emojis)}</Text>
+        {friend.avatar_url
+          ? <Image source={{ uri: friend.avatar_url }} style={{ width: 52, height: 52, borderRadius: 26 }} />
+          : <Text style={{ fontSize: 32 }}>{firstEmoji(friend.cover_emojis)}</Text>
+        }
       </View>
       <View style={{ flex: 1 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
@@ -159,7 +168,10 @@ function LunaCard({ luna, onAdd }: { luna: AiFriendRecord; onAdd: () => Promise<
       style={s.lunaCard}
     >
       <View style={s.lunaAvatar}>
-        <Text style={{ fontSize: 26 }}>{firstEmoji(luna.cover_emojis)}</Text>
+        {luna.avatar_url
+          ? <Image source={{ uri: luna.avatar_url }} style={{ width: 52, height: 52, borderRadius: 26 }} />
+          : <Text style={{ fontSize: 26 }}>{firstEmoji(luna.cover_emojis)}</Text>
+        }
       </View>
       <View style={{ flex: 1, marginLeft: 12 }}>
         <Text style={s.lunaName}>{luna.name}</Text>
