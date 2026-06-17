@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { Colors } from '@/constants/theme';
 import api from '@/services/api';
@@ -28,6 +29,7 @@ function fmt(iso: string) {
 }
 
 export default function AlertsScreen() {
+  const { t } = useTranslation();
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
   const [marking, setMarking] = useState<Set<string>>(new Set());
@@ -75,7 +77,7 @@ export default function AlertsScreen() {
         <View style={s.cardTop}>
           <Text style={[s.severityLabel, { color: style.labelColor }]}>{style.label}</Text>
           <Text style={s.typeTag}>{item.type}</Text>
-          {item.read && <Text style={s.readTag}>Read</Text>}
+          {item.read && <Text style={s.readTag}>{t('parent.alerts.read')}</Text>}
         </View>
         <Text style={s.message}>{item.message}</Text>
         <View style={s.cardBottom}>
@@ -86,18 +88,18 @@ export default function AlertsScreen() {
               disabled={marking.has(item.id)}
               style={s.markBtn}
             >
-              <Text style={s.markBtnText}>{marking.has(item.id) ? '…' : 'Mark read'}</Text>
+              <Text style={s.markBtnText}>{marking.has(item.id) ? '…' : t('parent.alerts.markRead')}</Text>
             </TouchableOpacity>
           )}
         </View>
       </View>
     );
-  }, [markRead, marking]);
+  }, [markRead, marking, t]);
 
   if (loading) {
     return (
       <SafeAreaView style={s.screen}>
-        <View style={s.header}><Text style={s.title}>Safety Alerts</Text></View>
+        <View style={s.header}><Text style={s.title}>{t('parent.alerts.title')}</Text></View>
         <View style={s.center}><ActivityIndicator color={Colors.purple} size="large" /></View>
       </SafeAreaView>
     );
@@ -107,15 +109,15 @@ export default function AlertsScreen() {
     <SafeAreaView style={s.screen}>
       <View style={s.header}>
         <Text style={s.title}>
-          Safety Alerts{unreadCount > 0 ? ` (${unreadCount})` : ''}
+          {t('parent.alerts.title')}{unreadCount > 0 ? ` (${unreadCount})` : ''}
         </Text>
       </View>
 
       {alerts.length === 0 ? (
         <View style={s.center}>
           <Text style={{ fontSize: 44, marginBottom: 12 }}>🌟</Text>
-          <Text style={s.emptyTitle}>All clear!</Text>
-          <Text style={s.emptyDesc}>No alerts — your child is doing great.</Text>
+          <Text style={s.emptyTitle}>{t('parent.alerts.emptyTitle')}</Text>
+          <Text style={s.emptyDesc}>{t('parent.alerts.emptyDesc')}</Text>
         </View>
       ) : (
         <FlatList

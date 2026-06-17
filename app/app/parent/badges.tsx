@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { Colors } from '@/constants/theme';
 import api from '@/services/api';
@@ -18,7 +19,7 @@ interface Badge {
   earned_at?: string;
 }
 
-function BadgeItem({ badge, earned }: { badge: Badge; earned: boolean }) {
+function BadgeItem({ badge, earned, t }: { badge: Badge; earned: boolean; t: (key: string) => string }) {
   return (
     <View style={[s.badgeCard, !earned && s.badgeCardLocked]}>
       <Text style={[s.badgeIcon, !earned && { opacity: 0.4 }]}>{badge.icon}</Text>
@@ -32,9 +33,7 @@ function BadgeItem({ badge, earned }: { badge: Badge; earned: boolean }) {
               {new Date(badge.earned_at).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}
             </Text>
           </View>
-        ) : (
-          <Text style={s.lockedText}>🔒 Not yet earned</Text>
-        )}
+        ) : null}
       </View>
       {badge.xp_required && (
         <Text style={s.xp}>+{badge.xp_required} XP</Text>
@@ -44,6 +43,7 @@ function BadgeItem({ badge, earned }: { badge: Badge; earned: boolean }) {
 }
 
 export default function BadgesScreen() {
+  const { t } = useTranslation();
   const [earned, setEarned] = useState<Badge[]>([]);
   const [locked, setLocked] = useState<Badge[]>([]);
   const [totalXp, setTotalXp] = useState(0);
@@ -77,7 +77,7 @@ export default function BadgesScreen() {
   if (loading) {
     return (
       <SafeAreaView style={s.screen}>
-        <View style={s.header}><Text style={s.title}>Badge Progress</Text></View>
+        <View style={s.header}><Text style={s.title}>{t('parent.badges.title')}</Text></View>
         <View style={s.center}><ActivityIndicator color={Colors.purple} size="large" /></View>
       </SafeAreaView>
     );
@@ -85,22 +85,22 @@ export default function BadgesScreen() {
 
   return (
     <SafeAreaView style={s.screen}>
-      <View style={s.header}><Text style={s.title}>Badge Progress</Text></View>
+      <View style={s.header}><Text style={s.title}>{t('parent.badges.title')}</Text></View>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Stats row */}
         <View style={s.statsRow}>
           <View style={s.statCard}>
             <Text style={[s.statValue, { color: Colors.purple }]}>{earned.length}</Text>
-            <Text style={s.statLabel}>Earned</Text>
+            <Text style={s.statLabel}>{t('parent.badges.earned')}</Text>
           </View>
           <View style={s.statCard}>
             <Text style={[s.statValue, { color: Colors.gray[400] }]}>{locked.length}</Text>
-            <Text style={s.statLabel}>To earn</Text>
+            <Text style={s.statLabel}>{t('parent.badges.toEarn')}</Text>
           </View>
           <View style={s.statCard}>
             <Text style={[s.statValue, { color: '#F59E0B' }]}>⭐ {totalXp}</Text>
-            <Text style={s.statLabel}>Total XP</Text>
+            <Text style={s.statLabel}>{t('parent.badges.totalXp')}</Text>
           </View>
         </View>
 
@@ -108,7 +108,7 @@ export default function BadgesScreen() {
         {total > 0 && (
           <View style={s.progressCard}>
             <View style={s.progressTop}>
-              <Text style={s.progressLabel}>Overall progress</Text>
+              <Text style={s.progressLabel}>{t('parent.badges.overallProgress')}</Text>
               <Text style={s.progressCount}>{earned.length}/{total}</Text>
             </View>
             <View style={s.barTrack}>
@@ -120,16 +120,16 @@ export default function BadgesScreen() {
         {/* Earned */}
         {earned.length > 0 && (
           <View style={s.section}>
-            <Text style={s.sectionTitle}>✅ Earned ({earned.length})</Text>
-            {earned.map((b) => <BadgeItem key={b.id} badge={b} earned />)}
+            <Text style={s.sectionTitle}>{t('parent.badges.earnedSection')} ({earned.length})</Text>
+            {earned.map((b) => <BadgeItem key={b.id} badge={b} earned t={t} />)}
           </View>
         )}
 
         {/* Locked */}
         {locked.length > 0 && (
           <View style={s.section}>
-            <Text style={s.sectionTitle}>🔒 Not yet earned ({locked.length})</Text>
-            {locked.map((b) => <BadgeItem key={b.id} badge={b} earned={false} />)}
+            <Text style={s.sectionTitle}>{t('parent.badges.lockedSection')} ({locked.length})</Text>
+            {locked.map((b) => <BadgeItem key={b.id} badge={b} earned={false} t={t} />)}
           </View>
         )}
       </ScrollView>

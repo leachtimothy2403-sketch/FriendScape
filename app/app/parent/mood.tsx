@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { Colors } from '@/constants/theme';
 import api from '@/services/api';
@@ -36,6 +37,7 @@ const MOOD_BG: Record<string, string> = {
 };
 
 export default function MoodScreen() {
+  const { t } = useTranslation();
   const [moodHistory, setMoodHistory] = useState<MoodDay[]>([]);
   const [hasCrisisFlag, setCrisisFlag] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -66,7 +68,7 @@ export default function MoodScreen() {
   if (loading) {
     return (
       <SafeAreaView style={s.screen}>
-        <View style={s.header}><Text style={s.title}>Mood History</Text></View>
+        <View style={s.header}><Text style={s.title}>{t('parent.mood.title')}</Text></View>
         <View style={s.center}><ActivityIndicator color={Colors.purple} size="large" /></View>
       </SafeAreaView>
     );
@@ -74,24 +76,24 @@ export default function MoodScreen() {
 
   return (
     <SafeAreaView style={s.screen}>
-      <View style={s.header}><Text style={s.title}>Mood History</Text></View>
+      <View style={s.header}><Text style={s.title}>{t('parent.mood.title')}</Text></View>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {hasCrisisFlag && (
           <View style={s.crisisCard}>
             <Text style={s.crisisIcon}>🚨</Text>
             <View style={{ flex: 1 }}>
-              <Text style={s.crisisTitle}>Crisis flag in the last 7 days</Text>
-              <Text style={s.crisisDesc}>Our AI detected signs of distress. Check the Alerts tab.</Text>
+              <Text style={s.crisisTitle}>{t('parent.mood.crisisTitle')}</Text>
+              <Text style={s.crisisDesc}>{t('parent.mood.crisisDesc')}</Text>
             </View>
           </View>
         )}
 
         {/* Last 7 days row */}
         <View style={s.sectionCard}>
-          <Text style={s.sectionTitle}>Last 7 days</Text>
+          <Text style={s.sectionTitle}>{t('parent.mood.last7Days')}</Text>
           {week.length === 0 ? (
-            <Text style={s.empty}>No mood data yet.</Text>
+            <Text style={s.empty}>{t('parent.mood.empty')}</Text>
           ) : (
             <View style={s.weekRow}>
               {week.map((d) => (
@@ -111,7 +113,7 @@ export default function MoodScreen() {
         {/* 30-day breakdown */}
         {moodHistory.length > 0 && (
           <View style={s.sectionCard}>
-            <Text style={s.sectionTitle}>30-day detail</Text>
+            <Text style={s.sectionTitle}>{t('parent.mood.thirtyDayDetail')}</Text>
             {[...moodHistory].reverse().map((d) => (
               <View key={d.date} style={s.moodRow}>
                 <Text style={s.moodRowEmoji}>{MOOD_EMOJI[d.mood] ?? '😐'}</Text>
@@ -137,7 +139,7 @@ export default function MoodScreen() {
         {moodHistory.length === 0 && !loading && (
           <View style={s.center}>
             <Text style={{ fontSize: 40, marginBottom: 10 }}>😶</Text>
-            <Text style={s.empty}>No mood data yet.</Text>
+            <Text style={s.empty}>{t('parent.mood.empty')}</Text>
           </View>
         )}
       </ScrollView>

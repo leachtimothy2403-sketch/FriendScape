@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { Colors } from '@/constants/theme';
 import api from '@/services/api';
@@ -37,7 +38,7 @@ function FriendRow({ item }: { item: Friend }) {
           <Text style={s.name}>{item.name}</Text>
           {item.is_teacher && (
             <View style={s.teacherBadge}>
-              <Text style={s.teacherText}>Teacher</Text>
+              <Text style={s.teacherText}>{t('parent.friends.teacherBadge')}</Text>
             </View>
           )}
         </View>
@@ -55,7 +56,7 @@ function FriendRow({ item }: { item: Friend }) {
           )}
         </View>
         <View style={s.aiBadge}>
-          <Text style={s.aiText}>AI Friend</Text>
+          <Text style={s.aiText}>{t('parent.friends.aiBadge')}</Text>
         </View>
       </View>
     </View>
@@ -63,6 +64,7 @@ function FriendRow({ item }: { item: Friend }) {
 }
 
 export default function FriendsScreen() {
+  const { t } = useTranslation();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
   const [childId, setChildId] = useState<string | null>(null);
@@ -89,7 +91,7 @@ export default function FriendsScreen() {
   if (loading) {
     return (
       <SafeAreaView style={s.screen}>
-        <View style={s.header}><Text style={s.title}>AI Friends</Text></View>
+        <View style={s.header}><Text style={s.title}>{t('parent.friends.title')}</Text></View>
         <View style={s.center}><ActivityIndicator color={Colors.purple} size="large" /></View>
       </SafeAreaView>
     );
@@ -98,14 +100,14 @@ export default function FriendsScreen() {
   return (
     <SafeAreaView style={s.screen}>
       <View style={s.header}>
-        <Text style={s.title}>AI Friends</Text>
+        <Text style={s.title}>{t('parent.friends.title')}</Text>
         <Text style={s.subtitle}>{friends.length} friend{friends.length !== 1 ? 's' : ''}</Text>
       </View>
 
       {friends.length === 0 ? (
         <View style={s.center}>
           <Text style={{ fontSize: 40, marginBottom: 10 }}>👥</Text>
-          <Text style={s.empty}>No AI friends yet.</Text>
+          <Text style={s.empty}>{t('parent.friends.empty')}</Text>
         </View>
       ) : (
         <FlatList
@@ -116,9 +118,9 @@ export default function FriendsScreen() {
           showsVerticalScrollIndicator={false}
           ListFooterComponent={
             <View style={s.infoBox}>
-              <Text style={s.infoTitle}>About AI Friends</Text>
+              <Text style={s.infoTitle}>{t('parent.friends.infoTitle')}</Text>
               <Text style={s.infoText}>
-                All friends are safe AI characters designed by the Migo team — not real people.
+                {t('parent.friends.infoText')}
               </Text>
             </View>
           }

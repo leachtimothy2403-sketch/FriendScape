@@ -523,7 +523,7 @@
       "title": "Journal d'activité",
       "filterAll": "Tout",
       "filterPosts": "Posts",
-      "filterMsgs": "Msgs",
+      "filterMessages": "Messages",
       "filterBadges": "Badges",
       "filterFriends": "Amis",
       "empty": "Pas encore d'activité à afficher."
@@ -531,7 +531,7 @@
     "mood": {
       "title": "Humeur",
       "crisisTitle": "Signal de crise dans les 7 derniers jours",
-      "crisisDesc": "Notre IA a repéré des signes de détresse. Consultez l'onglet Alertes.",
+      "crisisDesc": "Notre IA a détecté des signes de détresse. Consultez l'onglet Alertes.",
       "last7Days": "Les 7 derniers jours",
       "thirtyDayDetail": "Détail sur 30 jours",
       "empty": "Pas encore de données d'humeur."
@@ -542,7 +542,7 @@
       "aiBadge": "Ami IA",
       "empty": "Pas encore d'amis IA.",
       "infoTitle": "À propos des amis IA",
-      "infoText": "Tous les amis sont des personnages IA sûrs créés par l'équipe Migo — ce ne sont pas de vraies personnes."
+      "infoText": "Tous les amis de ton enfant sont des personnages IA sécurisés créés rien que pour lui. Jamais d'inconnus réels."
     },
     "badges": {
       "title": "Progression des badges",

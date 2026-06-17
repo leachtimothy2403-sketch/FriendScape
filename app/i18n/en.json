@@ -507,15 +507,15 @@
       "title": "Activity Timeline",
       "filterAll": "All",
       "filterPosts": "Posts",
-      "filterMsgs": "Msgs",
+      "filterMessages": "Messages",
       "filterBadges": "Badges",
       "filterFriends": "Friends",
-      "empty": "No activity to show yet."
+      "empty": "No activity to show."
     },
     "mood": {
       "title": "Mood History",
       "crisisTitle": "Crisis flag in the last 7 days",
-      "crisisDesc": "Our AI noticed signs of distress. Check the Alerts tab.",
+      "crisisDesc": "Our AI detected signs of distress. Check the Alerts tab.",
       "last7Days": "Last 7 days",
       "thirtyDayDetail": "30-day detail",
       "empty": "No mood data yet."
@@ -526,7 +526,7 @@
       "aiBadge": "AI Friend",
       "empty": "No AI friends yet.",
       "infoTitle": "About AI Friends",
-      "infoText": "All friends are safe AI characters created by the Migo team — not real people."
+      "infoText": "All of your child's friends are safe AI characters created just for them. No real strangers, ever."
     },
     "badges": {
       "title": "Badge Progress",

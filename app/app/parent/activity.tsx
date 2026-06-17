@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { Colors } from '@/constants/theme';
 import api from '@/services/api';
@@ -23,15 +24,13 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 const FILTERS = ['all', 'post', 'messages', 'badge', 'friend'] as const;
-const FILTER_LABELS: Record<string, string> = {
-  all: 'All', post: 'Posts', messages: 'Msgs', badge: 'Badges', friend: 'Friends',
-};
 
 function fmt(iso: string) {
   return new Date(iso).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 export default function ActivityScreen() {
+  const { t } = useTranslation();
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
@@ -72,10 +71,18 @@ export default function ActivityScreen() {
     </View>
   ), [visible.length]);
 
+  const FILTER_LABELS: Record<string, string> = {
+    all: t('parent.activity.filterAll'),
+    post: t('parent.activity.filterPosts'),
+    messages: t('parent.activity.filterMessages'),
+    badge: t('parent.activity.filterBadges'),
+    friend: t('parent.activity.filterFriends'),
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={s.screen}>
-        <View style={s.header}><Text style={s.title}>Activity Timeline</Text></View>
+        <View style={s.header}><Text style={s.title}>{t('parent.activity.title')}</Text></View>
         <View style={s.center}><ActivityIndicator color={Colors.purple} size="large" /></View>
       </SafeAreaView>
     );
@@ -84,10 +91,10 @@ export default function ActivityScreen() {
   if (!childId) {
     return (
       <SafeAreaView style={s.screen}>
-        <View style={s.header}><Text style={s.title}>Activity Timeline</Text></View>
+        <View style={s.header}><Text style={s.title}>{t('parent.activity.title')}</Text></View>
         <View style={s.center}>
-          <Text style={s.empty}>No child profile found.</Text>
-          <Text style={[s.empty, { fontSize: 12, marginTop: 4 }]}>Complete the child setup in the app first.</Text>
+          <Text style={s.empty}>{t('parent.noChildProfile')}</Text>
+          <Text style={[s.empty, { fontSize: 12, marginTop: 4 }]}>{t('parent.noChildProfileDesc')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -96,7 +103,7 @@ export default function ActivityScreen() {
   return (
     <SafeAreaView style={s.screen}>
       <View style={s.header}>
-        <Text style={s.title}>Activity Timeline</Text>
+        <Text style={s.title}>{t('parent.activity.title')}</Text>
       </View>
 
       <View style={s.filterBar}>
@@ -114,7 +121,7 @@ export default function ActivityScreen() {
       {visible.length === 0 ? (
         <View style={s.center}>
           <Text style={s.emptyIcon}>📭</Text>
-          <Text style={s.empty}>No activity to show.</Text>
+          <Text style={s.empty}>{t('parent.activity.empty')}</Text>
         </View>
       ) : (
         <FlatList
