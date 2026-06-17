@@ -188,6 +188,227 @@ export async function getWeeklyReport(req: AuthRequest, res: Response) {
   res.json({ message: 'Weekly report — coming soon' });
 }
 
+// ─── GET /parent/timeline/:childId ───────────────────────────────────────────
+export async function getTimeline(req: AuthRequest, res: Response) {
+  try {
+    const { childId } = req.params;
+    const child = await db('children').where({ id: childId, parent_id: req.userId }).first();
+    if (!child) { res.status(404).json({ error: 'Child not found' }); return; }
+
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const [recentPosts, messageDays, recentBadges, newFriends] = await Promise.all([
+      db('posts')
+        .where({ child_id: childId, author_type: 'child' })
+        .where('created_at', '>=', since)
+        .select('content', 'mood', 'created_at')
+        .orderBy('created_at', 'desc')
+        .limit(20),
+
+      db('messages')
+        .join('conversations', 'conversations.id', 'messages.conversation_id')
+        .where('conversations.child_id', childId)
+        .where('messages.created_at', '>=', since)
+        .where('messages.sender_type', 'child')
+        .select(
+          db.raw("date_trunc('day', messages.created_at) as day"),
+          db.raw('count(*) as count'),
+          db.raw('max(messages.created_at) as ts'),
+        )
+        .groupByRaw("date_trunc('day', messages.created_at)")
+        .orderBy('ts', 'desc'),
+
+      db('child_badges')
+        .join('badge_definitions', 'badge_definitions.id', 'child_badges.badge_id')
+        .where('child_badges.child_id', childId)
+        .where('child_badges.earned_at', '>=', since)
+        .select('badge_definitions.name', 'badge_definitions.icon', 'child_badges.earned_at')
+        .orderBy('child_badges.earned_at', 'desc'),
+
+      db('child_friends')
+        .join('ai_friends', 'ai_friends.id', 'child_friends.friend_id')
+        .where('child_friends.child_id', childId)
+        .whereNotNull('child_friends.activated_at')
+        .where('child_friends.activated_at', '>=', since)
+        .select('ai_friends.name', 'child_friends.activated_at as created_at')
+        .orderBy('child_friends.activated_at', 'desc'),
+    ]);
+
+    type Ev = { type: string; timestamp: string; summary: string; icon: string };
+    const events: Ev[] = [];
+
+    for (const p of recentPosts as Array<{ content: string; mood: string; created_at: string }>) {
+      const c = String(p.content ?? '');
+      events.push({ type: 'post', timestamp: p.created_at, icon: '📝', summary: `Posted: "${c.slice(0, 80)}${c.length > 80 ? '…' : ''}"` });
+    }
+    for (const d of messageDays as Array<{ count: string | number; ts: string }>) {
+      const n = Number(d.count);
+      events.push({ type: 'messages', timestamp: d.ts, icon: '💬', summary: `Sent ${n} message${n !== 1 ? 's' : ''}` });
+    }
+    for (const b of recentBadges as Array<{ name: string; icon: string; earned_at: string }>) {
+      events.push({ type: 'badge', timestamp: b.earned_at, icon: b.icon, summary: `Earned badge: ${b.icon} ${b.name}` });
+    }
+    for (const f of newFriends as Array<{ name: string; created_at: string }>) {
+      events.push({ type: 'friend', timestamp: f.created_at, icon: '👥', summary: `Made a new friend: ${f.name}` });
+    }
+
+    events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    res.json({ events: events.slice(0, 50) });
+  } catch (err) {
+    console.error('[parent] getTimeline error:', err);
+    res.status(500).json({ error: 'Failed to fetch timeline' });
+  }
+}
+
+// ─── GET /parent/mood/:childId ────────────────────────────────────────────────
+export async function getMoodHistory(req: AuthRequest, res: Response) {
+  try {
+    const { childId } = req.params;
+    const child = await db('children').where({ id: childId, parent_id: req.userId }).first();
+    if (!child) { res.status(404).json({ error: 'Child not found' }); return; }
+
+    const since       = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(Date.now() -  7 * 24 * 60 * 60 * 1000);
+
+    const [moodRows, crisisRow] = await Promise.all([
+      db('posts')
+        .where({ child_id: childId })
+        .whereNotNull('mood')
+        .where('created_at', '>=', since)
+        .select(db.raw("date_trunc('day', created_at) as day"), 'mood', db.raw('count(*) as count'))
+        .groupByRaw("date_trunc('day', created_at), mood")
+        .orderByRaw('day ASC'),
+      db('parent_alerts')
+        .where({ child_id: childId })
+        .where('type', 'crisis')
+        .where('created_at', '>=', sevenDaysAgo)
+        .count('id as count')
+        .first(),
+    ]);
+
+    const dayMap: Record<string, Array<{ mood: string; count: number }>> = {};
+    for (const row of moodRows as Array<{ day: string; mood: string; count: string | number }>) {
+      const key = new Date(row.day).toISOString().split('T')[0];
+      (dayMap[key] ??= []).push({ mood: row.mood, count: Number(row.count) });
+    }
+
+    const MOOD_INTENSITY: Record<string, number> = {
+      excited: 1.0, happy: 0.9, funny: 0.85, caring: 0.8, curious: 0.7,
+      neutral: 0.5, lonely: 0.35, sad: 0.3, worried: 0.2, angry: 0.15,
+    };
+
+    const moodHistory = Object.entries(dayMap).map(([date, moods]) => {
+      const top   = moods.reduce((a, b) => b.count > a.count ? b : a);
+      const total = moods.reduce((s, m) => s + m.count, 0);
+      return { date, mood: top.mood, intensity: MOOD_INTENSITY[top.mood] ?? 0.5, note: `${top.count} of ${total} post${total !== 1 ? 's' : ''}` };
+    }).sort((a, b) => a.date.localeCompare(b.date));
+
+    const hasCrisisFlag = Number((crisisRow as { count: string | number } | undefined)?.count ?? 0) > 0;
+    res.json({ moodHistory, hasCrisisFlag });
+  } catch (err) {
+    console.error('[parent] getMoodHistory error:', err);
+    res.status(500).json({ error: 'Failed to fetch mood history' });
+  }
+}
+
+// ─── GET /parent/friends/:childId ─────────────────────────────────────────────
+export async function getParentFriends(req: AuthRequest, res: Response) {
+  try {
+    const { childId } = req.params;
+    const child = await db('children').where({ id: childId, parent_id: req.userId }).first();
+    if (!child) { res.status(404).json({ error: 'Child not found' }); return; }
+
+    const friends = await db('child_friends')
+      .join('ai_friends', 'ai_friends.id', 'child_friends.friend_id')
+      .where('child_friends.child_id', childId)
+      .select(
+        'ai_friends.id', 'ai_friends.name', 'ai_friends.avatar_url',
+        'ai_friends.cover_emojis', 'ai_friends.is_teacher',
+        'child_friends.friendship_level', 'child_friends.friendship_xp',
+        'child_friends.activated_at',
+      )
+      .orderBy('child_friends.friendship_level', 'desc');
+
+    const convStats = await db('conversations')
+      .leftJoin(
+        db('messages')
+          .select('conversation_id', db.raw('count(*) as msg_count'), db.raw('max(created_at) as last_active'))
+          .where('sender_type', 'child')
+          .groupBy('conversation_id')
+          .as('mc'),
+        'mc.conversation_id', 'conversations.id',
+      )
+      .where('conversations.child_id', childId)
+      .select('conversations.friend_id', 'mc.msg_count', 'mc.last_active');
+
+    const statsMap: Record<string, { message_count: number; last_active: string | null }> = {};
+    for (const s of convStats as Array<{ friend_id: string; msg_count: string | null; last_active: string | null }>) {
+      statsMap[s.friend_id] = { message_count: Number(s.msg_count ?? 0), last_active: s.last_active };
+    }
+
+    const enriched = (friends as Array<Record<string, unknown>>).map((f) => ({
+      ...f,
+      message_count: statsMap[f.id as string]?.message_count ?? 0,
+      last_active:   statsMap[f.id as string]?.last_active   ?? null,
+    }));
+
+    res.json({ friends: enriched });
+  } catch (err) {
+    console.error('[parent] getParentFriends error:', err);
+    res.status(500).json({ error: 'Failed to fetch friends' });
+  }
+}
+
+// ─── GET /parent/badges/:childId ──────────────────────────────────────────────
+export async function getParentBadges(req: AuthRequest, res: Response) {
+  try {
+    const { childId } = req.params;
+    const child = await db('children').where({ id: childId, parent_id: req.userId }).first();
+    if (!child) { res.status(404).json({ error: 'Child not found' }); return; }
+
+    const [allBadges, childBadgeRows] = await Promise.all([
+      db('badge_definitions').select('id', 'name', 'description', 'icon', 'category', 'xp_required').orderBy('category').orderBy('name'),
+      db('child_badges').where({ child_id: childId }).select('badge_id', 'earned_at'),
+    ]);
+
+    const earnedMap: Record<string, string> = {};
+    for (const b of childBadgeRows as Array<{ badge_id: string; earned_at: string }>) {
+      earnedMap[b.badge_id] = b.earned_at;
+    }
+
+    const earned = (allBadges as Array<Record<string, unknown>>)
+      .filter((b) => earnedMap[b.id as string])
+      .map((b)  => ({ ...b, earned_at: earnedMap[b.id as string] }));
+
+    const locked = (allBadges as Array<Record<string, unknown>>).filter((b) => !earnedMap[b.id as string]);
+
+    res.json({ earned, locked, totalXp: earned.reduce((s, b) => s + Number((b as Record<string, unknown>).xp_required ?? 10), 0) });
+  } catch (err) {
+    console.error('[parent] getParentBadges error:', err);
+    res.status(500).json({ error: 'Failed to fetch badges' });
+  }
+}
+
+// ─── GET /parent/alerts/:childId ──────────────────────────────────────────────
+export async function getChildAlerts(req: AuthRequest, res: Response) {
+  try {
+    const { childId } = req.params;
+    const child = await db('children').where({ id: childId, parent_id: req.userId }).first();
+    if (!child) { res.status(404).json({ error: 'Child not found' }); return; }
+
+    const alerts = await db('parent_alerts')
+      .where({ child_id: childId })
+      .orderBy('created_at', 'desc')
+      .limit(30)
+      .select('id', 'type', 'message', 'severity', 'read', 'created_at');
+
+    res.json({ alerts, child: { name: child.name } });
+  } catch (err) {
+    console.error('[parent] getChildAlerts error:', err);
+    res.status(500).json({ error: 'Failed to fetch child alerts' });
+  }
+}
+
 export async function updateSettings(req: AuthRequest, res: Response) {
   try {
     const allowed = ['alertsEnabled', 'weeklyReportEnabled', 'contentFilterLevel',

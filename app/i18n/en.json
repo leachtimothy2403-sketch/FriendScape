@@ -4,13 +4,13 @@
   },
   "enroll": {
     "title": "Ready to meet your friends?",
-    "subtitle": "Before we start, we need your parent's permission. Enter their email address and we'll send them a message!",
+    "subtitle": "We need your mum or dad to say yes first! Just pop in their email and we'll ask them. 😊",
     "placeholder": "Mum or Dad's email address…",
     "sendButton": "Send! 📨",
     "alreadyApproved": "Already approved? Tap here →",
-    "alreadyApprovedCheck": "Check approval →",
+    "alreadyApprovedCheck": "Check if it's done →",
     "approvalPending": "Still waiting — check your email! 📧",
-    "approvalNotFound": "No request found. Send a new request above.",
+    "approvalNotFound": "Hmm, we can't find it! Try sending a new one above 👆",
     "privacyNote": "🔒 We only use this to ask for permission. Nothing else!"
   },
   "waiting": {
@@ -61,7 +61,7 @@
     },
     "needs": {
       "title": "Any special needs?",
-      "subtitle": "Helps us tune the experience. Select all that apply — changeable anytime.",
+      "subtitle": "This helps us set Migo up perfectly! Pick all that apply — you can change this any time.",
       "autism": "Autism spectrum",
       "autismDesc": "Social scripts, predictable pacing",
       "dyslexia": "Dyslexia",
@@ -340,13 +340,13 @@
     "lookingAtPhoto": "Luna looks at your photo... 👀",
     "usuallyReplies": "🕐 Usually replies in a few minutes",
     "sayHello": "Say hello to {{name}}!\nThey'd love to hear from you.",
-    "micPermissionDenied": "Microphone permission required",
-    "voiceError": "Could not transcribe audio"
+    "micPermissionDenied": "We need permission to use your mic 🎤",
+    "voiceError": "Hmm, I couldn't catch that — try again! 🎤"
   },
   "luna": {
     "photoAdded": "📸 Photo added — Luna can see it",
     "photoPrivacyTitle": "📸 Privacy",
-    "photoPrivacyText": "Your photo is sent directly to Ms. Luna to help you. It is never saved on our servers. It disappears as soon as Ms. Luna has read it!",
+    "photoPrivacyText": "Your photo goes straight to Ms. Luna to help you. It's never saved anywhere and disappears as soon as she's read it!",
     "photoPrivacyButton": "Got it ✓",
     "photoHelpPrompt": "Can you help me with this?",
     "cameraButton": "📸 Take a photo",
@@ -477,7 +477,7 @@
       "levelLabel": "Level {{n}} — {{levelName}}"
     },
     "memories": {
-      "empty": "Your memories will appear here as you use Migo!"
+      "empty": "Your memories will show up here as you use Migo! 🌟"
     },
     "settings": {
       "title": "Settings ⚙️",
@@ -499,5 +499,53 @@
     "loading": "Loading...",
     "retry": "Try again",
     "error": "Something went wrong"
+  },
+  "parent": {
+    "noChildProfile": "No child profile found.",
+    "noChildProfileDesc": "Complete the child setup in the app first.",
+    "activity": {
+      "title": "Activity Timeline",
+      "filterAll": "All",
+      "filterPosts": "Posts",
+      "filterMsgs": "Msgs",
+      "filterBadges": "Badges",
+      "filterFriends": "Friends",
+      "empty": "No activity to show yet."
+    },
+    "mood": {
+      "title": "Mood History",
+      "crisisTitle": "Crisis flag in the last 7 days",
+      "crisisDesc": "Our AI noticed signs of distress. Check the Alerts tab.",
+      "last7Days": "Last 7 days",
+      "thirtyDayDetail": "30-day detail",
+      "empty": "No mood data yet."
+    },
+    "friends": {
+      "title": "AI Friends",
+      "teacherBadge": "Teacher",
+      "aiBadge": "AI Friend",
+      "empty": "No AI friends yet.",
+      "infoTitle": "About AI Friends",
+      "infoText": "All friends are safe AI characters created by the Migo team — not real people."
+    },
+    "badges": {
+      "title": "Badge Progress",
+      "earned": "Earned",
+      "toEarn": "To earn",
+      "totalXp": "Total XP",
+      "overallProgress": "Overall progress",
+      "earnedSection": "✅ Earned",
+      "lockedSection": "🔒 Not yet earned"
+    },
+    "alerts": {
+      "title": "Safety Alerts",
+      "severityCrisis": "🚨 Crisis",
+      "severityWarning": "⚠️ Warning",
+      "severityInfo": "ℹ️ Info",
+      "read": "Read",
+      "markRead": "Mark read",
+      "emptyTitle": "All clear!",
+      "emptyDesc": "No alerts — your child is doing great."
+    }
   }
 }

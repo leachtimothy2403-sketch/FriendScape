@@ -4,13 +4,13 @@
   },
   "enroll": {
     "title": "Prêt(e) à rencontrer tes amis ?",
-    "subtitle": "Avant de commencer, nous avons besoin de la permission de tes parents. Entre leur adresse email et nous leur enverrons un message !",
+    "subtitle": "On a besoin que ton papa ou ta maman dise oui d'abord ! Tape leur email ci-dessous et on leur posera la question. 😊",
     "placeholder": "Email de maman ou papa…",
     "sendButton": "Envoyer ! 📨",
     "alreadyApproved": "Déjà approuvé ? Appuie ici →",
-    "alreadyApprovedCheck": "Vérifier l'approbation →",
+    "alreadyApprovedCheck": "Vérifier si c'est fait →",
     "approvalPending": "En attente — vérifie tes emails ! 📧",
-    "approvalNotFound": "Aucune demande trouvée. Envoie une nouvelle demande ci-dessus.",
+    "approvalNotFound": "Hmm, on ne trouve pas ta demande ! Essaie d'en envoyer une nouvelle là-haut 👆",
     "privacyNote": "🔒 On utilise cet email uniquement pour demander la permission. C'est tout !"
   },
   "waiting": {
@@ -61,7 +61,7 @@
     },
     "needs": {
       "title": "Des besoins spéciaux ?",
-      "subtitle": "Nous aide à personnaliser l'expérience. Sélectionnez tout ce qui s'applique — modifiable à tout moment.",
+      "subtitle": "Ça nous aide à préparer Migo parfaitement ! Sélectionnez tout ce qui s'applique — modifiable à tout moment.",
       "autism": "Spectre autistique",
       "autismDesc": "Scripts sociaux, rythme prévisible",
       "dyslexia": "Dyslexie",
@@ -352,17 +352,17 @@
   "dm": {
     "online": "En ligne maintenant",
     "inputPlaceholder": "Message à {{name}}…",
-    "typing": "tape...",
+    "typing": "écrit...",
     "lookingAtPhoto": "Luna regarde ta photo... 👀",
     "usuallyReplies": "🕐 Répond généralement en quelques minutes",
     "sayHello": "Dis bonjour à {{name}} !\nIl/elle serait ravi(e) d'avoir de tes nouvelles.",
-    "micPermissionDenied": "Autorisation micro requise",
-    "voiceError": "Impossible de transcrire l'audio"
+    "micPermissionDenied": "On a besoin d'accéder à ton micro 🎤",
+    "voiceError": "Hmm, je n'ai pas compris — réessaie ! 🎤"
   },
   "luna": {
     "photoAdded": "📸 Photo ajoutée — Luna peut la voir",
     "photoPrivacyTitle": "📸 Confidentialité",
-    "photoPrivacyText": "Ta photo est envoyée directement à Ms. Luna pour t'aider. Elle n'est jamais sauvegardée sur nos serveurs. Elle disparaît dès que Ms. Luna l'a lue !",
+    "photoPrivacyText": "Ta photo va directement chez Ms. Luna pour t'aider. Elle n'est jamais sauvegardée nulle part et disparaît dès qu'elle l'a vue !",
     "photoPrivacyButton": "J'ai compris ✓",
     "photoHelpPrompt": "Peux-tu m'aider avec ça ?",
     "cameraButton": "📸 Prendre une photo",
@@ -383,7 +383,7 @@
     "addFriend": "Ajouter",
     "added": "Ajouté ✓",
     "hearMe": "Écoute-moi",
-    "playAudio": "Jouer"
+    "playAudio": "Écouter"
   },
   "games": {
     "playGame": "🎮 Jouer !",
@@ -489,11 +489,11 @@
     },
     "friends": {
       "empty": "Complète l'inscription pour rencontrer tes premiers amis !",
-      "chatButton": "💬 Tchatter",
+      "chatButton": "💬 Discuter",
       "levelLabel": "Niveau {{n}} — {{levelName}}"
     },
     "memories": {
-      "empty": "Tes souvenirs apparaîtront ici au fur et à mesure que tu utilises Migo !"
+      "empty": "Tes souvenirs arriveront ici petit à petit ! 🌟"
     },
     "settings": {
       "title": "Paramètres ⚙️",
@@ -514,6 +514,54 @@
     "back": "Retour",
     "loading": "Chargement...",
     "retry": "Réessayer",
-    "error": "Quelque chose s'est mal passé"
+    "error": "Oups, quelque chose a mal tourné !"
+  },
+  "parent": {
+    "noChildProfile": "Aucun profil enfant trouvé.",
+    "noChildProfileDesc": "Complétez d'abord la configuration de l'enfant dans l'application.",
+    "activity": {
+      "title": "Journal d'activité",
+      "filterAll": "Tout",
+      "filterPosts": "Posts",
+      "filterMsgs": "Msgs",
+      "filterBadges": "Badges",
+      "filterFriends": "Amis",
+      "empty": "Pas encore d'activité à afficher."
+    },
+    "mood": {
+      "title": "Humeur",
+      "crisisTitle": "Signal de crise dans les 7 derniers jours",
+      "crisisDesc": "Notre IA a repéré des signes de détresse. Consultez l'onglet Alertes.",
+      "last7Days": "Les 7 derniers jours",
+      "thirtyDayDetail": "Détail sur 30 jours",
+      "empty": "Pas encore de données d'humeur."
+    },
+    "friends": {
+      "title": "Amis IA",
+      "teacherBadge": "Enseignant",
+      "aiBadge": "Ami IA",
+      "empty": "Pas encore d'amis IA.",
+      "infoTitle": "À propos des amis IA",
+      "infoText": "Tous les amis sont des personnages IA sûrs créés par l'équipe Migo — ce ne sont pas de vraies personnes."
+    },
+    "badges": {
+      "title": "Progression des badges",
+      "earned": "Obtenu",
+      "toEarn": "À obtenir",
+      "totalXp": "XP total",
+      "overallProgress": "Progression globale",
+      "earnedSection": "✅ Obtenus",
+      "lockedSection": "🔒 Pas encore obtenus"
+    },
+    "alerts": {
+      "title": "Alertes de sécurité",
+      "severityCrisis": "🚨 Crise",
+      "severityWarning": "⚠️ Avertissement",
+      "severityInfo": "ℹ️ Info",
+      "read": "Lu",
+      "markRead": "Marquer comme lu",
+      "emptyTitle": "Tout va bien !",
+      "emptyDesc": "Aucune alerte — votre enfant se porte très bien."
+    }
   }
 }

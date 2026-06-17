@@ -9,6 +9,11 @@ import {
   getChildStats,
   getWeeklyReport,
   updateSettings,
+  getTimeline,
+  getMoodHistory,
+  getParentFriends,
+  getParentBadges,
+  getChildAlerts,
 } from '../controllers/parent.controller';
 import { requireAuth } from '../middleware/auth';
 
@@ -26,5 +31,11 @@ router.get('/children/:childId/messages', getChildMessages);
 router.get('/children/:childId/stats',    getChildStats);
 router.get('/report/:childId', getWeeklyReport);
 router.put('/settings', updateSettings);
+
+router.get('/timeline/:childId',       getTimeline);
+router.get('/mood/:childId',           getMoodHistory);
+router.get('/friends/:childId',        getParentFriends);
+router.get('/badges/:childId',         getParentBadges);
+router.get('/alerts/:childId',         getChildAlerts);
 
 export default router;

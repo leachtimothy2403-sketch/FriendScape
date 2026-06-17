@@ -36,6 +36,10 @@ export default function RootLayout() {
           name="notifications"
           options={{ animation: 'slide_from_right' }}
         />
+        <Stack.Screen
+          name="parent"
+          options={{ animation: 'slide_from_bottom' }}
+        />
       </Stack>
       <NotificationBanner
         visible={notification !== null}

@@ -92,6 +92,11 @@ export const parent = {
   alerts: () => api.get('/parent/alerts'),
   markRead: (alertId: string) => api.put(`/parent/alerts/${alertId}/read`),
   activity: (childId: string) => api.get(`/parent/activity/${childId}`),
+  timeline: (childId: string) => api.get(`/parent/timeline/${childId}`),
+  mood: (childId: string) => api.get(`/parent/mood/${childId}`),
+  friends: (childId: string) => api.get(`/parent/friends/${childId}`),
+  badges: (childId: string) => api.get(`/parent/badges/${childId}`),
+  childAlerts: (childId: string) => api.get(`/parent/alerts/${childId}`),
 };
 
 // ─── Child-session helpers ────────────────────────────────────────────────────

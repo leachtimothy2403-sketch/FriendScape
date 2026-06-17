@@ -4,6 +4,11 @@ import Dashboard from './pages/Dashboard';
 import ChildDetail from './pages/ChildDetail';
 import FriendManagement from './pages/FriendManagement';
 import Settings from './pages/Settings';
+import ActivityTimeline from './pages/ActivityTimeline';
+import MoodHistory from './pages/MoodHistory';
+import FriendsOverview from './pages/FriendsOverview';
+import BadgeProgress from './pages/BadgeProgress';
+import ParentAlerts from './pages/ParentAlerts';
 
 function isLoggedIn() {
   return !!localStorage.getItem('parentToken');
@@ -29,6 +34,26 @@ export default function App() {
         <Route
           path="/children/:childId/friends"
           element={<PrivateRoute><FriendManagement /></PrivateRoute>}
+        />
+        <Route
+          path="/children/:childId/activity"
+          element={<PrivateRoute><ActivityTimeline /></PrivateRoute>}
+        />
+        <Route
+          path="/children/:childId/mood"
+          element={<PrivateRoute><MoodHistory /></PrivateRoute>}
+        />
+        <Route
+          path="/children/:childId/friends-overview"
+          element={<PrivateRoute><FriendsOverview /></PrivateRoute>}
+        />
+        <Route
+          path="/children/:childId/badges"
+          element={<PrivateRoute><BadgeProgress /></PrivateRoute>}
+        />
+        <Route
+          path="/children/:childId/alerts"
+          element={<PrivateRoute><ParentAlerts /></PrivateRoute>}
         />
         <Route
           path="/settings"
