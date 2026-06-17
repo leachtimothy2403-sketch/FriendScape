@@ -174,6 +174,8 @@ export async function getFeed(req: AuthRequest, res: Response) {
         createdAt:      String(c.comment_at ?? ''),
       });
     }
+    const sampleComment = Object.values(commentsMap)[0]?.[0];
+    if (sampleComment) console.log('[comments] sample:', JSON.stringify(sampleComment));
 
     const enriched = (posts as Record<string, unknown>[]).map((p) => ({
       ...p,
@@ -322,14 +324,16 @@ export async function getPostComments(req: AuthRequest, res: Response) {
         'pc.created_at as comment_at',
         db.raw("COALESCE(af.name, ch.name) as author_name"),
         db.raw("COALESCE(af.cover_emojis, '😊') as author_emojis"),
+        'af.avatar_url as author_avatar_url',
       )
       .orderBy('pc.created_at', 'asc');
 
     const comments = (commentRows as Record<string, unknown>[]).map((c) => ({
-      authorName:  String(c.author_name ?? ''),
-      authorEmoji: firstEmoji(c.author_emojis ? String(c.author_emojis) : null),
-      content:     String(c.content ?? ''),
-      createdAt:   String(c.comment_at ?? ''),
+      authorName:     String(c.author_name ?? ''),
+      authorEmoji:    firstEmoji(c.author_emojis ? String(c.author_emojis) : null),
+      authorAvatarUrl: (c.author_avatar_url as string | null) ?? null,
+      content:        String(c.content ?? ''),
+      createdAt:      String(c.comment_at ?? ''),
     }));
 
     res.json({ comments });

@@ -256,6 +256,7 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
 
     for (const gf of genResult.friends) {
       const voiceId = selectVoiceId(gf.gender, lang, gf.personality);
+      console.log(`[voice] friend ${gf.name} gender=${gf.gender} voiceId=${voiceId}`);
 
       const [newFriend] = await db('ai_friends')
         .insert({
@@ -908,6 +909,7 @@ export async function regenerateFriends(req: AuthRequest, res: Response) {
 
     for (const gf of genResult.friends) {
       const voiceId = selectVoiceId(gf.gender, lang, gf.personality);
+      console.log(`[voice] friend ${gf.name} gender=${gf.gender} voiceId=${voiceId}`);
 
       const [newFriend] = await db('ai_friends')
         .insert({

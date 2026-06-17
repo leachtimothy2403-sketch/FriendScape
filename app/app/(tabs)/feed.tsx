@@ -18,6 +18,7 @@ import { requestPermission } from '@/utils/webNotifications';
 import { useLanguageStore } from '@/store/languageStore';
 import TourOverlay from '@/components/TourOverlay';
 import { TOUR_STEPS } from '@/constants/tourSteps';
+import { useTourStore } from '@/store/tourStore';
 
 interface PostComment {
   authorName:     string;
@@ -132,6 +133,23 @@ export default function FeedScreen() {
 
   const mascotEmoji = Mascots[mascotId]?.emoji  || '🌟';
   const { language } = useLanguageStore();
+  const setTourStepId = useTourStore(s => s.setTourStepId);
+  const tourStepId    = useTourStore(s => s.tourStepId);
+  const friendsPulse  = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (tourStepId === 'friends_row') {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(friendsPulse, { toValue: 1.08, duration: 400, useNativeDriver: true }),
+          Animated.timing(friendsPulse, { toValue: 1.0,  duration: 400, useNativeDriver: true }),
+        ]),
+        { iterations: 4 },
+      ).start();
+    } else {
+      friendsPulse.setValue(1.0);
+    }
+  }, [tourStepId, friendsPulse]);
 
   useEffect(() => {
     let cancelled = false;
@@ -194,8 +212,8 @@ export default function FeedScreen() {
         const seen = await AsyncStorage.getItem('hasSeenTour');
         if (!seen) {
           setTimeout(() => {
-            measureRefs();
             setShowTour(true);
+            setTourStepId(TOUR_STEPS[0].id);
           }, 3000);
         }
 
@@ -363,13 +381,13 @@ export default function FeedScreen() {
   }
 
   function measureRefs() {
-    const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-    setTourSpots({
-      discover_tab: { x: screenWidth * 0.25 - 30, y: screenHeight - 83, width: 60, height: 49 },
-      badges_tab:   { x: screenWidth * 0.50 - 30, y: screenHeight - 83, width: 60, height: 49 },
-      me_tab:       { x: screenWidth * 0.75 - 30, y: screenHeight - 83, width: 60, height: 49 },
-      audio_button: { x: screenWidth - 70, y: screenHeight * 0.28, width: 44, height: 44 },
-    });
+    const { width: W, height: H } = Dimensions.get('window');
+    const tourSpots: Record<string, { x: number; y: number; width: number; height: number }> = {};
+    tourSpots['discover_tab'] = { x: W*0.25-30, y: H-83, width: 60, height: 49 };
+    tourSpots['badges_tab']   = { x: W*0.50-30, y: H-83, width: 60, height: 49 };
+    tourSpots['me_tab']       = { x: W*0.75-30, y: H-83, width: 60, height: 49 };
+    tourSpots['audio_button'] = { x: W-68,      y: H*0.32, width: 40, height: 40 };
+    setTourSpots(tourSpots);
     friendsRowRef.current?.measure((_fx, _fy, width, height, px, py) => {
       setTourSpots(prev => ({
         ...prev,
@@ -390,20 +408,19 @@ export default function FeedScreen() {
   }
 
   function handleTourNext() {
-    let next = tourStep + 1;
-    while (next < TOUR_STEPS.length && (tourSpots[TOUR_STEPS[next].id]?.width ?? 0) === 0) {
-      next++;
-    }
+    const next = tourStep + 1;
     if (next >= TOUR_STEPS.length) {
       void completeTour();
     } else {
       setTourStep(next);
+      setTourStepId(TOUR_STEPS[next].id);
     }
   }
 
   async function completeTour() {
     await AsyncStorage.setItem('hasSeenTour', 'true');
     setShowTour(false);
+    setTourStepId(null);
   }
 
   const onRefresh = useCallback(() => {
@@ -567,6 +584,7 @@ export default function FeedScreen() {
             <View>
               {storyFriends.length > 0 && (
                 <View ref={friendsRowRef}>
+                  <Animated.View style={{ transform: [{ scale: friendsPulse }] }}>
                   <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
@@ -590,6 +608,7 @@ export default function FeedScreen() {
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
+                  </Animated.View>
                 </View>
               )}
 
@@ -617,7 +636,7 @@ export default function FeedScreen() {
         />
       )}
 
-      {showTour && 'discover_tab' in tourSpots && (
+      {showTour && (
         <TourOverlay
           steps={computedSteps}
           currentStep={tourStep}
@@ -773,7 +792,9 @@ function PostCard({
 
       {post.comments && post.comments.length > 0 && (
         <View style={s.commentsSection}>
-          {post.comments.slice(0, 2).map((c, i) => (
+          {post.comments.slice(0, 2).map((c, i) => {
+            console.log('[comment]', c.authorName, c.authorAvatarUrl);
+            return (
             <View key={i} style={s.commentRow}>
               <View style={s.commentAvatar}>
                 {c.authorAvatarUrl
@@ -787,7 +808,8 @@ function PostCard({
               </View>
               <Text style={s.commentTime}>{relativeTime(c.createdAt)}</Text>
             </View>
-          ))}
+            );
+          })}
           {post.comments.length > 2 && (
             <Text style={s.commentMore}>+{post.comments.length - 2} more</Text>
           )}

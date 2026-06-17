@@ -24,6 +24,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { auth } from '@/services/api';
 import { useLanguageStore } from '@/store/languageStore';
+import { useOnboardingStore } from '@/store/onboardingStore';
 import DevResetButton from '@/components/DevResetButton';
 import MigoLogo from '@/components/MigoLogo';
 
@@ -119,6 +120,43 @@ export default function EnrollScreen() {
     } finally {
       setChecking(false);
     }
+  };
+
+  const quickTestOnboarding = async () => {
+    const store = useOnboardingStore.getState();
+    const testEmail = email.trim() || 'test@test.com';
+
+    try {
+      // 1. Create enrollment
+      await auth.enroll({ parentEmail: testEmail, language });
+    } catch { /* may already exist, continue */ }
+
+    try {
+      // 2. Approve it immediately
+      await auth.simulateApprove({ parentEmail: testEmail });
+    } catch { /* ignore */ }
+
+    // 3. Store email
+    await AsyncStorage.setItem('pendingParentEmail', testEmail);
+
+    // 4. Populate store with defaults
+    store.setChildName('Timmy');
+    store.setAge('9–10');
+    store.setGender('boy');
+    store.setLanguage(language);
+    store.setInterests(['animals', 'reading', 'drawing']);
+    store.setPersonalityTraits(['curious', 'creative']);
+    store.setMascotId('miga');
+    store.setAvatarStyle('human');
+    store.setHumanFaceStyle('classic');
+    store.setAvatarBackground('#E8F5E9');
+    store.setAvatarPack('toon-town');
+    store.setSpecialNeeds(false);
+    store.setSpecialNeedsDetails([]);
+    store.setPreReader(false);
+
+    // 5. Navigate
+    router.replace('/onboarding/allset');
   };
 
   return (
@@ -330,6 +368,18 @@ export default function EnrollScreen() {
                 style={{ marginTop: 16 }}
               >
                 <Text style={{ color: '#BDBDBD', fontSize: 11 }}>Skip to celebration (dev only)</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Dev-only quick test */}
+            {__DEV__ && (
+              <TouchableOpacity
+                onPress={() => void quickTestOnboarding()}
+                style={{ marginTop: 8 }}
+              >
+                <Text style={{ color: '#7F77DD', fontSize: 11, fontWeight: '600' }}>
+                  ⚡ Quick test (skip onboarding)
+                </Text>
               </TouchableOpacity>
             )}
 

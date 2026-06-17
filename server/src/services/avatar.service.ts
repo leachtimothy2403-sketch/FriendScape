@@ -100,7 +100,7 @@ export async function cartoonifyPhoto(base64DataUri: string): Promise<string> {
         },
         {
           type: 'text',
-          text: `Describe this person's appearance for a cartoon avatar. Return ONLY a comma-separated list of traits, nothing else. Include: hair color, hair length/style, eye color, skin tone, face shape, any glasses or accessories visible. Example output: brown medium-length wavy hair, green eyes, light skin tone, round face, no glasses. Keep it under 30 words total.`,
+          text: 'Describe this person for a cartoon avatar. Return ONLY a comma-separated trait list under 25 words. Include ONLY what you can clearly see: hair color, hair length (short/medium/long), hair style, eye color, skin tone. Only mention glasses if they are very clearly and obviously visible. Example output: long straight brown hair, brown eyes, light skin tone',
         },
       ],
     }],
@@ -117,7 +117,7 @@ export async function cartoonifyPhoto(base64DataUri: string): Promise<string> {
   const result = await fal.subscribe('fal-ai/flux/schnell', {
     input: {
       prompt,
-      negative_prompt: 'adult, teenager, realistic photo, old, wrinkles, text, watermark, sad, angry',
+      negative_prompt: 'glasses, spectacles, adult, teenager, realistic photo, old, wrinkles, text, watermark, sad, angry',
       image_size: 'square_hd',
       num_inference_steps: 4,
       num_images: 1,

@@ -347,7 +347,7 @@ export default function PhotoScreen() {
                   }
                 })();
               }
-              if (mode !== 'builder') {
+              if (true) {
                 setAvatarConfig(DEFAULT_AVATAR);
                 const humanBg: Record<string, string> = {
                   princess:  '#FFD6E7',

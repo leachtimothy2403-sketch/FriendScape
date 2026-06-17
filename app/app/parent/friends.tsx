@@ -24,6 +24,7 @@ interface Friend {
 const LEVEL_LABELS = ['', 'Acquaintance', 'Friend', 'Good Friend', 'Best Friend', 'BFF'];
 
 function FriendRow({ item }: { item: Friend }) {
+  const { t } = useTranslation();
   return (
     <View style={s.card}>
       <View style={s.avatar}>

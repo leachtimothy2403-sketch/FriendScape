@@ -481,20 +481,24 @@ export function selectVoiceId(
   language: string,
   personality: string[],
 ): string {
+  const genderLower = gender.toLowerCase();
+
   if (language === 'fr') {
-    return gender === 'boy' || gender === 'male' ? VOICE.daniel : VOICE.alice;
+    return genderLower === 'boy' || genderLower === 'male' || genderLower === 'garçon'
+      ? VOICE.daniel : VOICE.alice;
   }
 
   const isEnergetic  = personality.some((p) => ['outgoing', 'funny', 'chatty', 'energetic and upbeat'].includes(p));
   const isTheatrical = personality.some((p) => ['creative', 'theatrical', 'theatrical and expressive'].includes(p));
   const isCalm       = personality.some((p) => ['quiet_listener', 'thoughtful', 'gentle', 'calm'].includes(p));
 
-  if (gender === 'girl' || gender === 'female' || gender === 'other') {
+  if (genderLower === 'girl' || genderLower === 'female' || genderLower === 'fille') {
     if (isTheatrical) return VOICE.charlotte;
     if (isEnergetic)  return VOICE.dorothy;
     return VOICE.bella;
   }
 
+  // boy/male/other → male voices
   if (isEnergetic) return VOICE.arnold;
   if (isCalm)      return VOICE.antoni;
   return VOICE.adam;

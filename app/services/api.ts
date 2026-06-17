@@ -57,6 +57,7 @@ export const children = {
       name: string;
       mascotId: string;
       assignedFriends: { id: string; name: string; coverEmojis: string; introMessage: string }[];
+      avatarUrl?: string | null;
     }>('/children/onboarding', data, { timeout: 120000 }),
 };
 

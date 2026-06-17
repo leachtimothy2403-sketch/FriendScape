@@ -1,8 +1,8 @@
-import { Modal, View, Text, TouchableOpacity, Dimensions, StyleSheet } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import AudioPlayer from '@/components/AudioPlayer';
 import { TourStep } from '@/constants/tourSteps';
-
-const { width: SW, height: SH } = Dimensions.get('window');
 
 interface Props {
   steps: TourStep[];
@@ -15,100 +15,71 @@ interface Props {
 }
 
 export default function TourOverlay({ steps, currentStep, onNext, onSkip, mascotEmoji, mascotId, language }: Props) {
-  const step = steps[currentStep];
-  if (!step || step.spotlight.width === 0) return null;
+  const [childToken, setChildToken] = useState<string | null>(null);
+  useEffect(() => {
+    AsyncStorage.getItem('childToken').then(t => { if (t) setChildToken(t); });
+  }, []);
 
-  const { spotlight } = step;
+  void childToken; // warm AsyncStorage before AudioPlayer fires
+
+  const step = steps[currentStep];
+  if (!step) return null;
   const text = language === 'fr' ? step.textFr : step.text;
 
-  const bubbleMaxW = 280;
-  const bubbleLeft = Math.max(16, Math.min(spotlight.x - 40, SW - 296));
-
-  let bubbleStyle: { top?: number; bottom?: number };
-  if (step.position === 'bottom') {
-    const top = spotlight.y + spotlight.height + 12;
-    bubbleStyle = top > SH - 200
-      ? { bottom: SH - spotlight.y + 12 }
-      : { top };
-  } else {
-    const bottom = SH - spotlight.y + 12;
-    bubbleStyle = bottom > SH - 100
-      ? { top: spotlight.y + spotlight.height + 12 }
-      : { bottom };
-  }
-
   return (
-    <Modal visible transparent animationType="fade">
-      <View style={StyleSheet.absoluteFill}>
-        {/* 4 dark strips leaving a hole at spotlight */}
-        <View style={[s.strip, { top: 0, left: 0, right: 0, height: spotlight.y }]} />
-        <View style={[s.strip, { top: spotlight.y + spotlight.height, left: 0, right: 0, bottom: 0 }]} />
-        <View style={[s.strip, { top: spotlight.y, left: 0, width: spotlight.x, height: spotlight.height }]} />
-        <View style={[s.strip, { top: spotlight.y, left: spotlight.x + spotlight.width, right: 0, height: spotlight.height }]} />
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      {/* Dark overlay — tap to advance */}
+      <TouchableOpacity
+        style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
+        activeOpacity={1}
+        onPress={onNext}
+      />
 
-        {/* Spotlight border highlight */}
-        <View style={{
-          position: 'absolute',
-          top: spotlight.y,
-          left: spotlight.x,
-          width: spotlight.width,
-          height: spotlight.height,
-          borderRadius: spotlight.shape === 'circle' ? spotlight.width / 2 : 16,
-          borderWidth: 3,
-          borderColor: 'rgba(255,255,255,0.7)',
-        }} />
-
-        {/* Speech bubble */}
-        <View style={[s.bubble, { ...bubbleStyle, left: bubbleLeft, width: bubbleMaxW }]}>
-          <View style={s.bubbleRow}>
-            <Text style={{ fontSize: 32 }}>{mascotEmoji}</Text>
-            <Text style={s.bubbleText}>{text}</Text>
-          </View>
-          <View style={s.bubbleActions}>
-            <AudioPlayer text={text} characterId={mascotId} size="sm" />
-            <TouchableOpacity onPress={onNext} style={s.nextBtn}>
-              <Text style={s.nextBtnText}>
-                {language === 'fr' ? 'Suivant →' : 'Next →'}
-              </Text>
-            </TouchableOpacity>
-          </View>
+      {/* Speech bubble — always bottom center */}
+      <View style={s.bubble}>
+        <View style={s.bubbleRow}>
+          <Text style={{ fontSize: 36 }}>{mascotEmoji}</Text>
+          <Text style={s.bubbleText}>{text}</Text>
         </View>
-
-        {/* Step counter dots */}
-        <View style={s.dots}>
-          {steps.map((_, i) => (
-            <View
-              key={i}
-              style={[s.dot, i === currentStep ? s.dotFilled : s.dotOutline]}
-            />
-          ))}
+        <View style={s.bubbleActions}>
+          <AudioPlayer text={text} characterId={mascotId} size="sm" />
+          <TouchableOpacity onPress={onNext} style={s.nextBtn}>
+            <Text style={s.nextBtnText}>
+              {language === 'fr' ? 'Suivant →' : 'Next →'}
+            </Text>
+          </TouchableOpacity>
         </View>
-
-        {/* Skip button */}
-        <TouchableOpacity onPress={onSkip} style={s.skipBtn}>
-          <Text style={s.skipText}>
-            {language === 'fr' ? 'Passer' : 'Skip'}
-          </Text>
-        </TouchableOpacity>
       </View>
-    </Modal>
+
+      {/* Step dots */}
+      <View style={s.dots}>
+        {steps.map((_, i) => (
+          <View key={i} style={[s.dot, i === currentStep ? s.dotFilled : s.dotOutline]} />
+        ))}
+      </View>
+
+      {/* Skip */}
+      <TouchableOpacity onPress={onSkip} style={s.skipBtn}>
+        <Text style={s.skipText}>{language === 'fr' ? 'Passer' : 'Skip'}</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  strip:        { position: 'absolute', backgroundColor: 'rgba(0,0,0,0.65)' },
-  bubble:       { position: 'absolute', backgroundColor: '#fff', borderRadius: 16, padding: 16,
-                  shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 12, elevation: 8 },
-  bubbleRow:    { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  bubbleText:   { flex: 1, fontSize: 15, color: '#2C2C2A', lineHeight: 22 },
-  bubbleActions:{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  nextBtn:      { backgroundColor: '#7F77DD', borderRadius: 9999, paddingHorizontal: 16, paddingVertical: 8 },
-  nextBtnText:  { color: '#fff', fontWeight: '700', fontSize: 14 },
-  dots:         { position: 'absolute', bottom: 90, left: 0, right: 0,
-                  flexDirection: 'row', justifyContent: 'center', gap: 8 },
-  dot:          { width: 8, height: 8, borderRadius: 4 },
-  dotFilled:    { backgroundColor: '#7F77DD' },
-  dotOutline:   { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: '#7F77DD' },
-  skipBtn:      { position: 'absolute', top: 52, right: 20 },
-  skipText:     { color: '#fff', fontSize: 14, fontWeight: '600' },
+  bubble:        { position: 'absolute', bottom: 100, left: 16, right: 16,
+                   backgroundColor: '#fff', borderRadius: 20, padding: 20,
+                   shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 16, elevation: 10 },
+  bubbleRow:     { flexDirection: 'row', gap: 12, marginBottom: 16, alignItems: 'flex-start' },
+  bubbleText:    { flex: 1, fontSize: 16, color: '#2C2C2A', lineHeight: 23 },
+  bubbleActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  nextBtn:       { backgroundColor: '#7F77DD', borderRadius: 9999, paddingHorizontal: 20, paddingVertical: 10 },
+  nextBtnText:   { color: '#fff', fontWeight: '700', fontSize: 15 },
+  dots:          { position: 'absolute', bottom: 60, left: 0, right: 0,
+                   flexDirection: 'row', justifyContent: 'center', gap: 8 },
+  dot:           { width: 8, height: 8, borderRadius: 4 },
+  dotFilled:     { backgroundColor: '#7F77DD' },
+  dotOutline:    { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: '#7F77DD' },
+  skipBtn:       { position: 'absolute', top: 52, right: 20 },
+  skipText:      { color: '#fff', fontSize: 14, fontWeight: '600' },
 });
