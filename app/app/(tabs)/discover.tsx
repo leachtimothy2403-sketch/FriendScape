@@ -9,8 +9,10 @@ import { useTranslation } from 'react-i18next';
 import {
   friends as allFriendsApi,
   myFriendsApi, friendNetwork, childProfileApi,
+  mascotAvatars,
   MyChildFriend, AiFriendRecord, FriendWithRelationship,
 } from '@/services/api';
+import { useLanguageStore } from '@/store/languageStore';
 import { Colors } from '@/constants/theme';
 import MigoLogo from '@/components/MigoLogo';
 
@@ -24,6 +26,83 @@ const COVER_COLOR: Record<string, string> = {
 };
 
 function firstEmoji(str: string | null | undefined) { return str ? ([...str][0] ?? '🌟') : '🌟'; }
+
+const MASCOT_NAMES: Record<string, string> = {
+  miga: 'Miga', pixel: 'Pixel', finn: 'Finn', sage: 'Sage',
+};
+
+const EN_TIPS = [
+  "Ask me anything about Migo — I'm here to help! 🐉",
+  "Got feedback for the team? Tell me and I'll pass it on! 💌",
+  "Something not working? Let me know! 🔧",
+  "I'm your guide on Migo — tap to chat with me anytime! ✨",
+];
+const FR_TIPS = [
+  "Pose-moi toutes tes questions sur Migo — je suis là ! 🐉",
+  "Tu as des idées pour améliorer l'appli ? Dis-le moi ! 💌",
+  "Quelque chose ne marche pas ? Parle-moi ! 🔧",
+  "Je suis ton guide sur Migo — appuie pour me parler ! ✨",
+];
+
+function MigaCard() {
+  const language = useLanguageStore((s) => s.language);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [mascotId, setMascotId]   = useState('miga');
+  const [tip, setTip]             = useState('');
+
+  useEffect(() => {
+    const tips = language === 'fr' ? FR_TIPS : EN_TIPS;
+    setTip(tips[Math.floor(Math.random() * tips.length)]);
+
+    async function loadMascot() {
+      const profileRaw = await AsyncStorage.getItem('childProfile');
+      let id = 'miga';
+      if (profileRaw) {
+        try { id = (JSON.parse(profileRaw).mascotId || 'miga').toLowerCase(); } catch {}
+      }
+      setMascotId(id);
+
+      try {
+        const res = await mascotAvatars.get();
+        const url = res.data.mascots[id];
+        if (url) setAvatarUrl(url);
+      } catch {}
+    }
+    void loadMascot();
+  }, [language]);
+
+  const name = MASCOT_NAMES[mascotId] ?? 'Miga';
+
+  return (
+    <TouchableOpacity
+      onPress={() => router.push('/mascot-dm' as never)}
+      activeOpacity={0.9}
+      style={s.migaCard}
+    >
+      <View style={s.migaAvatarWrap}>
+        {avatarUrl
+          ? <Image source={{ uri: avatarUrl }} style={{ width: 56, height: 56, borderRadius: 28 }} />
+          : <Text style={{ fontSize: 32 }}>🐉</Text>
+        }
+      </View>
+      <View style={{ flex: 1, marginLeft: 12 }}>
+        <Text style={s.migaTitle}>
+          {language === 'fr' ? `Chatte avec ${name}` : `Chat with ${name}`}
+          {' 🐉'}
+        </Text>
+        <Text style={s.migaTip} numberOfLines={2}>{tip}</Text>
+      </View>
+      <TouchableOpacity
+        style={s.migaBtn}
+        onPress={() => router.push('/mascot-dm' as never)}
+      >
+        <Text style={s.migaBtnText}>
+          {language === 'fr' ? 'Écrire →' : 'Chat →'}
+        </Text>
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+}
 
 // ── My friends horizontal card ─────────────────────────────────────────────────
 function MyFriendBubble({ friend }: { friend: MyChildFriend }) {
@@ -296,6 +375,9 @@ export default function DiscoverScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
 
+        {/* Mascot chat card */}
+        <MigaCard />
+
         {/* My friends */}
         {displayedFriends.length > 0 && (
           <View style={s.section}>
@@ -406,6 +488,27 @@ const s = StyleSheet.create({
 
   emptyState: { alignItems: 'center', paddingVertical: 40 },
   emptyText:  { fontSize: 14, color: Colors.gray[400], textAlign: 'center' },
+
+  // Miga mascot card
+  migaCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#7F77DD',
+    borderRadius: 20, padding: 16, marginBottom: 14,
+    shadowColor: '#534AB7', shadowOpacity: 0.25, shadowRadius: 8, elevation: 4,
+  },
+  migaAvatarWrap: {
+    width: 60, height: 60, borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  migaTitle:   { fontSize: 15, fontWeight: '800', color: '#fff', marginBottom: 4 },
+  migaTip:     { fontSize: 12, color: 'rgba(255,255,255,0.85)', lineHeight: 17 },
+  migaBtn: {
+    backgroundColor: '#534AB7', borderRadius: 99,
+    paddingHorizontal: 12, paddingVertical: 8,
+    alignItems: 'center', marginLeft: 8,
+  },
+  migaBtnText: { fontSize: 12, color: '#fff', fontWeight: '800' },
 
   // Ms. Luna card
   lunaCard: {

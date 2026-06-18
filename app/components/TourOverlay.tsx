@@ -28,21 +28,21 @@ export default function TourOverlay({ steps, currentStep, onNext, onSkip, mascot
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      {/* Dark overlay — tap to advance */}
+      {/* Full screen tap catcher — behind bubble */}
       <TouchableOpacity
-        style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
+        style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1 }]}
         activeOpacity={1}
         onPress={onNext}
       />
 
-      {/* Speech bubble — always bottom center */}
-      <View style={s.bubble}>
+      {/* Speech bubble — above tap catcher, receives its own taps */}
+      <View style={[s.bubble, { zIndex: 10 }]}>
         <View style={s.bubbleRow}>
           <Text style={{ fontSize: 36 }}>{mascotEmoji}</Text>
           <Text style={s.bubbleText}>{text}</Text>
         </View>
         <View style={s.bubbleActions}>
-          <AudioPlayer text={text} characterId={mascotId} size="sm" />
+          {mascotId.length > 0 && <AudioPlayer text={text} characterId={mascotId} size="sm" />}
           <TouchableOpacity onPress={onNext} style={s.nextBtn}>
             <Text style={s.nextBtnText}>
               {language === 'fr' ? 'Suivant →' : 'Next →'}
@@ -51,15 +51,15 @@ export default function TourOverlay({ steps, currentStep, onNext, onSkip, mascot
         </View>
       </View>
 
-      {/* Step dots */}
-      <View style={s.dots}>
+      {/* Step dots — above tap catcher */}
+      <View style={[s.dots, { zIndex: 10 }]}>
         {steps.map((_, i) => (
           <View key={i} style={[s.dot, i === currentStep ? s.dotFilled : s.dotOutline]} />
         ))}
       </View>
 
-      {/* Skip */}
-      <TouchableOpacity onPress={onSkip} style={s.skipBtn}>
+      {/* Skip — above tap catcher */}
+      <TouchableOpacity onPress={onSkip} style={[s.skipBtn, { zIndex: 10 }]}>
         <Text style={s.skipText}>{language === 'fr' ? 'Passer' : 'Skip'}</Text>
       </TouchableOpacity>
     </View>

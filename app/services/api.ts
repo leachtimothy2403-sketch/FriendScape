@@ -378,6 +378,16 @@ export const devApi = {
   }>('/auth/dev-reset', {}, { timeout: 5000 }),
 };
 
+export const mascotAvatars = {
+  get: () => api.get<{ mascots: Record<string, string> }>('/avatar/mascots'),
+  generate: () => api.post<{ mascots: Record<string, string> }>('/avatar/mascots/generate', {}),
+};
+
+export const mascotApi = {
+  sendMessage: (token: string, content: string) =>
+    api.post<{ reply: string; mode: 'help' | 'feedback' | 'friend' }>('/messages/mascot', { content }, withToken(token)),
+};
+
 export const gameApi = {
   start: (token: string, friendId: string, gameType: 'rps' | 'tictactoe' | 'story') =>
     api.post<{ message: unknown; gameState: Record<string, unknown> }>(

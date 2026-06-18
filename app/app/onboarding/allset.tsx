@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, Image } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle,
   withRepeat, withSequence, withTiming, withDelay, Easing,
@@ -8,7 +8,7 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
-import { children as childrenApi, childAuth } from '@/services/api';
+import { children as childrenApi, childAuth, mascotAvatars as mascotAvatarApi } from '@/services/api';
 import EmojiAvatar from '@/components/EmojiAvatar';
 import { useOnboardingStore } from '@/store/onboardingStore';
 
@@ -90,6 +90,7 @@ export default function AllSetScreen() {
   const [status, setStatus]               = useState<Status>('loading');
   const [errorMsg, setErrorMsg]           = useState('');
   const [assignedFriends, setAssignedFriends] = useState<AssignedFriend[]>([]);
+  const [mascotAvatarUrl, setMascotAvatarUrl] = useState<string | null>(null);
 
   const floatY     = useSharedValue(0);
   const celebScale = useSharedValue(0);
@@ -119,6 +120,13 @@ export default function AllSetScreen() {
     _createChildStarted = true;
     void createChild();
   }, []);
+
+  useEffect(() => {
+    mascotAvatarApi.get().then(res => {
+      const url = res.data.mascots[store.mascotId];
+      if (url) setMascotAvatarUrl(url);
+    }).catch(() => {});
+  }, [store.mascotId]);
 
   useEffect(() => {
     if (status === 'success') {
@@ -220,9 +228,15 @@ export default function AllSetScreen() {
       <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F7FF' }}>
         <StatusBar style="dark" />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
-          <Animated.Text style={[{ fontSize: 80, marginBottom: 32 }, floatStyle]}>
-            {mascot.emoji}
-          </Animated.Text>
+          {mascotAvatarUrl
+            ? <Animated.Image
+                source={{ uri: mascotAvatarUrl }}
+                style={[{ width: 100, height: 100, borderRadius: 50, marginBottom: 32 }, floatStyle]}
+              />
+            : <Animated.Text style={[{ fontSize: 80, marginBottom: 32 }, floatStyle]}>
+                {mascot.emoji}
+              </Animated.Text>
+          }
           <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#2C2C2A', textAlign: 'center', marginBottom: 24 }}>
             {t('onboarding.allset.settingUp')}
           </Text>

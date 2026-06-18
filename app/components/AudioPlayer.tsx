@@ -64,6 +64,9 @@ export default function AudioPlayer({ text, characterId, messageId, size = 'sm' 
   const dim = size === 'sm' ? 32 : 40;
 
   async function handlePress() {
+    console.log('[audio] handlePress fired, state:', state);
+    console.log('[audio] characterId:', characterId, 'text length:', text.length);
+
     if (state === 'playing') {
       await soundRef.current?.stopAsync();
       setState('idle');
@@ -80,6 +83,8 @@ export default function AudioPlayer({ text, characterId, messageId, size = 'sm' 
         const token = await AsyncStorage.getItem('childToken');
         const normalised = nameToCharacterId(characterId);
 
+        console.log('[audio] calling /audio/generate with characterId:', normalised);
+
         const res = await api.post<{ audioUrl: string }>(
           '/audio/generate',
           { text, characterId: normalised, language, messageId },
@@ -90,8 +95,10 @@ export default function AudioPlayer({ text, characterId, messageId, size = 'sm' 
           ? res.data.audioUrl
           : `${api.defaults.baseURL ?? ''}${res.data.audioUrl}`;
 
+        console.log('[audio] got audioUrl:', url);
         setAudioUrl(url);
-      } catch {
+      } catch (err) {
+        console.error('[audio] error:', err);
         setState('idle');
         return;
       }

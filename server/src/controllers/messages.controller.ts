@@ -9,13 +9,19 @@ import {
   generateRPSMove,
   generateTicTacToeMove,
   generateStoryContribution,
+  generateMascotReply,
   checkTTTBoard,
   checkMood,
   buildMemoryBrief,
   type TutorReply,
   type FriendReplyResult,
+  type Mascot as AIMascot,
+  type MascotName,
+  type MascotMessageType,
 } from '../services/ai.service';
 import { toChildType, toFriendType, toMemoryType } from '../utils/db-mappers';
+import { findOrCreateMascotId } from '../services/migaDM';
+import { sendFeedbackEmail } from '../services/email.service';
 import type { Child } from '../../../shared/types';
 
 async function callClaudeWithRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
@@ -610,6 +616,98 @@ export async function getUnreadMessages(req: AuthRequest, res: Response) {
   } catch (err) {
     console.error('[messages] getUnreadMessages error:', err);
     res.status(500).json({ error: 'Failed to fetch unread messages' });
+  }
+}
+
+// ─── POST /api/messages/mascot ─────────────────────────────────────────────────
+// Requires FEEDBACK_EMAIL in server/.env
+export async function mascotMessage(req: AuthRequest, res: Response) {
+  const childId = req.childId;
+  if (!childId) { res.status(401).json({ error: 'Child authentication required' }); return; }
+
+  const { content } = req.body as { content?: string };
+  if (!content?.trim()) { res.status(400).json({ error: 'content is required' }); return; }
+
+  try {
+    const childRow = await db('children').where({ id: childId }).first();
+    if (!childRow) { res.status(404).json({ error: 'Child not found' }); return; }
+
+    const child = toChildType(childRow);
+    const lang = (childRow.language as string) || 'en';
+    const rawMascot = String(childRow.mascot || 'miga').toLowerCase();
+
+    const lower = content.toLowerCase();
+    const feedbackKeywords = ['bug', 'broken', 'feedback', 'marche pas', 'problème', 'issue', 'report', "doesn't work"];
+    const helpKeywords     = ['how', 'comment', 'where', 'où', 'aide', 'help', 'what is', "qu'est-ce"];
+
+    const hasFeedbackKw = feedbackKeywords.some(k => lower.includes(k));
+    const hasHelpKw     = helpKeywords.some(k => lower.includes(k));
+
+    let mode: 'help' | 'feedback' | 'friend';
+    if (hasFeedbackKw && content.trim().length >= 30) {
+      mode = 'feedback';
+    } else if (hasFeedbackKw && content.trim().length < 30) {
+      mode = 'friend'; // intent only — Miga asks for more detail
+    } else if (hasHelpKw) {
+      mode = 'help';
+    } else {
+      mode = 'friend';
+    }
+
+    const messageType: MascotMessageType = mode === 'help' ? 'help' : 'general';
+    const mascotName = (rawMascot.charAt(0).toUpperCase() + rawMascot.slice(1)) as MascotName;
+    const validNames: MascotName[] = ['Miga', 'Pixel', 'Finn', 'Sage'];
+    const mascot: AIMascot = { name: validNames.includes(mascotName) ? mascotName : 'Miga' };
+
+    const result = await generateMascotReply(mascot, child, content.trim(), messageType, lang);
+
+    if (mode === 'feedback') {
+      const feedbackEmail = process.env.FEEDBACK_EMAIL;
+      if (feedbackEmail) {
+        const userRow = await db('users').where({ id: childRow.parent_id }).first().catch(() => null);
+        const parentEmail = String(userRow?.email || '');
+        sendFeedbackEmail({
+          to:            feedbackEmail,
+          childName:     child.name,
+          childAge:      child.age,
+          childLanguage: lang,
+          parentEmail,
+          childId,
+          message:       content.trim(),
+          timestamp:     new Date().toISOString(),
+        }).catch(console.error);
+      }
+    }
+
+    const mascotId = await findOrCreateMascotId(rawMascot);
+
+    let conversation = await db('conversations')
+      .where({ child_id: childId, friend_id: mascotId })
+      .first();
+    if (!conversation) {
+      [conversation] = await db('conversations')
+        .insert({ child_id: childId, friend_id: mascotId })
+        .returning('*');
+    }
+
+    await db('messages').insert({
+      conversation_id: String(conversation.id),
+      sender_id:       childId,
+      sender_type:     'child',
+      content:         content.trim(),
+    });
+    await db('messages').insert({
+      conversation_id: String(conversation.id),
+      sender_id:       mascotId,
+      sender_type:     'ai',
+      content:         result.text,
+    });
+    await db('conversations').where({ id: String(conversation.id) }).update({ updated_at: new Date() });
+
+    res.json({ reply: result.text, mode });
+  } catch (err) {
+    console.error('[messages] mascotMessage error:', err);
+    res.status(500).json({ error: 'Mascot reply failed' });
   }
 }
 

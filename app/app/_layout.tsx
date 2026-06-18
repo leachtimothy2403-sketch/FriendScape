@@ -33,6 +33,10 @@ export default function RootLayout() {
           options={{ animation: 'slide_from_right' }}
         />
         <Stack.Screen
+          name="mascot-dm"
+          options={{ headerShown: false, animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
           name="notifications"
           options={{ animation: 'slide_from_right' }}
         />

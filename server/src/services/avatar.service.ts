@@ -131,3 +131,32 @@ export async function cartoonifyPhoto(base64DataUri: string): Promise<string> {
   console.log('[avatar] cartoon URL:', url);
   return url;
 }
+
+const MASCOT_PROMPTS: Record<string, string> = {
+  miga: 'Pixar cartoon portrait of an adorable small friendly dragon with sparkly purple and gold scales, big warm expressive eyes, small cute wings, warm happy smile, plain light background, centered, children\'s illustration style, vibrant colors',
+  pixel: 'Pixar cartoon portrait of a friendly small robot with big round glowing blue eyes, silver and blue body, warm happy smile, small antenna, plain light background, centered, children\'s illustration style, vibrant colors',
+  finn: 'Pixar cartoon portrait of a clever friendly fox cub with bright amber eyes, fluffy orange fur, white chest, playful smile, plain light background, centered, children\'s illustration style, vibrant colors',
+  sage: 'Pixar cartoon portrait of a wise friendly owl with large warm golden eyes, soft brown and cream feathers, gentle kind smile, plain light background, centered, children\'s illustration style, vibrant colors',
+};
+
+export async function generateMascotAvatar(mascotId: string): Promise<string> {
+  const prompt = MASCOT_PROMPTS[mascotId];
+  if (!prompt) throw new Error(`Unknown mascot: ${mascotId}`);
+
+  const result = await fal.subscribe('fal-ai/flux/schnell', {
+    input: {
+      prompt,
+      negative_prompt: 'realistic, photo, adult, scary, dark, text, watermark',
+      image_size: 'square_hd',
+      num_inference_steps: 4,
+      num_images: 1,
+    } as never,
+    pollInterval: 500,
+  });
+
+  const r = result as unknown as { data: { images: Array<{ url: string }> } };
+  const url = r.data?.images?.[0]?.url;
+  if (!url) throw new Error('No image in fal mascot response');
+  console.log(`[avatar] mascot ${mascotId} URL:`, url);
+  return url;
+}

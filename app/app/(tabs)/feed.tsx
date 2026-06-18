@@ -128,55 +128,59 @@ export default function FeedScreen() {
   const pathnameRef = useRef(pathname);
   useEffect(() => { pathnameRef.current = pathname; }, [pathname]);
 
-  const mascotId    = useOnboardingStore((s) => s.mascotId);
   const resetStore  = useOnboardingStore((s) => s.resetStore);
-
-  const mascotEmoji = Mascots[mascotId]?.emoji  || '🌟';
+  const [mascotId,    setMascotId]    = useState('miga');
+  const [mascotEmoji, setMascotEmoji] = useState('🧚');
   const { language } = useLanguageStore();
   const setTourStepId = useTourStore(s => s.setTourStepId);
   const tourStepId    = useTourStore(s => s.tourStepId);
-  const friendsPulse   = useRef(new Animated.Value(1)).current;
+  const friendsPulse    = useRef(new Animated.Value(1)).current;
   const postButtonPulse = useRef(new Animated.Value(1)).current;
   const friendPostPulse = useRef(new Animated.Value(1)).current;
+  const audioButtonPulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    friendsPulse.setValue(1.0);
+    postButtonPulse.setValue(1.0);
+    friendPostPulse.setValue(1.0);
+    audioButtonPulse.setValue(1.0);
+
+    let anim: Animated.CompositeAnimation | null = null;
+
     if (tourStepId === 'friends_row') {
-      const anim = Animated.loop(Animated.sequence([
+      anim = Animated.loop(Animated.sequence([
         Animated.timing(friendsPulse, { toValue: 1.08, duration: 400, useNativeDriver: true }),
         Animated.timing(friendsPulse, { toValue: 1.0,  duration: 400, useNativeDriver: true }),
       ]));
-      anim.start();
-      return () => anim.stop();
-    } else {
-      friendsPulse.setValue(1.0);
-    }
-  }, [tourStepId, friendsPulse]);
-
-  useEffect(() => {
-    if (tourStepId === 'post_button') {
-      const anim = Animated.loop(Animated.sequence([
+    } else if (tourStepId === 'dm_hint') {
+      anim = Animated.loop(Animated.sequence([
+        Animated.timing(friendsPulse,    { toValue: 1.08, duration: 350, useNativeDriver: true }),
+        Animated.timing(friendsPulse,    { toValue: 1.0,  duration: 350, useNativeDriver: true }),
+        Animated.delay(150),
+        Animated.timing(postButtonPulse, { toValue: 1.06, duration: 350, useNativeDriver: true }),
+        Animated.timing(postButtonPulse, { toValue: 1.0,  duration: 350, useNativeDriver: true }),
+        Animated.delay(150),
+      ]));
+    } else if (tourStepId === 'post_button') {
+      anim = Animated.loop(Animated.sequence([
         Animated.timing(postButtonPulse, { toValue: 1.06, duration: 400, useNativeDriver: true }),
         Animated.timing(postButtonPulse, { toValue: 1.0,  duration: 400, useNativeDriver: true }),
       ]));
-      anim.start();
-      return () => anim.stop();
-    } else {
-      postButtonPulse.setValue(1.0);
-    }
-  }, [tourStepId, postButtonPulse]);
-
-  useEffect(() => {
-    if (tourStepId === 'friend_post') {
-      const anim = Animated.loop(Animated.sequence([
-        Animated.timing(friendPostPulse, { toValue: 1.04, duration: 500, useNativeDriver: true }),
+    } else if (tourStepId === 'friend_post') {
+      anim = Animated.loop(Animated.sequence([
+        Animated.timing(friendPostPulse, { toValue: 1.02, duration: 500, useNativeDriver: true }),
         Animated.timing(friendPostPulse, { toValue: 1.0,  duration: 500, useNativeDriver: true }),
       ]));
-      anim.start();
-      return () => anim.stop();
-    } else {
-      friendPostPulse.setValue(1.0);
+    } else if (tourStepId === 'audio_button') {
+      anim = Animated.loop(Animated.sequence([
+        Animated.timing(audioButtonPulse, { toValue: 1.4, duration: 300, useNativeDriver: true }),
+        Animated.timing(audioButtonPulse, { toValue: 1.0, duration: 300, useNativeDriver: true }),
+      ]));
     }
-  }, [tourStepId, friendPostPulse]);
+
+    if (anim) anim.start();
+    return () => { anim?.stop(); };
+  }, [tourStepId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -204,14 +208,23 @@ export default function FeedScreen() {
         childSession.start(token).catch(() => {});
         console.log('[feed] generating posts...');
 
-        const [storedEmoji, storedBg, storedAvatarUrl] = await Promise.all([
+        const [storedEmoji, storedBg, storedAvatarUrl, storedProfile] = await Promise.all([
           AsyncStorage.getItem('childEmoji'),
           AsyncStorage.getItem('avatarBackground'),
           AsyncStorage.getItem('childAvatarUrl'),
+          AsyncStorage.getItem('childProfile'),
         ]);
         if (!cancelled) {
           if (storedEmoji) setChildEmoji(storedEmoji);
           setAvatarBackground(storedBg ?? '#EEEDFE');
+          if (storedProfile) {
+            try {
+              const p = JSON.parse(storedProfile) as { mascotId?: string };
+              const id = (p.mascotId || 'miga').toLowerCase();
+              setMascotId(id);
+              setMascotEmoji(Mascots[id]?.emoji || '🧚');
+            } catch {}
+          }
           if (storedAvatarUrl) {
             setChildAvatarUrl(storedAvatarUrl);
           } else {
@@ -544,17 +557,19 @@ export default function FeedScreen() {
   }
 
   const renderPost = useCallback(
-    ({ item }: { item: FeedPost }) => (
+    ({ item, index }: { item: FeedPost; index: number }) => (
       <PostCard
         post={item}
         avatarEmoji={childEmoji}
         childAvatarUrl={childAvatarUrl}
         onReact={(emoji) => void handleReact(item.id, emoji)}
         onSubmitComment={(text) => submitComment(item.id, text)}
+        audioButtonScale={item.author_type === 'ai' && index === 0 ? audioButtonPulse : undefined}
+        friendPostScale={index === 0 && item.author_type === 'ai' ? friendPostPulse : undefined}
         t={t}
       />
     ),
-    [childEmoji, childAvatarUrl, childToken, t],
+    [childEmoji, childAvatarUrl, childToken, t, audioButtonPulse, friendPostPulse],
   );
 
   const onViewableItemsChanged = useCallback(
@@ -608,7 +623,6 @@ export default function FeedScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.purple} />
           }
           ListHeaderComponent={
-            <Animated.View style={{ transform: [{ scale: friendPostPulse }] }}>
             <View>
               {storyFriends.length > 0 && (
                 <View ref={friendsRowRef}>
@@ -655,7 +669,6 @@ export default function FeedScreen() {
 
               <View ref={friendPostRef} />
             </View>
-            </Animated.View>
           }
           ListEmptyComponent={
             <View style={s.emptyState}>
@@ -737,13 +750,15 @@ export default function FeedScreen() {
 }
 
 function PostCard({
-  post, avatarEmoji, childAvatarUrl, onReact, onSubmitComment, t,
+  post, avatarEmoji, childAvatarUrl, onReact, onSubmitComment, audioButtonScale, friendPostScale, t,
 }: {
   post: FeedPost;
   avatarEmoji: string;
   childAvatarUrl: string | null;
   onReact: (emoji: string) => void;
   onSubmitComment: (text: string) => Promise<void>;
+  audioButtonScale?: Animated.Value;
+  friendPostScale?: Animated.Value;
   t: (key: string) => string;
 }) {
   const [showInput, setShowInput]       = useState(false);
@@ -767,6 +782,7 @@ function PostCard({
   const sceneChars = post.scene_emojis ? [...post.scene_emojis] : [];
 
   return (
+    <Animated.View style={friendPostScale ? { transform: [{ scale: friendPostScale }] } : undefined}>
     <View style={s.card}>
       <View style={s.cardHeader}>
         <View style={[s.friendAvatar, { backgroundColor: friendBg }]}>
@@ -790,14 +806,15 @@ function PostCard({
           <Text style={s.postTime}>{relativeTime(post.created_at)}</Text>
         </View>
 
-        {/* AudioPlayer replaces static speaker button for AI posts */}
         {!isOwn && post.friend_name ? (
-          <AudioPlayer
-            text={post.content}
-            characterId={post.friend_name}
-            messageId={post.id}
-            size="sm"
-          />
+          <Animated.View style={audioButtonScale ? { transform: [{ scale: audioButtonScale }] } : undefined}>
+            <AudioPlayer
+              text={post.content}
+              characterId={post.friend_name}
+              messageId={post.id}
+              size="sm"
+            />
+          </Animated.View>
         ) : (
           <View style={s.speakerBtn} />
         )}
@@ -897,6 +914,7 @@ function PostCard({
         </View>
       )}
     </View>
+    </Animated.View>
   );
 }
 

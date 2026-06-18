@@ -59,8 +59,8 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: 'dm_hint',
     spotlight: { x: 0, y: 0, width: 0, height: 0, shape: 'rect' },
-    text: "Tap a friend's bubble to send them a message! They can't wait to hear from you 💜",
-    textFr: "Appuie sur la bulle d'un ami pour lui envoyer un message ! Il t'attend 💜",
+    text: "Tap a friend's bubble to send them a message — or share your first post to let your friends know what you're up to! 💜",
+    textFr: "Appuie sur la bulle d'un ami pour lui envoyer un message — ou partage ton premier post pour dire à tes amis ce que tu fais ! 💜",
     position: 'bottom',
   },
 ];

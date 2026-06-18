@@ -81,6 +81,36 @@ export async function sendWeeklyReport(to: string, childName: string, reportHtml
   });
 }
 
+export interface FeedbackEmailData {
+  to: string;
+  childName: string;
+  childAge: number;
+  childLanguage: string;
+  parentEmail: string;
+  childId: string;
+  message: string;
+  timestamp: string;
+}
+
+export async function sendFeedbackEmail(data: FeedbackEmailData): Promise<void> {
+  await transporter.sendMail({
+    from: FROM,
+    to: data.to,
+    subject: `Migo Feedback — ${data.childName} (age ${data.childAge})`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
+        <h2 style="color:#7F77DD">Migo Feedback</h2>
+        <p><strong>Child:</strong> ${data.childName}, age ${data.childAge}, language: ${data.childLanguage}</p>
+        <p><strong>Parent email:</strong> ${data.parentEmail || '(unknown)'}</p>
+        <p><strong>Child ID:</strong> <code>${data.childId}</code></p>
+        <p><strong>Time:</strong> ${new Date(data.timestamp).toLocaleString()}</p>
+        <p><strong>Message:</strong></p>
+        <div style="background:#F8F7FF;border-radius:8px;padding:16px;color:#2C2C2A">${data.message}</div>
+      </div>
+    `,
+  });
+}
+
 export async function sendApprovalEmail(
   parentEmail: string,
   approvalToken: string,

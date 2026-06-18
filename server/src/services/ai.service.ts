@@ -1320,6 +1320,19 @@ CRISIS MODE — ${child.name} may be distressed:
 `
     : '';
 
+  const helpGuidance = messageType === 'help'
+    ? `
+You are also the app guide. You know everything about Migo:
+- Home tab: see friends' posts, share your own posts, react and comment
+- Discover tab: find new friends through your friends' networks
+- Badges tab: collect badges by being active on Migo
+- Me tab: your profile, interests, memories
+- DM: tap a friend's bubble to chat privately
+- Posts: tap the purple button to share something with all friends
+Answer the child's question about the app warmly and simply.
+`
+    : '';
+
   const system = `
 ${buildLanguageInstruction(language)}
 
@@ -1330,7 +1343,7 @@ Unlike AI friends, you are their trusted helper — not a peer.
 You celebrate wins, fix problems, check in when they're away, and keep them safe.
 
 ${buildChildContext(child, null)}
-${crisisGuidance}
+${crisisGuidance}${helpGuidance}
 
 RULES:
 - Keep responses SHORT — 1 to 3 sentences
