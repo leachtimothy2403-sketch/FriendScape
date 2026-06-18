@@ -5,8 +5,6 @@ import { useRef, useEffect } from 'react';
 import { Colors } from '@/constants/theme';
 import { useTourStore } from '@/store/tourStore';
 
-const HOME_STEP_IDS = new Set(['friends_row', 'audio_button', 'post_button', 'friend_post', 'dm_hint']);
-
 export default function TabsLayout() {
   const { t } = useTranslation();
   const tourStepId = useTourStore(s => s.tourStepId);
@@ -36,7 +34,7 @@ export default function TabsLayout() {
         options={{
           title: t('tabs.home'),
           tabBarIcon: ({ color }) => (
-            <AnimatedTabIcon emoji="🏡" color={color} pulsing={HOME_STEP_IDS.has(tourStepId ?? '')} />
+            <AnimatedTabIcon emoji="🏡" color={color} pulsing={false} />
           ),
         }}
       />
@@ -81,7 +79,6 @@ function AnimatedTabIcon({ emoji, color, pulsing }: { emoji: string; color: stri
           Animated.timing(scale, { toValue: 2.0, duration: 400, useNativeDriver: true }),
           Animated.timing(scale, { toValue: 1.0, duration: 400, useNativeDriver: true }),
         ]),
-        { iterations: 3 },
       );
       anim.start();
       return () => anim.stop();

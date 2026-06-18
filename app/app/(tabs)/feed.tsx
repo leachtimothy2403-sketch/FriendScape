@@ -135,21 +135,48 @@ export default function FeedScreen() {
   const { language } = useLanguageStore();
   const setTourStepId = useTourStore(s => s.setTourStepId);
   const tourStepId    = useTourStore(s => s.tourStepId);
-  const friendsPulse  = useRef(new Animated.Value(1)).current;
+  const friendsPulse   = useRef(new Animated.Value(1)).current;
+  const postButtonPulse = useRef(new Animated.Value(1)).current;
+  const friendPostPulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (tourStepId === 'friends_row') {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(friendsPulse, { toValue: 1.08, duration: 400, useNativeDriver: true }),
-          Animated.timing(friendsPulse, { toValue: 1.0,  duration: 400, useNativeDriver: true }),
-        ]),
-        { iterations: 4 },
-      ).start();
+      const anim = Animated.loop(Animated.sequence([
+        Animated.timing(friendsPulse, { toValue: 1.08, duration: 400, useNativeDriver: true }),
+        Animated.timing(friendsPulse, { toValue: 1.0,  duration: 400, useNativeDriver: true }),
+      ]));
+      anim.start();
+      return () => anim.stop();
     } else {
       friendsPulse.setValue(1.0);
     }
   }, [tourStepId, friendsPulse]);
+
+  useEffect(() => {
+    if (tourStepId === 'post_button') {
+      const anim = Animated.loop(Animated.sequence([
+        Animated.timing(postButtonPulse, { toValue: 1.06, duration: 400, useNativeDriver: true }),
+        Animated.timing(postButtonPulse, { toValue: 1.0,  duration: 400, useNativeDriver: true }),
+      ]));
+      anim.start();
+      return () => anim.stop();
+    } else {
+      postButtonPulse.setValue(1.0);
+    }
+  }, [tourStepId, postButtonPulse]);
+
+  useEffect(() => {
+    if (tourStepId === 'friend_post') {
+      const anim = Animated.loop(Animated.sequence([
+        Animated.timing(friendPostPulse, { toValue: 1.04, duration: 500, useNativeDriver: true }),
+        Animated.timing(friendPostPulse, { toValue: 1.0,  duration: 500, useNativeDriver: true }),
+      ]));
+      anim.start();
+      return () => anim.stop();
+    } else {
+      friendPostPulse.setValue(1.0);
+    }
+  }, [tourStepId, friendPostPulse]);
 
   useEffect(() => {
     let cancelled = false;
@@ -581,6 +608,7 @@ export default function FeedScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.purple} />
           }
           ListHeaderComponent={
+            <Animated.View style={{ transform: [{ scale: friendPostPulse }] }}>
             <View>
               {storyFriends.length > 0 && (
                 <View ref={friendsRowRef}>
@@ -614,17 +642,20 @@ export default function FeedScreen() {
 
               <View style={{ paddingHorizontal: 14, paddingBottom: 8 }}>
                 <View ref={postButtonRef}>
-                  <TouchableOpacity
-                    onPress={() => setShowNewPost(true)}
-                    style={s.newPostPill}
-                  >
-                    <Text style={s.newPostText}>{t('feed.newPost')}</Text>
-                  </TouchableOpacity>
+                  <Animated.View style={{ transform: [{ scale: postButtonPulse }] }}>
+                    <TouchableOpacity
+                      onPress={() => setShowNewPost(true)}
+                      style={s.newPostPill}
+                    >
+                      <Text style={s.newPostText}>{t('feed.newPost')}</Text>
+                    </TouchableOpacity>
+                  </Animated.View>
                 </View>
               </View>
 
               <View ref={friendPostRef} />
             </View>
+            </Animated.View>
           }
           ListEmptyComponent={
             <View style={s.emptyState}>
