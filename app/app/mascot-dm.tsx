@@ -50,6 +50,7 @@ export default function MascotDMScreen() {
   const inputRef     = useRef<TextInput>(null);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const mountedRef   = useRef(true);
+  const introSentRef = useRef(false);
 
   const isWeb      = Platform.OS === 'web';
   const isIPad     = Platform.OS === 'ios' && Platform.isPad;
@@ -83,7 +84,8 @@ export default function MascotDMScreen() {
         if (raw) stored = JSON.parse(raw) as MascotMessage[];
       } catch {}
 
-      if (stored.length === 0) {
+      if (stored.length === 0 && !introSentRef.current) {
+        introSentRef.current = true;
         const name = MASCOT_NAMES[id] ?? 'Miga';
         const greeting: MascotMessage = {
           id:          'greeting',

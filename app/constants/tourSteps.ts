@@ -17,8 +17,8 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: 'audio_button',
     spotlight: { x: 0, y: 0, width: 0, height: 0, shape: 'circle' },
-    text: "Tap this button and I will read my messages to you! Try it now 🔊",
-    textFr: "Appuie sur ce bouton et je lirai mes messages pour toi ! Essaie maintenant 🔊",
+    text: "Tap the speaker button 🔊 on any post to hear it read aloud!",
+    textFr: "Appuie sur le bouton haut-parleur 🔊 sur un post pour l'entendre lire à voix haute !",
     position: 'bottom',
   },
   {

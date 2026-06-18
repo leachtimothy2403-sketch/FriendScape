@@ -46,7 +46,7 @@ export default function TourOverlay({ steps, currentStep, onNext, onSkip, mascot
           <Text style={s.bubbleText}>{text}</Text>
         </View>
         <View style={s.bubbleActions}>
-          {mascotId.length > 0 && <AudioPlayer text={text} characterId={mascotId} size="sm" messageId={`tour_${currentStep}_${step.id}`} />}
+          {mascotId.length > 0 && <AudioPlayer key={`tour_audio_${currentStep}`} text={text} characterId={mascotId} size="sm" messageId={`tour_${currentStep}_${step.id}`} />}
           <TouchableOpacity onPress={onNext} style={s.nextBtn}>
             <Text style={s.nextBtnText}>
               {language === 'fr' ? 'Suivant →' : 'Next →'}

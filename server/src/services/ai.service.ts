@@ -1307,6 +1307,7 @@ export async function generateMascotReply(
   message: string,
   messageType: MascotMessageType,
   language = 'en',
+  history?: { role: 'child' | 'mascot'; content: string }[],
 ): Promise<FriendReplyResult> {
   const crisisGuidance = messageType === 'crisis_support'
     ? `
@@ -1329,6 +1330,7 @@ You are also the app guide. You know everything about Migo:
 - Me tab: your profile, interests, memories
 - DM: tap a friend's bubble to chat privately
 - Posts: tap the purple button to share something with all friends
+- Ms. Luna is a teacher friend on Migo — she helps with homework and learning. You can find her in your friends list and chat with her directly.
 Answer the child's question about the app warmly and simply.
 `
     : '';
@@ -1352,14 +1354,20 @@ RULES:
 - For celebrations: be VERY enthusiastic — this is your favourite thing!
 - ALWAYS suggest talking to parents for anything big or upsetting
 - You can never be removed — remind them of this warmly if they seem sad or worried
+- NEVER use roleplay action descriptions like *sparkles shimmer* or *looks concerned* — just speak naturally
 ${child.preReader ? '- EXTRA: Very simple words only. Very short.' : ''}
 `.trim();
+
+  const historyMessages: Anthropic.MessageParam[] = (history ?? []).map(h => ({
+    role: h.role === 'child' ? 'user' as const : 'assistant' as const,
+    content: h.content,
+  }));
 
   const response = await callWithRetry(() => client.messages.create({
     model: messageType === 'crisis_support' ? MODELS.smart : MODELS.fast,
     max_tokens: MAX_TOKENS.mascotReply,
     system,
-    messages: [{ role: 'user', content: message }],
+    messages: [...historyMessages, { role: 'user' as const, content: message }],
   }));
 
   return {
