@@ -74,6 +74,7 @@ function AnimatedTabIcon({ emoji, color, pulsing }: { emoji: string; color: stri
 
   useEffect(() => {
     if (pulsing) {
+      scale.setValue(1);
       const anim = Animated.loop(
         Animated.sequence([
           Animated.timing(scale, { toValue: 2.0, duration: 400, useNativeDriver: true }),
@@ -81,7 +82,7 @@ function AnimatedTabIcon({ emoji, color, pulsing }: { emoji: string; color: stri
         ]),
       );
       anim.start();
-      return () => anim.stop();
+      return () => { anim.stop(); scale.setValue(1); };
     } else {
       scale.setValue(1);
     }

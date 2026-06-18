@@ -4,14 +4,15 @@ import {
   Animated, StyleSheet, Image,
 } from 'react-native';
 import Markdown from 'react-native-markdown-display';
-import { useState, useEffect, useRef } from 'react';
-import { router } from 'expo-router';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { router, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { mascotApi, mascotAvatars, audioApi } from '@/services/api';
 import { Audio } from 'expo-av';
 import { useLanguageStore } from '@/store/languageStore';
 import { Colors } from '@/constants/theme';
 import AudioPlayer from '@/components/AudioPlayer';
+import { useNotificationStore } from '@/store/notificationStore';
 
 interface MascotMessage {
   id: string;
@@ -51,6 +52,14 @@ export default function MascotDMScreen() {
   const recordingRef = useRef<Audio.Recording | null>(null);
   const mountedRef   = useRef(true);
   const introSentRef = useRef(false);
+
+  const setSuppressed = useNotificationStore(s => s.setSuppressed);
+  useFocusEffect(
+    useCallback(() => {
+      setSuppressed(true);
+      return () => setSuppressed(false);
+    }, [setSuppressed]),
+  );
 
   const isWeb      = Platform.OS === 'web';
   const isIPad     = Platform.OS === 'ios' && Platform.isPad;
