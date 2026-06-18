@@ -89,8 +89,8 @@ export default function MascotDMScreen() {
           id:          'greeting',
           sender_type: 'mascot',
           content:     language === 'fr'
-            ? `Salut ! Je suis ${name}, ton guide sur Migo ! Tu peux me poser des questions sur l'app, me signaler un problème, ou juste dire bonjour ! 🌟`
-            : `Hi! I'm ${name}, your Migo guide! Ask me anything about the app, report a problem, or just say hello! 🌟`,
+            ? `Salut ! Je suis ${name}, ton dragon magique sur Migo ! 🐉 Tu peux me poser des questions sur l'app, me signaler un problème, ou juste dire bonjour !`
+            : `Hi! I'm ${name}, your friendly dragon on Migo! 🐉 Ask me anything about the app, report a problem, or just say hello!`,
           created_at:  new Date().toISOString(),
         };
         stored = [greeting];
@@ -167,7 +167,11 @@ export default function MascotDMScreen() {
     setFeedbackBanner(false);
 
     try {
-      const res  = await mascotApi.sendMessage(childToken, text);
+      const history = messages.slice(0, 5).map(m => ({
+        role: m.sender_type === 'child' ? 'child' as const : 'mascot' as const,
+        content: m.content,
+      }));
+      const res  = await mascotApi.sendMessage(childToken, text, history);
       const { reply, mode } = res.data;
 
       const mascotMsg: MascotMessage = {

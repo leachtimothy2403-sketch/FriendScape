@@ -384,8 +384,8 @@ export const mascotAvatars = {
 };
 
 export const mascotApi = {
-  sendMessage: (token: string, content: string) =>
-    api.post<{ reply: string; mode: 'help' | 'feedback' | 'friend' }>('/messages/mascot', { content }, withToken(token)),
+  sendMessage: (token: string, content: string, history?: { role: 'child' | 'mascot'; content: string }[]) =>
+    api.post<{ reply: string; mode: 'help' | 'feedback' | 'friend' }>('/messages/mascot', { content, history }, withToken(token)),
 };
 
 export const gameApi = {

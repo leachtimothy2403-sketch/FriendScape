@@ -625,7 +625,10 @@ export async function mascotMessage(req: AuthRequest, res: Response) {
   const childId = req.childId;
   if (!childId) { res.status(401).json({ error: 'Child authentication required' }); return; }
 
-  const { content } = req.body as { content?: string };
+  const { content, history } = req.body as {
+    content?: string;
+    history?: { role: 'child' | 'mascot'; content: string }[];
+  };
   if (!content?.trim()) { res.status(400).json({ error: 'content is required' }); return; }
 
   try {
@@ -637,19 +640,26 @@ export async function mascotMessage(req: AuthRequest, res: Response) {
     const rawMascot = String(childRow.mascot || 'miga').toLowerCase();
 
     const lower = content.toLowerCase();
-    const feedbackKeywords = ['bug', 'broken', 'feedback', 'marche pas', 'problème', 'issue', 'report', "doesn't work"];
+    const feedbackKeywords = ['bug', 'broken', 'feedback', 'marche pas', 'problème', 'issue', 'report', "doesn't work", 'not working'];
     const helpKeywords     = ['how', 'comment', 'where', 'où', 'aide', 'help', 'what is', "qu'est-ce"];
 
     const hasFeedbackKw = feedbackKeywords.some(k => lower.includes(k));
     const hasHelpKw     = helpKeywords.some(k => lower.includes(k));
 
+    // Count prior feedback turns in history
+    const priorFeedbackTurns = (history ?? []).filter(h =>
+      h.role === 'child' && feedbackKeywords.some(k => h.content.toLowerCase().includes(k)),
+    ).length;
+
     let mode: 'help' | 'feedback' | 'friend';
-    if (hasFeedbackKw && content.trim().length >= 30) {
-      mode = 'feedback';
-    } else if (hasFeedbackKw && content.trim().length < 30) {
-      mode = 'friend'; // intent only — Miga asks for more detail
-    } else if (hasHelpKw) {
+    if (hasHelpKw && !hasFeedbackKw) {
       mode = 'help';
+    } else if (hasFeedbackKw && priorFeedbackTurns >= 1) {
+      // Second+ feedback turn — user has provided detail
+      mode = 'feedback';
+    } else if (hasFeedbackKw) {
+      // First mention — Miga gathers more detail
+      mode = 'friend';
     } else {
       mode = 'friend';
     }
@@ -666,6 +676,10 @@ export async function mascotMessage(req: AuthRequest, res: Response) {
       if (feedbackEmail) {
         const userRow = await db('users').where({ id: childRow.parent_id }).first().catch(() => null);
         const parentEmail = String(userRow?.email || '');
+        const transcript = [
+          ...(history ?? []).map(h => `${h.role === 'child' ? child.name : mascot.name}: ${h.content}`),
+          `${child.name}: ${content.trim()}`,
+        ].join('\n\n');
         sendFeedbackEmail({
           to:            feedbackEmail,
           childName:     child.name,
@@ -673,7 +687,7 @@ export async function mascotMessage(req: AuthRequest, res: Response) {
           childLanguage: lang,
           parentEmail,
           childId,
-          message:       content.trim(),
+          message:       transcript,
           timestamp:     new Date().toISOString(),
         }).catch(console.error);
       }

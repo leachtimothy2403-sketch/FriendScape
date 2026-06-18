@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AudioPlayer from '@/components/AudioPlayer';
 import { TourStep } from '@/constants/tourSteps';
@@ -11,10 +11,11 @@ interface Props {
   onSkip: () => void;
   mascotEmoji: string;
   mascotId: string;
+  mascotAvatarUrl?: string | null;
   language: 'en' | 'fr';
 }
 
-export default function TourOverlay({ steps, currentStep, onNext, onSkip, mascotEmoji, mascotId, language }: Props) {
+export default function TourOverlay({ steps, currentStep, onNext, onSkip, mascotEmoji, mascotId, mascotAvatarUrl, language }: Props) {
   const [childToken, setChildToken] = useState<string | null>(null);
   useEffect(() => {
     AsyncStorage.getItem('childToken').then(t => { if (t) setChildToken(t); });
@@ -38,11 +39,14 @@ export default function TourOverlay({ steps, currentStep, onNext, onSkip, mascot
       {/* Speech bubble — above tap catcher, receives its own taps */}
       <View style={[s.bubble, { zIndex: 10 }]}>
         <View style={s.bubbleRow}>
-          <Text style={{ fontSize: 36 }}>{mascotEmoji}</Text>
+          {mascotAvatarUrl
+            ? <Image source={{ uri: mascotAvatarUrl }} style={{ width: 44, height: 44, borderRadius: 22 }} />
+            : <Text style={{ fontSize: 36 }}>{mascotEmoji}</Text>
+          }
           <Text style={s.bubbleText}>{text}</Text>
         </View>
         <View style={s.bubbleActions}>
-          {mascotId.length > 0 && <AudioPlayer text={text} characterId={mascotId} size="sm" />}
+          {mascotId.length > 0 && <AudioPlayer text={text} characterId={mascotId} size="sm" messageId={`tour_${currentStep}_${step.id}`} />}
           <TouchableOpacity onPress={onNext} style={s.nextBtn}>
             <Text style={s.nextBtnText}>
               {language === 'fr' ? 'Suivant →' : 'Next →'}

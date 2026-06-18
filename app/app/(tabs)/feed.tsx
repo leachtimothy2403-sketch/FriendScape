@@ -7,7 +7,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { router, usePathname } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
-import { childAuth, childPosts, childSession, childProfileApi, childMessages, childNotifications, FriendWithStats } from '@/services/api';
+import { childAuth, childPosts, childSession, childProfileApi, childMessages, childNotifications, FriendWithStats, mascotAvatars as mascotAvatarApi } from '@/services/api';
 import { useNotificationStore } from '@/store/notificationStore';
 import MigoLogo from '@/components/MigoLogo';
 import EmojiAvatar from '@/components/EmojiAvatar';
@@ -129,8 +129,9 @@ export default function FeedScreen() {
   useEffect(() => { pathnameRef.current = pathname; }, [pathname]);
 
   const resetStore  = useOnboardingStore((s) => s.resetStore);
-  const [mascotId,    setMascotId]    = useState('miga');
-  const [mascotEmoji, setMascotEmoji] = useState('🧚');
+  const [mascotId,        setMascotId]        = useState('miga');
+  const [mascotEmoji,     setMascotEmoji]     = useState('🧚');
+  const [mascotAvatarUrl, setMascotAvatarUrl] = useState<string | null>(null);
   const { language } = useLanguageStore();
   const setTourStepId = useTourStore(s => s.setTourStepId);
   const tourStepId    = useTourStore(s => s.tourStepId);
@@ -223,6 +224,10 @@ export default function FeedScreen() {
               const id = (p.mascotId || 'miga').toLowerCase();
               setMascotId(id);
               setMascotEmoji(Mascots[id]?.emoji || '🧚');
+              mascotAvatarApi.get().then(r => {
+                const url = r.data.mascots[id];
+                if (url) setMascotAvatarUrl(url);
+              }).catch(() => {});
             } catch {}
           }
           if (storedAvatarUrl) {
@@ -688,6 +693,7 @@ export default function FeedScreen() {
           onSkip={() => void completeTour()}
           mascotEmoji={mascotEmoji}
           mascotId={mascotId}
+          mascotAvatarUrl={mascotAvatarUrl}
           language={language}
         />
       )}
