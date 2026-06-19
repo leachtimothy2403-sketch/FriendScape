@@ -79,10 +79,10 @@ export default function RoleScreen() {
 
         {/* Progress */}
         <View style={{ height: 6, backgroundColor: '#E0E0E0', borderRadius: 3, marginBottom: 8 }}>
-          <View style={{ width: '55%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
+          <View style={{ width: '62%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
         </View>
         <Text style={{ fontSize: 13, color: '#888780', marginBottom: 16 }}>
-          {t('onboarding.stepOf', { current: 5, total: 9 })} · {t('onboarding.step5sub')} 🌟
+          {t('onboarding.stepOf', { current: 5, total: 8 })} · {t('onboarding.step5sub')} 🌟
         </Text>
 
         {/* Badge */}

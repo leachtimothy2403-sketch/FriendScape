@@ -113,6 +113,18 @@ export async function seed(knex: Knex): Promise<void> {
       lumi_message_fr: "Tu as réagi aux posts de tes amis 20 fois ! Tu sais ce que ça représente pour eux ? Une simple réaction peut illuminer toute une journée. Tu as vraiment un cœur en or ! ❤️",
     },
     {
+      name: 'Kind Heart',
+      name_fr: 'Cœur Généreux',
+      description: 'You cheered up a friend who was having a tough day',
+      description_fr: "Tu as remonté le moral d'un ami qui avait une mauvaise journée",
+      icon: '💜',
+      category: 'kindness',
+      xp_required: null,
+      trigger_type: 'kind_words',
+      lumi_message: "You noticed your friend was having a tough day — and you made it better. That is one of the kindest things a person can do. You have a truly warm heart 💜",
+      lumi_message_fr: "Tu as remarqué que ton ami avait une mauvaise journée — et tu l'as aidé à aller mieux. C'est l'une des choses les plus gentilles qu'une personne puisse faire. Tu as vraiment un cœur généreux 💜",
+    },
+    {
       name: 'Graduate',
       name_fr: 'Diplômé',
       description: 'Completed the real world track',

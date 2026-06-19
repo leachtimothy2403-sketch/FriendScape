@@ -89,6 +89,7 @@ export interface FeedbackEmailData {
   parentEmail: string;
   childId: string;
   message: string;
+  summary?: string;
   timestamp: string;
 }
 
@@ -104,8 +105,9 @@ export async function sendFeedbackEmail(data: FeedbackEmailData): Promise<void> 
         <p><strong>Parent email:</strong> ${data.parentEmail || '(unknown)'}</p>
         <p><strong>Child ID:</strong> <code>${data.childId}</code></p>
         <p><strong>Time:</strong> ${new Date(data.timestamp).toLocaleString()}</p>
-        <p><strong>Message:</strong></p>
-        <div style="background:#F8F7FF;border-radius:8px;padding:16px;color:#2C2C2A">${data.message}</div>
+        ${data.summary ? `<p><strong>Summary:</strong></p><div style="background:#EEEDFE;border-radius:8px;padding:16px;color:#2C2C2A;margin-bottom:12px">${data.summary}</div>` : ''}
+        <p><strong>Full transcript:</strong></p>
+        <div style="background:#F8F7FF;border-radius:8px;padding:16px;color:#2C2C2A;white-space:pre-wrap">${data.message}</div>
       </div>
     `,
   });

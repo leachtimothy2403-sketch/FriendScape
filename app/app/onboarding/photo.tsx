@@ -84,10 +84,10 @@ export default function PhotoScreen() {
 
         {/* Progress bar */}
         <View style={{ height: 6, backgroundColor: '#E0E0E0', borderRadius: 3, marginBottom: 8 }}>
-          <View style={{ width: '33%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
+          <View style={{ width: '37%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
         </View>
         <Text style={{ fontSize: 13, color: '#888780', marginBottom: 16 }}>
-          {t('onboarding.stepOf', { current: 3, total: 9 })} · {t('onboarding.step3sub')} 👨‍👩‍👧
+          {t('onboarding.stepOf', { current: 3, total: 8 })} · {t('onboarding.step3sub')} 👨‍👩‍👧
         </Text>
 
         {/* Orange parent badge */}

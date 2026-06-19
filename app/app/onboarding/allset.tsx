@@ -39,21 +39,21 @@ const PACK_NAME: Record<string, string> = {
 const PARENT_DASHBOARD = 'http://localhost:3000';
 
 const EN_LOADING_MESSAGES = [
-  "Did you know? Your friends are already excited to meet you! 🌟",
-  "Fun fact: Migo friends never have a bad day — they're always happy to chat! 😄",
-  "Getting ready... your first friends are picking their favourite emojis! 🎨",
+  "Did you know? Your friends can't wait to meet you! 🌟",
+  "Right now... your friends are picking their favourite emojis! 🎨",
   "Almost there! Your Migo world is being built just for you! ✨",
-  "Why did the robot go to school? To improve its language skills! 🤖",
-  "What's a dragon's favourite subject? Fry-day! 🐉",
+  "Why did the robot go to school? To make new friends! 🤖",
+  "What's a dragon's favourite subject? Mathema-flames! 🐉🔥",
+  "Your friends have so much to tell you... 💬",
 ];
 
 const FR_LOADING_MESSAGES = [
-  "Le savais-tu ? Tes amis sont déjà impatients de te rencontrer ! 🌟",
-  "Fun fact : les amis Migo n'ont jamais de mauvaise journée ! 😄",
-  "En cours... tes premiers amis choisissent leurs emojis préférés ! 🎨",
-  "Presque prêt ! Ton monde Migo se construit rien que pour toi ! ✨",
-  "Pourquoi le robot est allé à l'école ? Pour améliorer ses langues ! 🤖",
-  "La matière préférée du dragon ? Le vendredi frit ! 🐉",
+  "Le savais-tu ? Tes amis ont hâte de te rencontrer ! 🌟",
+  "En ce moment... tes amis choisissent leurs emojis préférés ! 🎨",
+  "Presque prêt ! Ton monde Migo se construit juste pour toi ! ✨",
+  "Pourquoi le robot allait-il à l'école ? Pour parler avec ses amis ! 🤖",
+  "La matière préférée du dragon ? Les mathématiflames ! 🐉🔥",
+  "Tes amis ont des tonnes de choses à te raconter... 💬",
 ];
 
 // Module-level guard: survives React Strict Mode's mount→unmount→remount cycle.

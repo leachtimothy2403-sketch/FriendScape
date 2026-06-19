@@ -182,7 +182,7 @@ export default function MascotScreen() {
       <View style={{ paddingHorizontal: 24, paddingTop: 20 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <View style={{ flex: 1, height: 6, backgroundColor: '#E0E0E0', borderRadius: 3, marginRight: 12 }}>
-            <View style={{ width: '44%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
+            <View style={{ width: '50%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
           </View>
           {!introComplete && (
             <TouchableOpacity onPress={skipIntro} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -191,7 +191,7 @@ export default function MascotScreen() {
           )}
         </View>
         <Text style={{ fontSize: 13, color: '#888780' }}>
-          {t('onboarding.stepOf', { current: 4, total: 9 })} · {t('onboarding.step4sub')} 🧒
+          {t('onboarding.stepOf', { current: 4, total: 8 })} · {t('onboarding.step4sub')} 🧒
         </Text>
       </View>
 
@@ -217,15 +217,15 @@ export default function MascotScreen() {
                 }} />
               </>
             )}
-            {(!introComplete && mascotAvatarUrls['miga'])
-              ? <Animated.Image
-                  source={{ uri: mascotAvatarUrls['miga'] }}
-                  style={[{ width: heroSize, height: heroSize, borderRadius: heroSize / 2 }, floatStyle]}
-                />
-              : <Animated.Text style={[{ fontSize: heroSize, lineHeight: heroSize * 1.2 }, floatStyle]}>
-                  {heroEmoji}
-                </Animated.Text>
-            }
+            {mascotAvatarUrls[introComplete ? selected : 'miga']
+			  ? <Animated.Image
+				  source={{ uri: mascotAvatarUrls[introComplete ? selected : 'miga'] }}
+				  style={[{ width: heroSize, height: heroSize, borderRadius: heroSize / 2 }, floatStyle]}
+				/>
+			  : <Animated.Text style={[{ fontSize: heroSize, lineHeight: heroSize * 1.2 }, floatStyle]}>
+				  {heroEmoji}
+				</Animated.Text>
+			}
           </View>
 
           {/* Speech bubble */}

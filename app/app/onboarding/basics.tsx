@@ -60,10 +60,10 @@ export default function BasicsScreen() {
       >
         {/* Progress bar */}
         <View style={{ height: 6, backgroundColor: '#E0E0E0', borderRadius: 3, marginBottom: 8 }}>
-          <View style={{ width: '11%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
+          <View style={{ width: '12%', height: '100%', backgroundColor: '#7F77DD', borderRadius: 3 }} />
         </View>
         <Text style={{ fontSize: 13, color: '#888780', marginBottom: 16 }}>
-          {t('onboarding.stepOf', { current: 1, total: 9 })} · {t('onboarding.step1sub')} 👨‍👩‍👧
+          {t('onboarding.stepOf', { current: 1, total: 8 })} · {t('onboarding.step1sub')} 👨‍👩‍👧
         </Text>
 
         {/* Together badge */}

@@ -20,7 +20,7 @@ import {
   type MascotMessageType,
 } from '../services/ai.service';
 import { toChildType, toFriendType, toMemoryType } from '../utils/db-mappers';
-import { findOrCreateMascotId } from '../services/migaDM';
+import { findOrCreateMascotId, sendMascotDM } from '../services/migaDM';
 import { sendFeedbackEmail } from '../services/email.service';
 import type { Child } from '../../../shared/types';
 
@@ -353,6 +353,49 @@ export async function sendMessage(req: AuthRequest, res: Response) {
             console.error('[xp] Award failed:', err),
           );
 
+          // Kind Heart badge: child comforted the friend when friend had a tough day
+          if (!isTeacher) {
+            const prevAiMsg = recentMessages
+              .filter(m => m.sender_type === 'ai')
+              .slice(-1)[0]?.content?.toLowerCase() ?? '';
+            const friendHadBadDay = [
+              'tired', 'fatigué', 'long day', 'longue journée', 'rough day', 'bit down',
+            ].some(k => prevAiMsg.includes(k));
+            const childComforted = [
+              'better', 'mieux', 'courage', 'ça va', 'bisou', 'hugs', 'sorry', 'désolé', 'cheer',
+            ].some(k => content.trim().toLowerCase().includes(k));
+            if (friendHadBadDay && childComforted) {
+              const kwBadge = await db('badge_definitions')
+                .where({ trigger_type: 'kind_words' })
+                .select('id', 'name', 'name_fr', 'icon', 'lumi_message', 'lumi_message_fr')
+                .first() as Record<string, unknown> | undefined;
+              if (kwBadge) {
+                const alreadyEarned = await db('child_badges')
+                  .where({ child_id: childId, badge_id: String(kwBadge.id) })
+                  .first();
+                if (!alreadyEarned) {
+                  await db('child_badges')
+                    .insert({ child_id: childId, badge_id: String(kwBadge.id) })
+                    .onConflict(['child_id', 'badge_id']).ignore();
+                  const lumiMsg = lang === 'fr'
+                    ? String(kwBadge.lumi_message_fr ?? kwBadge.lumi_message ?? '')
+                    : String(kwBadge.lumi_message ?? '');
+                  if (lumiMsg) {
+                    sendMascotDM(childId, String(child.mascot || 'miga'), lumiMsg).catch(console.error);
+                  }
+                  await db('parent_alerts').insert({
+                    child_id: childId,
+                    type:     'milestone',
+                    message:  lang === 'fr'
+                      ? `${child.name} a obtenu le badge "${String(kwBadge.name_fr ?? kwBadge.name)}" ! ${String(kwBadge.icon)}`
+                      : `${child.name} earned the "${String(kwBadge.name)}" badge! ${String(kwBadge.icon)}`,
+                    severity: 'info',
+                  }).catch(console.error);
+                }
+              }
+            }
+          }
+
           // Record learning session for teacher friends
           if (tutorMeta) {
             const gradeAtTime = child.schoolGrade ?? tutorMeta.gradeCapture ?? 'unknown';
@@ -668,10 +711,20 @@ export async function mascotMessage(req: AuthRequest, res: Response) {
       'super merci', 'parfait',
     ].some(k => lower.includes(k));
 
+    const lastMascotMsg = historyArr
+      .filter(h => h.role === 'mascot')
+      .slice(-1)[0]?.content?.toLowerCase() ?? '';
+
+    const mascotEscalated = [
+      'je vais signaler', "i'll report", 'sending to team',
+      'envoyer', 'équipe technique', 'technical team',
+      'je vais envoyer', "i'll send",
+    ].some(k => lastMascotMsg.includes(k));
+
     let mode: 'help' | 'feedback' | 'friend';
     if (hasHelpKw && !hasFeedbackKeyword) {
       mode = 'help';
-    } else if (hasDeadEnd || (feedbackTurnsInHistory >= 1 && hasFeedbackKeyword) || deadEndInHistory >= 1) {
+    } else if (mascotEscalated || (feedbackTurnsInHistory >= 2 && hasDeadEnd)) {
       mode = 'feedback';
     } else {
       mode = 'friend';
@@ -688,6 +741,7 @@ export async function mascotMessage(req: AuthRequest, res: Response) {
       hasDeadEnd,
       feedbackTurnsInHistory,
       deadEndInHistory,
+      mascotEscalated,
       mode,
       feedbackEmail: process.env.FEEDBACK_EMAIL ? 'set' : 'NOT SET',
     });
@@ -707,6 +761,24 @@ export async function mascotMessage(req: AuthRequest, res: Response) {
           `${child.name}: ${content.trim()}`,
         ].join('\n\n');
         const emailMessage = isResolved ? `[ISSUE RESOLVED]\n\n${transcript}` : transcript;
+
+        let summary = '';
+        try {
+          const AnthropicSDK = (await import('@anthropic-ai/sdk')).default;
+          const summaryClient = new AnthropicSDK({ apiKey: process.env.ANTHROPIC_API_KEY });
+          const summaryRes = await summaryClient.messages.create({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 200,
+            messages: [{
+              role: 'user',
+              content: `Summarize this support conversation in 2-3 sentences. Focus on: what the problem is, what was tried, current status. Be concise and factual.\n\nConversation:\n${transcript}`,
+            }],
+          });
+          summary = summaryRes.content[0].type === 'text' ? summaryRes.content[0].text : '';
+        } catch (e) {
+          console.warn('[feedback] summary generation failed:', e);
+        }
+
         sendFeedbackEmail({
           to:            feedbackEmail,
           childName:     child.name,
@@ -715,6 +787,7 @@ export async function mascotMessage(req: AuthRequest, res: Response) {
           parentEmail,
           childId,
           message:       emailMessage,
+          summary,
           timestamp:     new Date().toISOString(),
         }).catch(console.error);
       }
