@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, Image } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle,
   withRepeat, withSequence, withTiming, Easing,
@@ -9,6 +9,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { useLanguageStore } from '@/store/languageStore';
+import { mascotAvatars as mascotAvatarApi } from '@/services/api';
 import AudioPlayer from '@/components/AudioPlayer';
 
 // ─── Intro text ───────────────────────────────────────────────────────────────
@@ -56,6 +57,7 @@ export default function MascotScreen() {
   const introText2 = isFr ? FR_INTRO_TEXT_2 : EN_INTRO_TEXT_2;
 
   const [selected, setSelected]           = useState<MascotId>((mascotId as MascotId) || 'miga');
+  const [mascotAvatarUrls, setMascotAvatarUrls] = useState<Record<string, string>>({});
   const [introStarted, setIntroStarted]   = useState(false);
   const [introBubble, setIntroBubble]     = useState('');
   const [typingDone, setTypingDone]       = useState(false);
@@ -77,6 +79,10 @@ export default function MascotScreen() {
     transform: [{ translateY: cardsY.value }],
     opacity: cardsOp.value,
   }));
+
+  useEffect(() => {
+    mascotAvatarApi.get().then(res => setMascotAvatarUrls(res.data.mascots)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     floatY.value = withRepeat(
@@ -351,7 +357,10 @@ export default function MascotScreen() {
                     }}
                     activeOpacity={0.75}
                   >
-                    <Text style={{ fontSize: 36, marginRight: 14 }}>{mascot.emoji}</Text>
+                    {mascotAvatarUrls[mascot.id]
+                      ? <Image source={{ uri: mascotAvatarUrls[mascot.id] }} style={{ width: 52, height: 52, borderRadius: 26, marginRight: 14 }} />
+                      : <Text style={{ fontSize: 36, marginRight: 14 }}>{mascot.emoji}</Text>
+                    }
 
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 16, fontWeight: '700', color: isSel ? '#7F77DD' : '#2C2C2A', marginBottom: 6 }}>

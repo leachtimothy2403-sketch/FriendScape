@@ -23,7 +23,7 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
-import { auth } from '@/services/api';
+import { auth, mascotAvatars as mascotAvatarApi } from '@/services/api';
 import { useLanguageStore } from '@/store/languageStore';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import DevResetButton from '@/components/DevResetButton';
@@ -32,11 +32,13 @@ import MigoLogo from '@/components/MigoLogo';
 export default function EnrollScreen() {
   const { t } = useTranslation();
   const { language, setLanguage } = useLanguageStore();
+  const mascotId = useOnboardingStore(s => s.mascotId) || 'miga';
 
   const [email, setEmail]               = useState('');
   const [loading, setLoading]           = useState(false);
   const [error, setError]               = useState('');
   const [focused, setFocused]           = useState(false);
+  const [mascotAvatarUrl, setMascotAvatarUrl] = useState<string | null>(null);
 
   // "Already approved?" check state
   const [showCheckRow, setShowCheckRow] = useState(false);
@@ -52,10 +54,15 @@ export default function EnrollScreen() {
       ? NativeModules.SettingsManager?.settings?.AppleLocale ||
         NativeModules.SettingsManager?.settings?.AppleLanguages?.[0]
       : NativeModules.I18nManager?.localeIdentifier;
-    if (deviceLang && String(deviceLang).startsWith('fr')) {
-      void setLanguage('fr');
-    }
+    if (deviceLang && String(deviceLang).startsWith('fr')) void setLanguage('fr');
   }, []);
+
+  useEffect(() => {
+    mascotAvatarApi.get().then(res => {
+      const url = res.data.mascots[mascotId];
+      if (url) setMascotAvatarUrl(url);
+    }).catch(() => {});
+  }, [mascotId]);
 
   useEffect(() => {
     translateY.value = withRepeat(
@@ -233,10 +240,14 @@ export default function EnrollScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Floating fairy */}
-            <Animated.Text style={[{ fontSize: 80, marginBottom: 28 }, floatStyle]}>
-              🧚
-            </Animated.Text>
+            {/* Floating mascot */}
+            {mascotAvatarUrl
+              ? <Animated.Image
+                  source={{ uri: mascotAvatarUrl }}
+                  style={[{ width: 100, height: 100, borderRadius: 50, marginBottom: 28 }, floatStyle]}
+                />
+              : <Animated.Text style={[{ fontSize: 80, marginBottom: 28 }, floatStyle]}>🧚</Animated.Text>
+            }
 
             {/* Heading */}
             <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#2C2C2A', textAlign: 'center', marginBottom: 12 }}>

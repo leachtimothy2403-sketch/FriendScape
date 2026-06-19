@@ -96,6 +96,7 @@ export default function FeedScreen() {
   const [posts, setPosts]             = useState<FeedPost[]>([]);
   const [friendsList, setFriendsList] = useState<FriendWithStats[]>([]);
   const [loading, setLoading]         = useState(true);
+  const [initializing, setInitializing] = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
   const [reloading, setReloading]     = useState(false);
   const [childToken, setChildToken]   = useState<string | null>(null);
@@ -401,6 +402,7 @@ export default function FeedScreen() {
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setInitializing(false);
     }
   }
 
@@ -696,6 +698,18 @@ export default function FeedScreen() {
           mascotAvatarUrl={mascotAvatarUrl}
           language={language}
         />
+      )}
+
+      {initializing && (
+        <View style={[StyleSheet.absoluteFill, {
+          backgroundColor: Colors.bg,
+          alignItems: 'center', justifyContent: 'center', zIndex: 99,
+        }]}>
+          <Text style={{ fontSize: 60 }}>{mascotEmoji}</Text>
+          <Text style={{ color: Colors.purple, fontSize: 16, marginTop: 12 }}>
+            {language === 'fr' ? 'Chargement...' : 'Loading...'}
+          </Text>
+        </View>
       )}
 
       {/* ── New Post Modal ── */}

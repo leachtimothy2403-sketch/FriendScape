@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { children as childrenApi, childAuth, mascotAvatars as mascotAvatarApi } from '@/services/api';
 import EmojiAvatar from '@/components/EmojiAvatar';
 import { useOnboardingStore } from '@/store/onboardingStore';
+import { useLanguageStore } from '@/store/languageStore';
 
 const MASCOT: Record<string, { emoji: string; name: string }> = {
   pixel: { emoji: '🤖', name: 'Pixel' },
@@ -95,6 +96,7 @@ type Status = 'loading' | 'success' | 'error';
 export default function AllSetScreen() {
   const { t } = useTranslation();
   const store = useOnboardingStore();
+  const { language } = useLanguageStore();
 
   const mascot    = MASCOT[store.mascotId]     ?? { emoji: '🧚', name: 'Miga' };
   const packName  = PACK_NAME[store.avatarPack] ?? store.avatarPack;
@@ -110,7 +112,7 @@ export default function AllSetScreen() {
   const [assignedFriends, setAssignedFriends] = useState<AssignedFriend[]>([]);
   const [mascotAvatarUrl, setMascotAvatarUrl] = useState<string | null>(null);
   const [msgIndex, setMsgIndex]           = useState(0);
-  const loadingMsgs = store.language === 'fr' ? FR_LOADING_MESSAGES : EN_LOADING_MESSAGES;
+  const loadingMsgs = (store.language || language) === 'fr' ? FR_LOADING_MESSAGES : EN_LOADING_MESSAGES;
 
   const floatY     = useSharedValue(0);
   const celebScale = useSharedValue(0);
@@ -248,7 +250,6 @@ export default function AllSetScreen() {
   async function handleLaunch() {
     _createChildStarted = false;
     store.resetStore();
-    await new Promise(r => setTimeout(r, 2000));
     router.replace('/(tabs)/feed');
   }
 

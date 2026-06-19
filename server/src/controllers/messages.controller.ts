@@ -677,11 +677,14 @@ export async function mascotMessage(req: AuthRequest, res: Response) {
     const validNames: MascotName[] = ['Miga', 'Pixel', 'Finn', 'Sage'];
     const mascot: AIMascot = { name: validNames.includes(mascotName) ? mascotName : 'Miga' };
 
-    console.log(`[mascot] mode=${mode} priorFeedbackTurns=${priorFeedbackTurns} historyLen=${(history ?? []).length}`);
+    console.log(`[mascot] mode=${mode} priorFeedbackTurns=${priorFeedbackTurns} historyLen=${(history ?? []).length} hasDeadEnd=${hasDeadEndSignal} isResolved=${isResolved} msgLen=${lower.length}`);
     const result = await generateMascotReply(mascot, child, content.trim(), messageType, lang, history);
 
     if (mode === 'feedback') {
       const feedbackEmail = process.env.FEEDBACK_EMAIL;
+      if (!feedbackEmail) {
+        console.warn('[feedback] FEEDBACK_EMAIL not set in .env — email skipped');
+      }
       if (feedbackEmail) {
         console.log(`[feedback] sending email to: ${feedbackEmail}, transcriptTurns=${(history ?? []).length + 1}`);
         const userRow = await db('users').where({ id: childRow.parent_id }).first().catch(() => null);
