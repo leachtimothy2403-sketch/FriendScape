@@ -18,13 +18,13 @@ const EN_INTRO_TEXT_1 =
   "Hi! Before you meet your friends on Migo, you need a special guide — someone who will always be there for you, celebrate your wins, and keep you safe. That guide is called your mascot! 🌟 In a moment you'll meet Miga, Pixel, Finn and Sage — they're all amazing, so take your time choosing!";
 
 const EN_INTRO_TEXT_2 =
-  "I'm Miga! I'm a sparkly little fairy and I will ALWAYS have your back on Migo. I celebrate every win, help when things go wrong, and I will never ever go away — you're stuck with me! 💜 But peek below — you might also love Pixel, Finn or Sage!";
+  "I'm Miga! I'm a friendly dragon and I will ALWAYS have your back on Migo. I celebrate every win, help when things go wrong, and I will never ever go away — you're stuck with me! 💜 But peek below — you might also love Pixel, Finn or Sage!";
 
 const FR_INTRO_TEXT_1 =
   "Salut ! Avant de rencontrer tes amis sur Migo, tu as besoin d'un guide spécial — quelqu'un qui sera toujours là pour toi, qui célèbrera tes victoires et qui te gardera en sécurité. Ce guide s'appelle ton mascotte ! 🌟 Dans un instant tu vas rencontrer Miga, Pixel, Finn et Sage — ils sont tous géniaux, prends ton temps pour choisir !";
 
 const FR_INTRO_TEXT_2 =
-  "Je suis Miga ! Je suis une petite fée pétillante et je serai TOUJOURS là pour toi. Je célèbre chaque victoire, j'aide quand ça va pas, et je ne partirai jamais — tu es coincé(e) avec moi ! 💜 Mais regarde en bas — tu pourrais aussi aimer Pixel, Finn ou Sage !";
+  "Je suis Miga ! Je suis un petit dragon magique et je serai TOUJOURS là pour toi. Je célèbre chaque victoire, j'aide quand ça va pas, et je ne partirai jamais — tu es coincé(e) avec moi ! 💜 Mais regarde en bas — tu pourrais aussi aimer Pixel, Finn ou Sage !";
 
 type MascotId = 'pixel' | 'finn' | 'miga' | 'sage';
 
@@ -38,8 +38,8 @@ const MASCOT_DATA = [
     bubble:   "Heeey!! I'm Finn the fox! I know a million jokes and always have big ideas! 🦊😄",
     bubbleFr: "Hééé !! Je suis Finn le renard ! Je connais un million de blagues et j'ai toujours de grandes idées ! 🦊😄" },
   { id: 'miga'  as const, name: 'Miga',  emoji: '🧚',
-    bubble:   "Hiii!! I'm Miga!! I'm a sparkly little fairy and I will always have your back! 🧚✨",
-    bubbleFr: "Coucou !! Je suis Miga !! Je suis une petite fée scintillante et je serai toujours là pour toi ! 🧚✨" },
+    bubble:   "Hiii!! I'm Miga!! I'm a friendly dragon and I will always have your back! 🐉✨",
+    bubbleFr: "Coucou !! Je suis Miga !! Je suis un petit dragon magique et je serai toujours là pour toi ! 🐉✨" },
   { id: 'sage'  as const, name: 'Sage',  emoji: '🦉',
     bubble:   "Hoooo there! I'm Sage. A wise owl who knows something about almost everything! 🦉📚",
     bubbleFr: "Houuu ! Je suis Sage. Un hibou sage qui sait quelque chose sur presque tout ! 🦉📚" },
@@ -168,7 +168,7 @@ export default function MascotScreen() {
   const activeBubble = isFr ? activeMascot.bubbleFr : activeMascot.bubble;
 
   const bubbleText  = introComplete ? activeBubble : introBubble;
-  const heroEmoji   = introComplete ? activeMascot.emoji : '🧚';
+  const heroEmoji   = introComplete ? activeMascot.emoji : '🐉';
   const heroSize    = introComplete ? 72 : 90;
 
   // AudioPlayer text and characterId for current intro phase
@@ -217,9 +217,15 @@ export default function MascotScreen() {
                 }} />
               </>
             )}
-            <Animated.Text style={[{ fontSize: heroSize, lineHeight: heroSize * 1.2 }, floatStyle]}>
-              {heroEmoji}
-            </Animated.Text>
+            {(!introComplete && mascotAvatarUrls['miga'])
+              ? <Animated.Image
+                  source={{ uri: mascotAvatarUrls['miga'] }}
+                  style={[{ width: heroSize, height: heroSize, borderRadius: heroSize / 2 }, floatStyle]}
+                />
+              : <Animated.Text style={[{ fontSize: heroSize, lineHeight: heroSize * 1.2 }, floatStyle]}>
+                  {heroEmoji}
+                </Animated.Text>
+            }
           </View>
 
           {/* Speech bubble */}

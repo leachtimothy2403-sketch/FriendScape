@@ -154,7 +154,7 @@ export default function AllSetScreen() {
     if (status !== 'loading') return;
     const interval = setInterval(() => {
       setMsgIndex(i => (i + 1) % loadingMsgs.length);
-    }, 3000);
+    }, 6000);
     return () => clearInterval(interval);
   }, [status, loadingMsgs.length]);
 

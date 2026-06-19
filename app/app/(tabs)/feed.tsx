@@ -705,7 +705,11 @@ export default function FeedScreen() {
           backgroundColor: Colors.bg,
           alignItems: 'center', justifyContent: 'center', zIndex: 99,
         }]}>
-          <Text style={{ fontSize: 60 }}>{mascotEmoji}</Text>
+          {mascotAvatarUrl
+            ? <Image source={{ uri: mascotAvatarUrl }}
+                     style={{ width: 100, height: 100, borderRadius: 50 }} />
+            : <Text style={{ fontSize: 60 }}>🐉</Text>
+          }
           <Text style={{ color: Colors.purple, fontSize: 16, marginTop: 12 }}>
             {language === 'fr' ? 'Chargement...' : 'Loading...'}
           </Text>

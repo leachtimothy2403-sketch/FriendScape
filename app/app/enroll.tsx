@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import i18n from '@/i18n';
 import {
   View,
   Text,
@@ -50,11 +51,8 @@ export default function EnrollScreen() {
   const translateY = useSharedValue(0);
 
   useEffect(() => {
-    const deviceLang = Platform.OS === 'ios'
-      ? NativeModules.SettingsManager?.settings?.AppleLocale ||
-        NativeModules.SettingsManager?.settings?.AppleLanguages?.[0]
-      : NativeModules.I18nManager?.localeIdentifier;
-    if (deviceLang && String(deviceLang).startsWith('fr')) void setLanguage('fr');
+    const detectedLang = i18n.language;
+if (detectedLang && detectedLang.startsWith('fr')) void setLanguage('fr');
   }, []);
 
   useEffect(() => {

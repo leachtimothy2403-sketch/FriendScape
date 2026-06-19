@@ -639,22 +639,29 @@ export async function mascotMessage(req: AuthRequest, res: Response) {
     const lang = (childRow.language as string) || 'en';
     const rawMascot = String(childRow.mascot || 'miga').toLowerCase();
 
-    const lower = content.toLowerCase();
-    const feedbackKeywords = ['bug', 'broken', 'feedback', 'marche pas', 'problème', 'issue', 'report', "doesn't work", 'not working'];
-    const helpKeywords     = ['how', 'comment', 'where', 'où', 'aide', 'help', 'what is', "qu'est-ce"];
+    const lower = content.trim().toLowerCase();
+    const feedbackKeywords = [
+      'bug', 'broken', 'marche pas', 'feedback', 'problème', 'problem',
+      'issue', "doesn't work", 'not working', 'signaler', 'report',
+    ];
+    const deadEndKeywords = [
+      'still', 'toujours', 'toujours pas', 'always', 'never',
+      'ça marche pas', 'marche toujours pas', 'same', 'encore',
+      'tried', 'essayé', 'même problème', 'still broken',
+    ];
+    const helpKeywords = ['how', 'comment', 'where', 'où', 'aide', 'help', 'what is', "qu'est-ce"];
 
-    const hasFeedbackKw = feedbackKeywords.some(k => lower.includes(k));
-    const hasHelpKw     = helpKeywords.some(k => lower.includes(k));
+    const hasFeedbackKeyword = feedbackKeywords.some(k => lower.includes(k));
+    const hasDeadEnd = deadEndKeywords.some(k => lower.includes(k));
+    const hasHelpKw  = helpKeywords.some(k => lower.includes(k));
 
-    // Count prior feedback turns in history
-    const priorFeedbackTurns = (history ?? []).filter(h =>
+    const historyArr = history ?? [];
+    const feedbackTurnsInHistory = historyArr.filter(h =>
       h.role === 'child' && feedbackKeywords.some(k => h.content.toLowerCase().includes(k)),
     ).length;
-
-    const hasDeadEndSignal = [
-      'still', 'always', 'never', "doesn't work", 'tried', 'same problem',
-      'essayé', 'toujours', 'marche pas', 'ça marche pas', 'toujours pas',
-    ].some(k => lower.includes(k));
+    const deadEndInHistory = historyArr.filter(h =>
+      h.role === 'child' && deadEndKeywords.some(k => h.content.toLowerCase().includes(k)),
+    ).length;
 
     const isResolved = [
       'works now', 'it works', 'thank', 'merci', 'ça marche', 'ok merci',
@@ -662,12 +669,10 @@ export async function mascotMessage(req: AuthRequest, res: Response) {
     ].some(k => lower.includes(k));
 
     let mode: 'help' | 'feedback' | 'friend';
-    if (hasHelpKw && !hasFeedbackKw) {
+    if (hasHelpKw && !hasFeedbackKeyword) {
       mode = 'help';
-    } else if (priorFeedbackTurns >= 2 && lower.length > 15 && (hasDeadEndSignal || isResolved)) {
+    } else if (hasDeadEnd || (feedbackTurnsInHistory >= 1 && hasFeedbackKeyword) || deadEndInHistory >= 1) {
       mode = 'feedback';
-    } else if (hasFeedbackKw) {
-      mode = 'friend';
     } else {
       mode = 'friend';
     }
@@ -677,7 +682,15 @@ export async function mascotMessage(req: AuthRequest, res: Response) {
     const validNames: MascotName[] = ['Miga', 'Pixel', 'Finn', 'Sage'];
     const mascot: AIMascot = { name: validNames.includes(mascotName) ? mascotName : 'Miga' };
 
-    console.log(`[mascot] mode=${mode} priorFeedbackTurns=${priorFeedbackTurns} historyLen=${(history ?? []).length} hasDeadEnd=${hasDeadEndSignal} isResolved=${isResolved} msgLen=${lower.length}`);
+    console.log('[feedback] decision:', {
+      msg: lower.slice(0, 30),
+      hasFeedbackKeyword,
+      hasDeadEnd,
+      feedbackTurnsInHistory,
+      deadEndInHistory,
+      mode,
+      feedbackEmail: process.env.FEEDBACK_EMAIL ? 'set' : 'NOT SET',
+    });
     const result = await generateMascotReply(mascot, child, content.trim(), messageType, lang, history);
 
     if (mode === 'feedback') {
