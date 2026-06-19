@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, SafeAreaView,
-  ScrollView, ActivityIndicator, useWindowDimensions,
+  ScrollView, ActivityIndicator, useWindowDimensions, Image,
 } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle,
@@ -10,7 +10,7 @@ import Animated, {
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
-import { friends as friendsApi, childProfileApi } from '@/services/api';
+import { friends as friendsApi, childProfileApi, mascotAvatars as mascotAvatarApi } from '@/services/api';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -105,6 +105,8 @@ export default function FriendsScreen() {
   const displayName = childName.trim() || 'you';
   const mascotEmoji = MASCOT_EMOJI[mascotId] ?? '🧚';
 
+  const [mascotAvatarUrl, setMascotAvatarUrl] = useState<string | null>(null);
+
   const childAge = (() => {
     const m = age.match(/(\d+)/);
     return m ? parseInt(m[1], 10) : undefined;
@@ -124,6 +126,13 @@ export default function FriendsScreen() {
 
   const floatY = useSharedValue(0);
   const cardsOpacity = useSharedValue(1);
+
+  useEffect(() => {
+    mascotAvatarApi.get().then(res => {
+      const url = res.data.mascots[mascotId];
+      if (url) setMascotAvatarUrl(url);
+    }).catch(() => {});
+  }, [mascotId]);
 
   useEffect(() => {
     floatY.value = withRepeat(
@@ -214,9 +223,12 @@ export default function FriendsScreen() {
 
         {/* Mascot bubble */}
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 28 }}>
-          <Animated.Text style={[{ fontSize: 34, marginRight: 10, marginTop: 4 }, floatStyle]}>
-            {mascotEmoji}
-          </Animated.Text>
+          <Animated.View style={[floatStyle, { marginRight: 10, marginTop: 4 }]}>
+            {mascotAvatarUrl
+              ? <Image source={{ uri: mascotAvatarUrl }} style={{ width: 36, height: 36, borderRadius: 18 }} />
+              : <Text style={{ fontSize: 34 }}>{mascotEmoji}</Text>
+            }
+          </Animated.View>
           <View style={{ flex: 1, backgroundColor: '#fff', borderRadius: 16, borderTopLeftRadius: 4, borderWidth: 1.5, borderColor: '#E0E0E0', padding: 12 }}>
             <Text style={{ fontSize: 13, color: '#2C2C2A', lineHeight: 20 }}>
               {regenLoading

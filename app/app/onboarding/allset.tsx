@@ -37,6 +37,24 @@ const PACK_NAME: Record<string, string> = {
 
 const PARENT_DASHBOARD = 'http://localhost:3000';
 
+const EN_LOADING_MESSAGES = [
+  "Did you know? Your friends are already excited to meet you! 🌟",
+  "Fun fact: Migo friends never have a bad day — they're always happy to chat! 😄",
+  "Getting ready... your first friends are picking their favourite emojis! 🎨",
+  "Almost there! Your Migo world is being built just for you! ✨",
+  "Why did the robot go to school? To improve its language skills! 🤖",
+  "What's a dragon's favourite subject? Fry-day! 🐉",
+];
+
+const FR_LOADING_MESSAGES = [
+  "Le savais-tu ? Tes amis sont déjà impatients de te rencontrer ! 🌟",
+  "Fun fact : les amis Migo n'ont jamais de mauvaise journée ! 😄",
+  "En cours... tes premiers amis choisissent leurs emojis préférés ! 🎨",
+  "Presque prêt ! Ton monde Migo se construit rien que pour toi ! ✨",
+  "Pourquoi le robot est allé à l'école ? Pour améliorer ses langues ! 🤖",
+  "La matière préférée du dragon ? Le vendredi frit ! 🐉",
+];
+
 // Module-level guard: survives React Strict Mode's mount→unmount→remount cycle.
 // useRef resets to false on each remount, so it cannot protect against double-invocation.
 let _createChildStarted = false;
@@ -91,6 +109,8 @@ export default function AllSetScreen() {
   const [errorMsg, setErrorMsg]           = useState('');
   const [assignedFriends, setAssignedFriends] = useState<AssignedFriend[]>([]);
   const [mascotAvatarUrl, setMascotAvatarUrl] = useState<string | null>(null);
+  const [msgIndex, setMsgIndex]           = useState(0);
+  const loadingMsgs = store.language === 'fr' ? FR_LOADING_MESSAGES : EN_LOADING_MESSAGES;
 
   const floatY     = useSharedValue(0);
   const celebScale = useSharedValue(0);
@@ -127,6 +147,14 @@ export default function AllSetScreen() {
       if (url) setMascotAvatarUrl(url);
     }).catch(() => {});
   }, [store.mascotId]);
+
+  useEffect(() => {
+    if (status !== 'loading') return;
+    const interval = setInterval(() => {
+      setMsgIndex(i => (i + 1) % loadingMsgs.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [status, loadingMsgs.length]);
 
   useEffect(() => {
     if (status === 'success') {
@@ -203,7 +231,7 @@ export default function AllSetScreen() {
       if (data.avatarUrl) await AsyncStorage.setItem('childAvatarUrl', data.avatarUrl);
 
       setStatus('success');
-      if (__DEV__) { handleLaunch(); }
+      if (__DEV__) { void handleLaunch(); }
     } catch (err: unknown) {
       console.error('[allset] createChild error:', err);
       const e = err as { message?: string; response?: { status?: number; data?: { error?: string } } };
@@ -217,9 +245,10 @@ export default function AllSetScreen() {
     }
   }
 
-  function handleLaunch() {
+  async function handleLaunch() {
     _createChildStarted = false;
     store.resetStore();
+    await new Promise(r => setTimeout(r, 2000));
     router.replace('/(tabs)/feed');
   }
 
@@ -245,6 +274,9 @@ export default function AllSetScreen() {
             <PulsingDot delay={220} />
             <PulsingDot delay={440} />
           </View>
+          <Text style={{ fontSize: 15, color: '#7F77DD', textAlign: 'center', marginTop: 16, paddingHorizontal: 32, fontStyle: 'italic' }}>
+            {loadingMsgs[msgIndex]}
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -412,7 +444,7 @@ export default function AllSetScreen() {
         </View>
 
         <TouchableOpacity
-          onPress={handleLaunch}
+          onPress={() => void handleLaunch()}
           style={{ backgroundColor: '#7F77DD', borderRadius: 9999, paddingVertical: 18, alignItems: 'center' }}
           activeOpacity={0.85}
         >

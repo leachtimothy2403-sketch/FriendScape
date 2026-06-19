@@ -651,14 +651,22 @@ export async function mascotMessage(req: AuthRequest, res: Response) {
       h.role === 'child' && feedbackKeywords.some(k => h.content.toLowerCase().includes(k)),
     ).length;
 
+    const hasDeadEndSignal = [
+      'still', 'always', 'never', "doesn't work", 'tried', 'same problem',
+      'essayé', 'toujours', 'marche pas', 'ça marche pas', 'toujours pas',
+    ].some(k => lower.includes(k));
+
+    const isResolved = [
+      'works now', 'it works', 'thank', 'merci', 'ça marche', 'ok merci',
+      'super merci', 'parfait',
+    ].some(k => lower.includes(k));
+
     let mode: 'help' | 'feedback' | 'friend';
     if (hasHelpKw && !hasFeedbackKw) {
       mode = 'help';
-    } else if (hasFeedbackKw && priorFeedbackTurns >= 1) {
-      // Second+ feedback turn — user has provided detail
+    } else if (priorFeedbackTurns >= 2 && lower.length > 15 && (hasDeadEndSignal || isResolved)) {
       mode = 'feedback';
     } else if (hasFeedbackKw) {
-      // First mention — Miga gathers more detail
       mode = 'friend';
     } else {
       mode = 'friend';
@@ -682,6 +690,7 @@ export async function mascotMessage(req: AuthRequest, res: Response) {
           ...(history ?? []).map(h => `${h.role === 'child' ? child.name : mascot.name}: ${h.content}`),
           `${child.name}: ${content.trim()}`,
         ].join('\n\n');
+        const emailMessage = isResolved ? `[ISSUE RESOLVED]\n\n${transcript}` : transcript;
         sendFeedbackEmail({
           to:            feedbackEmail,
           childName:     child.name,
@@ -689,7 +698,7 @@ export async function mascotMessage(req: AuthRequest, res: Response) {
           childLanguage: lang,
           parentEmail,
           childId,
-          message:       transcript,
+          message:       emailMessage,
           timestamp:     new Date().toISOString(),
         }).catch(console.error);
       }

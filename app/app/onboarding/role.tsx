@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, Image } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle,
   withRepeat, withSequence, withTiming, Easing,
@@ -9,6 +9,7 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 import { useOnboardingStore } from '@/store/onboardingStore';
+import { mascotAvatars as mascotAvatarApi } from '@/services/api';
 import AudioPlayer from '@/components/AudioPlayer';
 
 // ─── Mascot map ───────────────────────────────────────────────────────────────
@@ -39,10 +40,16 @@ export default function RoleScreen() {
       desc: t('onboarding.role.role5Desc') },
   ];
 
+  const [mascotAvatarUrl, setMascotAvatarUrl] = useState<string | null>(null);
+
   const soundRef = useRef<Audio.Sound | null>(null);
   const floatY   = useSharedValue(0);
 
   useEffect(() => {
+    mascotAvatarApi.get().then(res => {
+      const url = res.data.mascots[mascotId];
+      if (url) setMascotAvatarUrl(url);
+    }).catch(() => {});
     Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
     floatY.value = withRepeat(
       withSequence(
@@ -85,7 +92,12 @@ export default function RoleScreen() {
 
         {/* Floating mascot — tap to play audio */}
         <TouchableOpacity onPress={playIntro} activeOpacity={0.8} style={{ alignItems: 'center', marginBottom: 12 }}>
-          <Animated.Text style={[{ fontSize: 60 }, floatStyle]}>{mascot.emoji}</Animated.Text>
+          <Animated.View style={floatStyle}>
+            {mascotAvatarUrl
+              ? <Image source={{ uri: mascotAvatarUrl }} style={{ width: 80, height: 80, borderRadius: 40 }} />
+              : <Text style={{ fontSize: 60 }}>{mascot.emoji}</Text>
+            }
+          </Animated.View>
         </TouchableOpacity>
 
         {/* Mascot "happy you picked me" bubble */}
@@ -123,7 +135,10 @@ export default function RoleScreen() {
         }}>
           {/* Card header */}
           <View style={{ backgroundColor: '#EEEDFE', padding: 16, flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={{ fontSize: 40, marginRight: 12 }}>{mascot.emoji}</Text>
+            {mascotAvatarUrl
+              ? <Image source={{ uri: mascotAvatarUrl }} style={{ width: 40, height: 40, borderRadius: 20, marginRight: 12 }} />
+              : <Text style={{ fontSize: 40, marginRight: 12 }}>{mascot.emoji}</Text>
+            }
             <View>
               <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#2C2C2A' }}>{t('onboarding.role.mascotIntro', { name: mascot.name })}</Text>
               <Text style={{ fontSize: 12, color: '#7F77DD', marginTop: 2 }}>{t('onboarding.role.cardHeader')}</Text>
@@ -168,7 +183,10 @@ export default function RoleScreen() {
           alignItems: 'flex-start',
           marginBottom: 32,
         }}>
-          <Text style={{ fontSize: 20, marginRight: 10, flexShrink: 0 }}>{mascot.emoji}</Text>
+          {mascotAvatarUrl
+            ? <Image source={{ uri: mascotAvatarUrl }} style={{ width: 24, height: 24, borderRadius: 12, marginRight: 10, flexShrink: 0 }} />
+            : <Text style={{ fontSize: 20, marginRight: 10, flexShrink: 0 }}>{mascot.emoji}</Text>
+          }
           <Text style={{ fontSize: 12, color: '#534AB7', lineHeight: 19, flex: 1 }}>
             {t('onboarding.role.permanentNote', { mascot: mascot.name })}
           </Text>

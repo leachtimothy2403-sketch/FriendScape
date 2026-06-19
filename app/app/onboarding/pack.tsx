@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, useWindowDimensions } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, useWindowDimensions, Image } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 import { useOnboardingStore } from '@/store/onboardingStore';
+import { mascotAvatars as mascotAvatarApi } from '@/services/api';
 
 const MASCOT_EMOJI: Record<string, string> = {
   pixel: '🤖', finn: '🦊', miga: '🧚', sage: '🦉',
@@ -20,7 +21,15 @@ export default function PackScreen() {
   const displayName = childName.trim() || 'you';
   const mascotEmoji = MASCOT_EMOJI[mascotId] ?? '🧚';
   const initialPack = (avatarPack as PackId) || 'sketch-crew';
-  const [selected, setSelected] = useState<PackId>(initialPack);
+  const [selected, setSelected]               = useState<PackId>(initialPack);
+  const [mascotAvatarUrl, setMascotAvatarUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    mascotAvatarApi.get().then(res => {
+      const url = res.data.mascots[mascotId];
+      if (url) setMascotAvatarUrl(url);
+    }).catch(() => {});
+  }, [mascotId]);
 
   const GAP   = 12;
   const HPAD  = 24;
@@ -60,7 +69,10 @@ export default function PackScreen() {
 
         {/* Mascot speech bubble */}
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 28 }}>
-          <Text style={{ fontSize: 34, marginRight: 10, marginTop: 4 }}>{mascotEmoji}</Text>
+          {mascotAvatarUrl
+            ? <Image source={{ uri: mascotAvatarUrl }} style={{ width: 36, height: 36, borderRadius: 18, marginRight: 10, marginTop: 4 }} />
+            : <Text style={{ fontSize: 34, marginRight: 10, marginTop: 4 }}>{mascotEmoji}</Text>
+          }
           <View style={{
             flex: 1,
             backgroundColor: '#fff',

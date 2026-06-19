@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  NativeModules,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -45,6 +46,16 @@ export default function EnrollScreen() {
   const [checkMessage, setCheckMessage] = useState<{ text: string; color: string } | null>(null);
 
   const translateY = useSharedValue(0);
+
+  useEffect(() => {
+    const deviceLang = Platform.OS === 'ios'
+      ? NativeModules.SettingsManager?.settings?.AppleLocale ||
+        NativeModules.SettingsManager?.settings?.AppleLanguages?.[0]
+      : NativeModules.I18nManager?.localeIdentifier;
+    if (deviceLang && String(deviceLang).startsWith('fr')) {
+      void setLanguage('fr');
+    }
+  }, []);
 
   useEffect(() => {
     translateY.value = withRepeat(

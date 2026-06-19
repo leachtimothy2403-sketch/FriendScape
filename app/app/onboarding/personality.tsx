@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, SafeAreaView,
-  ScrollView, TextInput, Platform, KeyboardAvoidingView,
+  ScrollView, TextInput, Platform, KeyboardAvoidingView, Image,
 } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle,
@@ -14,7 +14,7 @@ import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { useLanguageStore } from '@/store/languageStore';
-import { audioApi } from '@/services/api';
+import { audioApi, mascotAvatars as mascotAvatarApi } from '@/services/api';
 import AudioPlayer from '@/components/AudioPlayer';
 
 const MASCOT_EMOJI: Record<string, string> = {
@@ -118,8 +118,16 @@ export default function PersonalityScreen() {
   const floatY      = useSharedValue(0);
   const pulse       = useSharedValue(1);
 
-  const [isRecording, setIsRecording]     = useState(false);
-  const [voiceRecorded, setVoiceRecorded] = useState(false);
+  const [mascotAvatarUrl, setMascotAvatarUrl] = useState<string | null>(null);
+  const [isRecording, setIsRecording]         = useState(false);
+  const [voiceRecorded, setVoiceRecorded]     = useState(false);
+
+  useEffect(() => {
+    mascotAvatarApi.get().then(res => {
+      const url = res.data.mascots[mascotId];
+      if (url) setMascotAvatarUrl(url);
+    }).catch(() => {});
+  }, [mascotId]);
 
   useEffect(() => {
     Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
@@ -255,9 +263,12 @@ export default function PersonalityScreen() {
 
         {/* Mascot bubble */}
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 28 }}>
-          <Animated.Text style={[{ fontSize: 36, marginRight: 10, marginTop: 4 }, floatStyle]}>
-            {mascotEmoji}
-          </Animated.Text>
+          <Animated.View style={[floatStyle, { marginRight: 10, marginTop: 4 }]}>
+            {mascotAvatarUrl
+              ? <Image source={{ uri: mascotAvatarUrl }} style={{ width: 36, height: 36, borderRadius: 18 }} />
+              : <Text style={{ fontSize: 36 }}>{mascotEmoji}</Text>
+            }
+          </Animated.View>
           <View style={{ flex: 1 }}>
             <View style={{
               backgroundColor: '#fff', borderRadius: 16, borderTopLeftRadius: 4,

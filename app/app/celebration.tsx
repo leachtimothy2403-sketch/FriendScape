@@ -1,5 +1,5 @@
-import { useEffect, useMemo } from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { View, Text, TouchableOpacity, SafeAreaView, Dimensions, Image } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -12,6 +12,8 @@ import Animated, {
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
+import { mascotAvatars as mascotAvatarApi } from '@/services/api';
+import { useOnboardingStore } from '@/store/onboardingStore';
 
 const { width: W, height: H } = Dimensions.get('window');
 
@@ -83,7 +85,7 @@ function Confetti() {
   );
 }
 
-function FloatingFairy() {
+function FloatingFairy({ avatarUrl }: { avatarUrl: string | null }) {
   const y = useSharedValue(0);
   useEffect(() => {
     y.value = withRepeat(
@@ -96,11 +98,22 @@ function FloatingFairy() {
     );
   }, []);
   const style = useAnimatedStyle(() => ({ transform: [{ translateY: y.value }] }));
-  return <Animated.Text style={[{ fontSize: 52, textAlign: 'center' }, style]}>🧚</Animated.Text>;
+  return avatarUrl
+    ? <Animated.View style={style}><Image source={{ uri: avatarUrl }} style={{ width: 80, height: 80, borderRadius: 40 }} /></Animated.View>
+    : <Animated.Text style={[{ fontSize: 52, textAlign: 'center' }, style]}>🧚</Animated.Text>;
 }
 
 export default function CelebrationScreen() {
   const { t } = useTranslation();
+  const mascotId = useOnboardingStore(s => s.mascotId);
+  const [mascotAvatarUrl, setMascotAvatarUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    mascotAvatarApi.get().then(res => {
+      const url = res.data.mascots[mascotId || 'miga'];
+      if (url) setMascotAvatarUrl(url);
+    }).catch(() => {});
+  }, [mascotId]);
 
   return (
     <SafeAreaView className="flex-1 bg-bg">
@@ -139,7 +152,7 @@ export default function CelebrationScreen() {
           <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>{t('celebration.button')}</Text>
         </TouchableOpacity>
 
-        <FloatingFairy />
+        <FloatingFairy avatarUrl={mascotAvatarUrl} />
 
       </View>
     </SafeAreaView>
