@@ -31,6 +31,53 @@ export async function generateFriendPortrait(
   return url;
 }
 
+export async function generateAdultFriendPortrait(
+  name: string,
+  gender: string,
+  personality: string[],
+  language: string,
+): Promise<string> {
+  const genderWord = gender === 'female' || gender === 'girl' ? 'woman' : 'man';
+  const styleWord = language === 'fr' ? 'French' : 'Western';
+  const prompt = `Pixar cartoon portrait of a friendly young adult ${genderWord}, ${personality.slice(0, 2).join(', ')} personality, ${styleWord} children's app style, warm approachable face, friendly smile, plain light background, centered, vibrant colors, high quality illustration, appropriate for a kids' app`;
+
+  const result = await fal.subscribe('fal-ai/flux/schnell', {
+    input: {
+      prompt,
+      negative_prompt: 'child, kid, teenager, scary, dark, realistic photo, old, elderly, text, watermark',
+      image_size: 'square',
+      num_inference_steps: 4,
+      num_images: 1,
+    } as never,
+    pollInterval: 500,
+  });
+  const r = result as unknown as { data: { images: Array<{ url: string }> } };
+  const url = r.data?.images?.[0]?.url;
+  if (!url) throw new Error('No image in fal adult friend portrait response');
+  console.log(`[avatar] adult friend portrait URL for ${name}:`, url);
+  return url;
+}
+
+export async function generateLunaPortrait(): Promise<string> {
+  const prompt = `Pixar cartoon portrait of a warm kind woman in her 60s, grey or silver hair, wearing glasses, gentle teacher-like smile, soft kind eyes, children's app style, plain light background, centered, vibrant colors, high quality illustration, appropriate for a kids' educational app`;
+
+  const result = await fal.subscribe('fal-ai/flux/schnell', {
+    input: {
+      prompt,
+      negative_prompt: 'child, kid, teenager, young adult, scary, dark, realistic photo, text, watermark',
+      image_size: 'square',
+      num_inference_steps: 4,
+      num_images: 1,
+    } as never,
+    pollInterval: 500,
+  });
+  const r = result as unknown as { data: { images: Array<{ url: string }> } };
+  const url = r.data?.images?.[0]?.url;
+  if (!url) throw new Error('No image in fal Luna portrait response');
+  console.log('[avatar] Luna portrait URL:', url);
+  return url;
+}
+
 export async function generatePostImage(
   postText: string,
   friendName: string,

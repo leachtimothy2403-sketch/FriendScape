@@ -350,7 +350,9 @@
     "justNow": "À l'instant",
     "minutesAgo": "il y a {{n}} min",
     "hoursAgo": "il y a {{n}}h",
-    "daysAgo": "il y a {{n}} j"
+    "daysAgo": "il y a {{n}} j",
+    "commentPlaceholder": "Écris un commentaire…",
+    "sendButton": "Envoyer"
   },
   "dm": {
     "online": "En ligne maintenant",
@@ -366,7 +368,7 @@
   "luna": {
     "photoAdded": "📸 Photo ajoutée — Luna peut la voir",
     "photoPrivacyTitle": "📸 Confidentialité",
-    "photoPrivacyText": "Ta photo va directement chez Ms. Luna pour t'aider. Elle n'est jamais sauvegardée nulle part et disparaît dès qu'elle l'a vue !",
+    "photoPrivacyText": "Ta photo va directement chez Mme Luna pour t'aider. Elle n'est jamais sauvegardée nulle part et disparaît dès qu'elle l'a vue !",
     "photoPrivacyButton": "J'ai compris ✓",
     "photoHelpPrompt": "Peux-tu m'aider avec ça ?",
     "cameraButton": "📸 Prendre une photo",
@@ -414,8 +416,10 @@
   "friendProfile": {
     "yourFriendF": "Ton amie",
     "yourFriendM": "Ton ami",
-    "starFriend": "Ami(e) vedette",
-    "friendOf": "Ami(e) de {{name}}"
+    "starFriendF": "Amie vedette",
+    "starFriendM": "Ami vedette",
+    "friendOfF": "Amie de {{name}}",
+    "friendOfM": "Ami de {{name}}"
   },
   "friends": {
     "yourFriends": "Tes amis",

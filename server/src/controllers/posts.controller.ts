@@ -121,7 +121,17 @@ export async function getFeed(req: AuthRequest, res: Response) {
   try {
     const posts = await db('posts')
       .leftJoin('ai_friends', 'ai_friends.id', 'posts.author_id')
-      .where('posts.child_id', childId)
+      .where((qb) => {
+        qb.where('posts.child_id', childId)
+          .orWhere((qb2) => {
+            qb2.whereNull('posts.child_id')
+              .whereExists(function () {
+                this.select('*').from('child_friends')
+                  .whereRaw('child_friends.friend_id = posts.author_id')
+                  .andWhere('child_friends.child_id', childId);
+              });
+          });
+      })
       .select(
         'posts.*',
         'posts.image_url',
@@ -312,13 +322,27 @@ export async function getPostComments(req: AuthRequest, res: Response) {
   if (!childId) { res.status(401).json({ error: 'Child authentication required' }); return; }
 
   try {
-    const post = await db('posts').where({ id: req.params.postId, child_id: childId }).first();
+    const post = await db('posts')
+      .where('id', req.params.postId)
+      .where((qb) => {
+        qb.where('child_id', childId)
+          .orWhere((qb2) => {
+            qb2.whereNull('child_id')
+              .whereExists(function () {
+                this.select('*').from('child_friends')
+                  .whereRaw('child_friends.friend_id = posts.author_id')
+                  .andWhere('child_friends.child_id', childId);
+              });
+          });
+      })
+      .first();
     if (!post) { res.status(404).json({ error: 'Post not found' }); return; }
 
     const commentRows = await db('post_comments as pc')
       .leftJoin('ai_friends as af', 'af.id', 'pc.author_id')
       .leftJoin('children as ch', 'ch.id', 'pc.author_id')
       .where('pc.post_id', req.params.postId)
+      .where((qb) => qb.where('pc.child_id', childId).orWhereNull('pc.child_id'))
       .select(
         'pc.content', 'pc.author_type',
         'pc.created_at as comment_at',
@@ -352,11 +376,24 @@ export async function addComment(req: AuthRequest, res: Response) {
     const { text } = req.body as { text?: string };
     if (!text?.trim()) { res.status(400).json({ error: 'text is required' }); return; }
 
-    const post = await db('posts').where({ id: req.params.postId, child_id: childId }).first();
+    const post = await db('posts')
+      .where('id', req.params.postId)
+      .where((qb) => {
+        qb.where('child_id', childId)
+          .orWhere((qb2) => {
+            qb2.whereNull('child_id')
+              .whereExists(function () {
+                this.select('*').from('child_friends')
+                  .whereRaw('child_friends.friend_id = posts.author_id')
+                  .andWhere('child_friends.child_id', childId);
+              });
+          });
+      })
+      .first();
     if (!post) { res.status(404).json({ error: 'Post not found' }); return; }
 
     const [comment] = await db('post_comments')
-      .insert({ post_id: req.params.postId, author_id: childId, author_type: 'child', content: text.trim() })
+      .insert({ post_id: req.params.postId, author_id: childId, author_type: 'child', content: text.trim(), child_id: childId })
       .returning('*');
 
     res.status(201).json({ comment });

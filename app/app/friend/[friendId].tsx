@@ -12,6 +12,7 @@ import {
 } from '@/services/api';
 import { Colors } from '@/constants/theme';
 import { useLanguageStore } from '@/store/languageStore';
+import { getDisplayName } from '@/utils/displayName';
 
 // Cover colour per friend name
 const COVER_COLOR: Record<string, string> = {
@@ -31,10 +32,13 @@ function fmtDate(iso: string, lang: string) {
   return new Date(iso).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function RelBadge({ type, via, t, gender }: { type?: string; via?: string; t: (key: string, opts?: Record<string, unknown>) => string; gender?: string }) {
+function RelBadge({ type, via, t, gender, viaGender }: { type?: string; via?: string; t: (key: string, opts?: Record<string, unknown>) => string; gender?: string; viaGender?: string }) {
   const isFeminine = gender === 'girl' || gender === 'female';
-  if (via)  return <View style={s.relBadgePurple}><Text style={s.relBadgeText}>{t('friendProfile.friendOf', { name: via })}</Text></View>;
-  if (type === 'star' || type === 'is_star_friend') return <View style={s.relBadgeOrange}><Text style={s.relBadgeText}>⭐ {t('friendProfile.starFriend')}</Text></View>;
+  if (via) {
+    const viaIsFeminine = viaGender === 'girl' || viaGender === 'female';
+    return <View style={s.relBadgePurple}><Text style={s.relBadgeText}>{t(viaIsFeminine ? 'friendProfile.friendOfF' : 'friendProfile.friendOfM', { name: via })}</Text></View>;
+  }
+  if (type === 'star' || type === 'is_star_friend') return <View style={s.relBadgeOrange}><Text style={s.relBadgeText}>⭐ {t(isFeminine ? 'friendProfile.starFriendF' : 'friendProfile.starFriendM')}</Text></View>;
   return <View style={s.relBadgeGreen}><Text style={s.relBadgeText}>{t(isFeminine ? 'friendProfile.yourFriendF' : 'friendProfile.yourFriendM')}</Text></View>;
 }
 
@@ -78,6 +82,7 @@ function NetworkCard({
 export default function FriendProfileScreen() {
   const { t } = useTranslation();
   const { language } = useLanguageStore();
+  const isFr = language === 'fr';
   const { friendId, via } = useLocalSearchParams<{ friendId: string; via?: string }>();
 
   const [friend,              setFriend]             = useState<FriendWithStatus | null>(null);
@@ -88,6 +93,7 @@ export default function FriendProfileScreen() {
   const [adding,              setAdding]             = useState(false);
   const [isAdded,             setIsAdded]            = useState(false);
   const [referringFriendName, setReferringFriendName] = useState<string | null>(null);
+  const [referringFriendGender, setReferringFriendGender] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,6 +116,7 @@ export default function FriendProfileScreen() {
           setFriend(frTyped);
           setIsAdded(frTyped.is_added ?? false);
           setReferringFriendName(frTyped.referringFriendName ?? null);
+          setReferringFriendGender(frTyped.referringFriendGender ?? null);
           setNetwork(netRes.data.friends);
         }
 
@@ -191,12 +198,12 @@ export default function FriendProfileScreen() {
               : <Text style={{ fontSize: 36 }}>{mainEmoji}</Text>}
           </View>
 
-          <Text style={s.friendName}>{friend.name}</Text>
+          <Text style={s.friendName}>{getDisplayName(friend.name, isFr)}</Text>
 
           <View style={s.badgeRow}>
             {isAdded && <RelBadge type="your_friend" t={t} gender={friend.gender} />}
-            {referringFriendName && !isAdded && <RelBadge via={referringFriendName} t={t} />}
-            {friend.is_star_friend && <RelBadge type="star" t={t} />}
+            {referringFriendName && !isAdded && <RelBadge via={referringFriendName} t={t} viaGender={referringFriendGender ?? undefined} />}
+            {friend.is_star_friend && <RelBadge type="star" t={t} gender={friend.gender} />}
           </View>
 
           <Text style={s.bio}>{friend.bio}</Text>
@@ -213,7 +220,7 @@ export default function FriendProfileScreen() {
         {/* Friendship stats card */}
         {isAdded && friend.friendship ? (
           <View style={s.statsCard}>
-            <Text style={s.statsTitle}>{t('friends.yourFriendshipWith', { name: friend.name })}</Text>
+            <Text style={s.statsTitle}>{t('friends.yourFriendshipWith', { name: getDisplayName(friend.name, isFr) })}</Text>
             <Text style={s.statsLevel}>{t(`friends.levelNames.${friend.friendship.level}`)}</Text>
             <View style={s.xpBar}><View style={[s.xpFill, { width: `${Math.round(xpFraction * 100)}%` as `${number}%` }]} /></View>
             <Text style={s.statsXP}>{friend.friendship.xp} XP</Text>
@@ -231,13 +238,13 @@ export default function FriendProfileScreen() {
         <View style={s.actionRow}>
           {isAdded ? (
             <TouchableOpacity onPress={() => router.push(`/dm/${friendId}` as never)} style={s.btnMessage}>
-              <Text style={s.btnMessageText}>{t('friends.messageFriend', { name: friend.name })}</Text>
+              <Text style={s.btnMessageText}>{t('friends.messageFriend', { name: getDisplayName(friend.name, isFr) })}</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity onPress={handleAdd} style={s.btnAdd} disabled={adding}>
               {adding
                 ? <ActivityIndicator color="#fff" />
-                : <Text style={s.btnAddText}>{t('friends.addFriend', { name: friend.name })}</Text>}
+                : <Text style={s.btnAddText}>{t('friends.addFriend', { name: getDisplayName(friend.name, isFr) })}</Text>}
             </TouchableOpacity>
           )}
         </View>
@@ -259,7 +266,7 @@ export default function FriendProfileScreen() {
         {/* Friend's network */}
         {network.length > 0 && (
           <View style={s.networkSection}>
-            <Text style={s.sectionTitle}>{t('friends.friendNetwork', { name: friend.name })}</Text>
+            <Text style={s.sectionTitle}>{t('friends.friendNetwork', { name: getDisplayName(friend.name, isFr) })}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 14, gap: 10 }}>
               {network.map(f => (
                 <NetworkCard key={f.id} f={f} token={token} onAdd={handleNetworkAdd} />

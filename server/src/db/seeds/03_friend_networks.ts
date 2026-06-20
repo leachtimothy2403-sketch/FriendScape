@@ -12,7 +12,6 @@ export async function seed(knex: Knex): Promise<void> {
   const CAMILLE_ID = 'b1000006-0000-0000-0000-000000000006';
   const LUCA_ID   = 'b1000007-0000-0000-0000-000000000007';
   const SOFIA_ID  = 'b1000008-0000-0000-0000-000000000008';
-  const SARAH_ID  = 'b1000009-0000-0000-0000-000000000009';
   const PROF_ID   = 'b1000010-0000-0000-0000-000000000010';
 
   // Look up existing core friends by name
@@ -55,7 +54,6 @@ export async function seed(knex: Knex): Promise<void> {
     { ai_friend_id: ZARA_ID, connected_friend_id: MIKE_ID,  relationship_type: 'star',          relationship_description: 'Zara follows Coach Mike for sports motivation' },
 
     // ── Coach Mike's network ──────────────────────────────────────────────────
-    { ai_friend_id: MIKE_ID, connected_friend_id: SARAH_ID, relationship_type: 'close_friend',  relationship_description: 'Friendly rivals and great friends' },
     { ai_friend_id: MIKE_ID, connected_friend_id: JAKE_ID,  relationship_type: 'online_friend', relationship_description: "Jake is Coach Mike's biggest football fan" },
     { ai_friend_id: MIKE_ID, connected_friend_id: NICO_ID,  relationship_type: 'teammate',      relationship_description: "Coach Mike coaches Nico's team" },
 

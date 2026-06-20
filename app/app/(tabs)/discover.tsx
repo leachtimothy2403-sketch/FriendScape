@@ -15,6 +15,7 @@ import {
 import { useLanguageStore } from '@/store/languageStore';
 import { Colors } from '@/constants/theme';
 import MigoLogo from '@/components/MigoLogo';
+import { getDisplayName } from '@/utils/displayName';
 
 const COVER_COLOR: Record<string, string> = {
   Mia: '#EEEDFE', Jake: '#E1F5EE', Zara: '#FAECE7',
@@ -227,7 +228,7 @@ function StarCard({
 }
 
 // ── Ms. Luna discovery card ────────────────────────────────────────────────────
-function LunaCard({ luna, onAdd }: { luna: AiFriendRecord; onAdd: () => Promise<void> }) {
+function LunaCard({ luna, onAdd, isFr }: { luna: AiFriendRecord; onAdd: () => Promise<void>; isFr: boolean }) {
   const { t } = useTranslation();
   const [adding, setAdding] = useState(false);
 
@@ -255,7 +256,7 @@ function LunaCard({ luna, onAdd }: { luna: AiFriendRecord; onAdd: () => Promise<
         }
       </View>
       <View style={{ flex: 1, marginLeft: 12 }}>
-        <Text style={s.lunaName}>{luna.name}</Text>
+        <Text style={s.lunaName}>{getDisplayName(luna.name, isFr)}</Text>
         <Text style={s.lunaTagline}>{t('discover.lunaTagline')}</Text>
         <Text style={s.lunaDesc}>{t('discover.lunaDesc')}</Text>
       </View>
@@ -432,7 +433,7 @@ export default function DiscoverScreen() {
         {showLunaCard && msLuna && (
           <View style={s.section}>
             <Text style={s.sectionTitle}>{t('discover.meetLuna')}</Text>
-            <LunaCard luna={msLuna} onAdd={() => addFriend(msLuna.id)} />
+            <LunaCard luna={msLuna} onAdd={() => addFriend(msLuna.id)} isFr={language === 'fr'} />
           </View>
         )}
 

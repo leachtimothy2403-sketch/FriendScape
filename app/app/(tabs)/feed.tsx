@@ -619,6 +619,11 @@ export default function FeedScreen() {
       {loading ? (
         <SkeletonFeed />
       ) : (
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        >
         <FlatList
           data={posts}
           keyExtractor={(item) => item.id}
@@ -685,6 +690,7 @@ export default function FeedScreen() {
             </View>
           }
         />
+        </KeyboardAvoidingView>
       )}
 
       {showTour && (
@@ -918,7 +924,7 @@ function PostCard({
           <TextInput
             value={commentText}
             onChangeText={setCommentText}
-            placeholder="Write a comment…"
+            placeholder={t('feed.commentPlaceholder')}
             placeholderTextColor="#B4B2A9"
             style={s.commentInputField}
             autoFocus
@@ -932,7 +938,7 @@ function PostCard({
           >
             {submitting
               ? <ActivityIndicator color="#fff" size="small" />
-              : <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Send</Text>
+              : <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>{t('feed.sendButton')}</Text>
             }
           </TouchableOpacity>
         </View>

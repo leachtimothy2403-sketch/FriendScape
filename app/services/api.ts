@@ -240,8 +240,9 @@ export interface FriendshipRecord {
 export interface FriendWithStatus extends AiFriendRecord {
   is_added:              boolean;
   friendship?:           FriendshipRecord;
-  referringFriendName?:  string | null;
-  referringFriendId?:    string | null;
+  referringFriendName?:   string | null;
+  referringFriendId?:     string | null;
+  referringFriendGender?: string | null;
 }
 
 export interface FriendPost {

@@ -59,8 +59,8 @@ export async function getFriend(req: AuthRequest, res: Response) {
     const referrer = await db('ai_friend_network')
       .where({ connected_friend_id: req.params.friendId })
       .join('ai_friends', 'ai_friends.id', 'ai_friend_network.ai_friend_id')
-      .select('ai_friends.name as referring_friend_name', 'ai_friends.id as referring_friend_id')
-      .first() as { referring_friend_name: string; referring_friend_id: string } | undefined;
+      .select('ai_friends.name as referring_friend_name', 'ai_friends.id as referring_friend_id', 'ai_friends.gender as referring_friend_gender')
+      .first() as { referring_friend_name: string; referring_friend_id: string; referring_friend_gender: string } | undefined;
 
     res.json({
       friend: {
@@ -68,8 +68,9 @@ export async function getFriend(req: AuthRequest, res: Response) {
         bio: language === 'fr' && friendRecord.bio_fr ? friendRecord.bio_fr : friendRecord.bio,
         is_added,
         friendship,
-        referringFriendName: referrer?.referring_friend_name ?? null,
-        referringFriendId:   referrer?.referring_friend_id   ?? null,
+        referringFriendName:   referrer?.referring_friend_name   ?? null,
+        referringFriendId:     referrer?.referring_friend_id     ?? null,
+        referringFriendGender: referrer?.referring_friend_gender ?? null,
       },
     });
   } catch {

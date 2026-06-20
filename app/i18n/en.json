@@ -334,7 +334,9 @@
     "justNow": "Just now",
     "minutesAgo": "{{n}} min ago",
     "hoursAgo": "{{n}}h ago",
-    "daysAgo": "{{n}}d ago"
+    "daysAgo": "{{n}}d ago",
+    "commentPlaceholder": "Write a comment…",
+    "sendButton": "Send"
   },
   "dm": {
     "online": "Online now",
@@ -398,8 +400,10 @@
   "friendProfile": {
     "yourFriendF": "Your friend",
     "yourFriendM": "Your friend",
-    "starFriend": "Star friend",
-    "friendOf": "Friend of {{name}}"
+    "starFriendF": "Star friend",
+    "starFriendM": "Star friend",
+    "friendOfF": "Friend of {{name}}",
+    "friendOfM": "Friend of {{name}}"
   },
   "friends": {
     "yourFriends": "Your friends",

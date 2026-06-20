@@ -10,6 +10,7 @@ import {
 } from '../services/email.service';
 import { AuthRequest } from '../middleware/auth';
 import redis from '../services/redis.service';
+import { generateFriendPortrait, generateAdultFriendPortrait, generateLunaPortrait } from '../services/avatar.service';
 
 export async function register(req: Request, res: Response) {
   try {
@@ -399,6 +400,47 @@ export async function devReset(req: Request, res: Response) {
         await db.seed.run({ specific: '01_ai_friends.ts' });
 
         console.log(`[dev] 🗑️  Database reset — ${nChildren} children, ${nGeneratedFriends} generated friends deleted`);
+
+        // Regenerate star friend avatars (reseed wipes them since seed data has no avatar_url)
+        try {
+          const ADULT_STYLE_NAMES = ['Coach Mike', 'Capitaine Coquillage'];
+          const starRows = await db('ai_friends').where({ is_star_friend: true }).whereNull('avatar_url');
+          console.log(`[dev] 🎨 Regenerating ${starRows.length} star friend avatar(s)...`);
+          for (const row of starRows) {
+            try {
+              const personality: string[] = row.personality ?? [];
+              let url: string;
+              if (ADULT_STYLE_NAMES.includes(row.name)) {
+                url = await generateAdultFriendPortrait(row.name, row.gender, personality, 'en');
+              } else {
+                const age: number = row.age ?? 10;
+                url = await generateFriendPortrait(row.name, age, row.gender, personality, 'en');
+              }
+              await db('ai_friends').where({ id: row.id }).update({ avatar_url: url });
+              console.log(`[dev]   ✓ ${row.name} avatar regenerated`);
+            } catch (avatarErr) {
+              console.error(`[dev]   ✗ ${row.name} avatar failed:`, avatarErr);
+            }
+          }
+        } catch (err) {
+          console.error('[dev] Star friend avatar regeneration failed:', err);
+        }
+
+        // Regenerate Ms. Luna's avatar (reseed wipes it since seed data has no avatar_url)
+        try {
+          const lunaRow = await db('ai_friends')
+            .where({ name: 'Ms. Luna', is_teacher: true })
+            .whereNull('avatar_url')
+            .first();
+          if (lunaRow) {
+            console.log('[dev] 🎨 Regenerating Ms. Luna avatar...');
+            const lunaUrl = await generateLunaPortrait();
+            await db('ai_friends').where({ id: lunaRow.id }).update({ avatar_url: lunaUrl });
+            console.log('[dev]   ✓ Ms. Luna avatar regenerated');
+          }
+        } catch (err) {
+          console.error('[dev] Ms. Luna avatar regeneration failed:', err);
+        }
       } catch (err) {
         console.error('[dev] devReset background error:', err);
       }
