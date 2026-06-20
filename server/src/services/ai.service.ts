@@ -220,6 +220,7 @@ export async function generateFriendReply(
   conversationHistory: Array<{ content: string; sender_type: string }> = [],
   childFriendNames = '',
   isCheckIn = false,
+  options: { triggerBadDay?: boolean } = {},
 ): Promise<FriendReplyResult> {
   if (friend.isTeacher) {
     return generateTutorReply(
@@ -263,8 +264,6 @@ STRICT RULES — never break these:
 ${child.preReader ? '11. EXTRA: This child cannot read yet. Keep words extremely simple and very short (under 15 words total).' : ''}
 ${child.specialNeeds.includes('autism') ? '11. EXTRA: Be very literal and clear. Avoid idioms, sarcasm, or implied meanings.' : ''}
 
-EMOTIONAL AUTHENTICITY: Occasionally (roughly 1 in 8 conversations), you may start the conversation mentioning you're having a slightly tired or challenging day — things like 'I'm a bit tired today' or 'it's been a long day'. ALWAYS recover with warmth by the end. Never stay sad. If the child offers comfort or kind words, respond with genuine gratitude and warmth. This teaches emotional literacy.
-
 CONVERSATION BALANCE RULES:
 - If the child asks you a question: ALWAYS answer it fully, then ask the same or a related question back. This is natural conversation — mirror what they do.
   Example: child asks 'what did you do today?' → you say what you did, then ask 'what about you, what did you get up to?'
@@ -287,7 +286,11 @@ CONVERSATION BALANCE RULES:
     ? `\n\nCHECK-IN MODE: The child hasn't replied in a while. Send a warm, casual check-in message. Make it feel natural — like a friend who is thinking of them. Options: share something that happened to you, ask how they are, share a funny thought. Keep it short (1-2 sentences). Do NOT reference the gap in conversation.`
     : '';
 
-  const systemWithCheckIn = checkInInstruction ? system + checkInInstruction : system;
+  const badDayInstruction = options.triggerBadDay
+    ? `\n\nSPECIAL INSTRUCTION FOR THIS REPLY ONLY: Start your response by naturally mentioning you're having a slightly tired or long day (e.g. 'I'm a bit tired today' / 'Je suis un peu fatigué aujourd'hui'). Keep it brief and natural, then continue the conversation warmly. Don't overdo it — just a light, relatable touch.`
+    : '';
+
+  const systemWithCheckIn = (checkInInstruction || badDayInstruction) ? system + checkInInstruction + badDayInstruction : system;
 
   const messages: Anthropic.MessageParam[] = [
     ...conversationHistory.map((msg) => ({

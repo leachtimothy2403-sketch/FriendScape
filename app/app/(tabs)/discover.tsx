@@ -87,7 +87,7 @@ function MigaCard() {
       </View>
       <View style={{ flex: 1, marginLeft: 12 }}>
         <Text style={s.migaTitle}>
-          {language === 'fr' ? `Chatte avec ${name}` : `Chat with ${name}`}
+          {language === 'fr' ? `Parle avec ${name}` : `Chat with ${name}`}
           {' 🐉'}
         </Text>
         <Text style={s.migaTip} numberOfLines={2}>{tip}</Text>
@@ -139,6 +139,7 @@ function NetworkCard({
   token: string;
   onAdd: (id: string, refId: string) => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [adding, setAdding]   = useState(false);
   const [added,  setAdded]    = useState(f.already_added);
   const bg = COVER_COLOR[f.name] ?? '#EEEDFE';
@@ -166,12 +167,12 @@ function NetworkCard({
       <Text style={s.networkName} numberOfLines={1}>{f.name}</Text>
       <Text style={s.networkRel} numberOfLines={1}>{(f.relationship_type ?? f.network_relationship_type ?? '').replace(/_/g, ' ')}</Text>
       {added ? (
-        <View style={s.addedTag}><Text style={s.addedText}>✓ Added</Text></View>
+        <View style={s.addedTag}><Text style={s.addedText}>{t('discover.addedTag')}</Text></View>
       ) : (
         <TouchableOpacity onPress={handleAdd} style={s.addBtn} disabled={adding}>
           {adding
             ? <ActivityIndicator size="small" color={Colors.purple} />
-            : <Text style={s.addBtnText}>+ Add</Text>}
+            : <Text style={s.addBtnText}>{t('discover.addButton')}</Text>}
         </TouchableOpacity>
       )}
     </TouchableOpacity>
@@ -182,6 +183,7 @@ function NetworkCard({
 function StarCard({
   friend, token, onAdd,
 }: { friend: AiFriendRecord; token: string; onAdd: (id: string) => Promise<void> }) {
+  const { t } = useTranslation();
   const [adding, setAdding] = useState(false);
   const [added,  setAdded]  = useState(false);
   const bg = COVER_COLOR[friend.name] ?? '#EEEDFE';
@@ -217,7 +219,7 @@ function StarCard({
         <View style={s.addedTag}><Text style={s.addedText}>✓</Text></View>
       ) : (
         <TouchableOpacity onPress={handleAdd} style={s.addBtn} disabled={adding}>
-          {adding ? <ActivityIndicator size="small" color={Colors.purple} /> : <Text style={s.addBtnText}>+ Add</Text>}
+          {adding ? <ActivityIndicator size="small" color={Colors.purple} /> : <Text style={s.addBtnText}>{t('discover.addButton')}</Text>}
         </TouchableOpacity>
       )}
     </TouchableOpacity>
@@ -270,6 +272,7 @@ function LunaCard({ luna, onAdd }: { luna: AiFriendRecord; onAdd: () => Promise<
 // ── Main screen ────────────────────────────────────────────────────────────────
 export default function DiscoverScreen() {
   const { t } = useTranslation();
+  const { language } = useLanguageStore();
 
   const [token,       setToken]       = useState<string | null>(null);
   const [myFriends,   setMyFriends]   = useState<MyChildFriend[]>([]);
@@ -287,7 +290,7 @@ export default function DiscoverScreen() {
 
       try {
         const [allRes, myRes, profileRes] = await Promise.all([
-          allFriendsApi.list(),
+          allFriendsApi.list(language),
           tok ? myFriendsApi.list(tok) : Promise.resolve(null),
           tok ? childProfileApi.getProfile(tok).catch(() => null) : Promise.resolve(null),
         ]);

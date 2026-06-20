@@ -62,8 +62,8 @@ export const children = {
 };
 
 export const friends = {
-  list: () => api.get('/friends'),
-  get: (id: string) => api.get(`/friends/${id}`),
+  list: (language?: string) => api.get('/friends', { params: { language } }),
+  get: (id: string, language?: string) => api.get(`/friends/${id}`, { params: { language } }),
   getForChild: (childId: string) => api.get(`/friends/child/${childId}`),
   activate: (childId: string, friendId: string) =>
     api.post(`/friends/child/${childId}/activate`, { friendId }),
@@ -182,10 +182,10 @@ export const audioApi = {
 // ─── Friend network discovery ─────────────────────────────────────────────────
 
 export const friendNetwork = {
-  getWithStatus: (token: string, friendId: string) =>
-    api.get<{ friend: FriendWithStatus }>(`/friends/${friendId}`, { ...withToken(token), timeout: 8000 }),
-  getPublic: (friendId: string) =>
-    api.get<{ friend: AiFriendRecord }>(`/friends/${friendId}`, { timeout: 8000 }),
+  getWithStatus: (token: string, friendId: string, language?: string) =>
+    api.get<{ friend: FriendWithStatus }>(`/friends/${friendId}`, { ...withToken(token), timeout: 8000, params: { language } }),
+  getPublic: (friendId: string, language?: string) =>
+    api.get<{ friend: AiFriendRecord }>(`/friends/${friendId}`, { timeout: 8000, params: { language } }),
   getNetwork: (friendId: string, token?: string) =>
     token
       ? api.get<{ friends: FriendWithRelationship[] }>(`/friends/${friendId}/network`, { ...withToken(token), timeout: 8000 })

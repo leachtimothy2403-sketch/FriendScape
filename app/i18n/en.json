@@ -107,6 +107,9 @@
       "faceStyleCowboy": "Cowboy",
       "faceStyleSuperhero": "Superhero",
       "faceStylePrincess": "Princess",
+      "generateTitle": "Generate from my photo",
+      "chooseAvatarTitle": "Choose an avatar",
+      "takePhotoButton": "Take a photo",
       "themes": {
         "princess": "Princess",
         "astronaut": "Astronaut",
@@ -335,6 +338,7 @@
   },
   "dm": {
     "online": "Online now",
+    "onlineNow": "Online now",
     "inputPlaceholder": "Message {{name}}…",
     "typing": "typing...",
     "lookingAtPhoto": "Luna looks at your photo... 👀",
@@ -366,6 +370,8 @@
     "friendsNetwork": "Friends network",
     "addFriend": "Add",
     "added": "Added ✓",
+    "addButton": "+ Add",
+    "addedTag": "✓ Added",
     "hearMe": "Hear me",
     "playAudio": "Play"
   },
@@ -388,6 +394,12 @@
     "tttDraw": "It's a draw! 🤝",
     "storyTitle": "Let's build a story together!",
     "storyYourTurn": "Your turn — add to the story!"
+  },
+  "friendProfile": {
+    "yourFriendF": "Your friend",
+    "yourFriendM": "Your friend",
+    "starFriend": "Star friend",
+    "friendOf": "Friend of {{name}}"
   },
   "friends": {
     "yourFriends": "Your friends",
@@ -433,6 +445,13 @@
       "4": "Level 4 · almost there",
       "5": "Level 5 · Migo legend"
     },
+    "milestones": {
+      "joinMigo": "Join Migo",
+      "firstPost": "Share your first post",
+      "heartToHeart": "Have a heart-to-heart conversation",
+      "digitalCitizenship": "Complete a digital citizenship lesson with {{mascot}}",
+      "introducedFriend": "Introduce a friend"
+    },
     "graduationMilestones": {
       "joined": "Join Migo",
       "firstPost": "Share your first post",
@@ -454,6 +473,8 @@
     "title": "My Profile",
     "onMigoSince": "On Migo since {{date}}",
     "mascotFriend": "{{mascot}}'s friend",
+    "statsPosts": "Posts",
+    "statsFriends": "Friends",
     "bioPlaceholder": "Tap to add a bio...",
     "editBio": "Edit bio",
     "saveBio": "Save ✓",

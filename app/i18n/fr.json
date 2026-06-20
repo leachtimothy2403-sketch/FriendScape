@@ -107,6 +107,9 @@
       "faceStyleCowboy": "Cowboy",
       "faceStyleSuperhero": "Super-héros",
       "faceStylePrincess": "Princesse",
+      "generateTitle": "Générer depuis ma photo",
+      "chooseAvatarTitle": "Choisir un avatar",
+      "takePhotoButton": "Prendre une photo",
       "themes": {
         "princess": "Princesse",
         "astronaut": "Astronaute",
@@ -351,6 +354,7 @@
   },
   "dm": {
     "online": "En ligne maintenant",
+    "onlineNow": "En ligne",
     "inputPlaceholder": "Message à {{name}}…",
     "typing": "écrit...",
     "lookingAtPhoto": "Luna regarde ta photo... 👀",
@@ -376,12 +380,14 @@
     "lunaTagline": "Ton amie pour apprendre 🌙",
     "lunaDesc": "Elle aide avec les maths, la lecture, les sciences et plus encore — à ton rythme, à ta façon.",
     "meetLunaButton": "+ La rencontrer !",
-    "chatLunaButton": "💬 Tchatter avec Luna →",
+    "chatLunaButton": "💬 Parler avec Luna →",
     "searchPlaceholder": "Chercher par nom ou intérêt...",
     "starFriends": "⭐ Amis vedettes",
     "friendsNetwork": "Réseau d'amis",
     "addFriend": "Ajouter",
     "added": "Ajouté ✓",
+    "addButton": "+ Ajouter",
+    "addedTag": "✓ Ajouté",
     "hearMe": "Écoute-moi",
     "playAudio": "Écouter"
   },
@@ -404,6 +410,12 @@
     "tttDraw": "Égalité ! 🤝",
     "storyTitle": "Construisons une histoire ensemble !",
     "storyYourTurn": "À toi — continue l'histoire !"
+  },
+  "friendProfile": {
+    "yourFriendF": "Ton amie",
+    "yourFriendM": "Ton ami",
+    "starFriend": "Ami(e) vedette",
+    "friendOf": "Ami(e) de {{name}}"
   },
   "friends": {
     "yourFriends": "Tes amis",
@@ -449,6 +461,13 @@
       "4": "Niveau 4 · Presque au sommet",
       "5": "Niveau 5 · Légende Migo"
     },
+    "milestones": {
+      "joinMigo": "Rejoindre Migo",
+      "firstPost": "Partager ton premier post",
+      "heartToHeart": "Avoir une conversation cœur à cœur",
+      "digitalCitizenship": "Terminer une leçon de citoyenneté numérique avec {{mascot}}",
+      "introducedFriend": "Présenter un ami"
+    },
     "graduationMilestones": {
       "joined": "Rejoindre Migo",
       "firstPost": "Partager ton premier post",
@@ -470,6 +489,8 @@
     "title": "Mon Profil",
     "onMigoSince": "Sur Migo depuis {{date}}",
     "mascotFriend": "Ami(e) de {{mascot}}",
+    "statsPosts": "Posts",
+    "statsFriends": "Amis",
     "bioPlaceholder": "Appuie pour ajouter une bio...",
     "editBio": "Modifier la bio",
     "saveBio": "Enregistrer ✓",

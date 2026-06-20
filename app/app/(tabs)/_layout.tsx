@@ -77,11 +77,12 @@ function AnimatedTabIcon({ emoji, color, pulsing }: { emoji: string; color: stri
       scale.setValue(1);
       const anim = Animated.loop(
         Animated.sequence([
-          Animated.timing(scale, { toValue: 2.0, duration: 400, useNativeDriver: true }),
-          Animated.timing(scale, { toValue: 1.0, duration: 400, useNativeDriver: true }),
+          Animated.timing(scale, { toValue: 2.0, duration: 400, useNativeDriver: false }),
+          Animated.timing(scale, { toValue: 1.0, duration: 400, useNativeDriver: false }),
         ]),
+        { iterations: 3 },
       );
-      anim.start();
+      anim.start(() => { scale.setValue(1); });
       return () => { anim.stop(); scale.setValue(1); };
     } else {
       scale.setValue(1);

@@ -315,9 +315,16 @@ export async function sendMessage(req: AuthRequest, res: Response) {
       }
 
     } else {
+      const aiMsgCountRow = await db('messages')
+        .where({ conversation_id: conversation.id, sender_type: 'ai' })
+        .count('* as count')
+        .first();
+      const aiMsgCount = Number(aiMsgCountRow?.count ?? 0);
+      const triggerBadDay = aiMsgCount > 0 && aiMsgCount % 12 === 0;
+
       const [friendReply, mood2] = await Promise.all([
         callClaudeWithRetry(() =>
-          generateFriendReply(friend, child, content.trim(), memoryBrief, lang, recentMessages, friendNames),
+          generateFriendReply(friend, child, content.trim(), memoryBrief, lang, recentMessages, friendNames, false, { triggerBadDay }),
         ),
         checkMood(content.trim(), child.name, child.age),
       ]);

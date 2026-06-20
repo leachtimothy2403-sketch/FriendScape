@@ -38,22 +38,22 @@ const PACK_NAME: Record<string, string> = {
 
 const PARENT_DASHBOARD = 'http://localhost:3000';
 
-const EN_LOADING_MESSAGES = [
-  "Did you know? Your friends can't wait to meet you! 🌟",
-  "Right now... your friends are picking their favourite emojis! 🎨",
-  "Almost there! Your Migo world is being built just for you! ✨",
-  "Why did the robot go to school? To make new friends! 🤖",
-  "What's a dragon's favourite subject? Mathema-flames! 🐉🔥",
-  "Your friends have so much to tell you... 💬",
+const EN_LOADING_FACTS = [
+  "Setting up your Migo world...",
+  "Did you know? Your AI friends learn what makes you laugh!",
+  "Your friends are getting ready to meet you...",
+  "Migo friends never get tired of hearing your stories!",
+  "Almost there — your world is taking shape!",
+  "Every friend on Migo is picked just for you.",
 ];
 
-const FR_LOADING_MESSAGES = [
-  "Le savais-tu ? Tes amis ont hâte de te rencontrer ! 🌟",
-  "En ce moment... tes amis choisissent leurs emojis préférés ! 🎨",
-  "Presque prêt ! Ton monde Migo se construit juste pour toi ! ✨",
-  "Pourquoi le robot allait-il à l'école ? Pour parler avec ses amis ! 🤖",
-  "La matière préférée du dragon ? Les mathématiflames ! 🐉🔥",
-  "Tes amis ont des tonnes de choses à te raconter... 💬",
+const FR_LOADING_FACTS = [
+  "Préparation de ton monde Migo...",
+  "Le savais-tu ? Tes amis IA apprennent ce qui te fait rire !",
+  "Tes amis se préparent à te rencontrer...",
+  "Les amis Migo adorent toujours entendre tes histoires !",
+  "Presque prêt — ton monde prend forme !",
+  "Chaque ami sur Migo est choisi spécialement pour toi.",
 ];
 
 // Module-level guard: survives React Strict Mode's mount→unmount→remount cycle.
@@ -111,8 +111,8 @@ export default function AllSetScreen() {
   const [errorMsg, setErrorMsg]           = useState('');
   const [assignedFriends, setAssignedFriends] = useState<AssignedFriend[]>([]);
   const [mascotAvatarUrl, setMascotAvatarUrl] = useState<string | null>(null);
-  const [msgIndex, setMsgIndex]           = useState(0);
-  const loadingMsgs = (store.language || language) === 'fr' ? FR_LOADING_MESSAGES : EN_LOADING_MESSAGES;
+  const [factIndex, setFactIndex] = useState(0);
+  const isFr = (store.language || language) === 'fr';
 
   const floatY     = useSharedValue(0);
   const celebScale = useSharedValue(0);
@@ -144,19 +144,19 @@ export default function AllSetScreen() {
   }, []);
 
   useEffect(() => {
+    if (status !== 'loading') return;
+    const interval = setInterval(() => {
+      setFactIndex((i) => (i + 1) % (isFr ? FR_LOADING_FACTS.length : EN_LOADING_FACTS.length));
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [status, isFr]);
+
+  useEffect(() => {
     mascotAvatarApi.get().then(res => {
       const url = res.data.mascots[store.mascotId];
       if (url) setMascotAvatarUrl(url);
     }).catch(() => {});
   }, [store.mascotId]);
-
-  useEffect(() => {
-    if (status !== 'loading') return;
-    const interval = setInterval(() => {
-      setMsgIndex(i => (i + 1) % loadingMsgs.length);
-    }, 6000);
-    return () => clearInterval(interval);
-  }, [status, loadingMsgs.length]);
 
   useEffect(() => {
     if (status === 'success') {
@@ -276,7 +276,7 @@ export default function AllSetScreen() {
             <PulsingDot delay={440} />
           </View>
           <Text style={{ fontSize: 15, color: '#7F77DD', textAlign: 'center', marginTop: 16, paddingHorizontal: 32, fontStyle: 'italic' }}>
-            {loadingMsgs[msgIndex]}
+            {isFr ? FR_LOADING_FACTS[factIndex] : EN_LOADING_FACTS[factIndex]}
           </Text>
         </View>
       </SafeAreaView>

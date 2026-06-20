@@ -43,8 +43,8 @@ export default function PhotoScreen() {
   const initial     = childName.trim() ? childName.trim()[0].toUpperCase() : '?';
 
   const OPTION_CARDS: { id: Mode; emoji: string; title: string; subtitle: string }[] = [
-    { id: 'photo', emoji: '📸', title: 'Generate from my photo', subtitle: t('onboarding.photo.uploadDesc') },
-    { id: 'skip',  emoji: '🎨', title: 'Choose an avatar',       subtitle: t('onboarding.photo.skipDesc')   },
+    { id: 'photo', emoji: '📸', title: t('onboarding.photo.generateTitle'), subtitle: t('onboarding.photo.uploadDesc') },
+    { id: 'skip',  emoji: '🎨', title: t('onboarding.photo.chooseAvatarTitle'),       subtitle: t('onboarding.photo.skipDesc')   },
   ];
 
   async function pickPhoto() {
@@ -180,7 +180,7 @@ export default function PhotoScreen() {
               style={{ backgroundColor: '#534AB7', borderRadius: 9999, paddingVertical: 12, alignItems: 'center', marginBottom: 12 }}
               activeOpacity={0.85}
             >
-              <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>📷 Take a photo</Text>
+              <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>📷 {t('onboarding.photo.takePhotoButton')}</Text>
             </TouchableOpacity>
 
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#E8F8F3', borderRadius: 12, padding: 12, marginBottom: 20 }}>

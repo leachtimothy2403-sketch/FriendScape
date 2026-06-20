@@ -448,7 +448,7 @@ export default function DMScreen() {
     }
 
     const optimistic: ChatMessage = {
-      id:          `opt_${Date.now()}`,
+      id:          `opt_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
       sender_id:   'child',
       sender_type: 'child',
       content:     text,
@@ -593,7 +593,7 @@ export default function DMScreen() {
           <View style={{ flex: 1, marginLeft: 10 }}>
             <Text style={s.friendNameText}>{friendName}</Text>
             {isOnline === true
-              ? <Text style={s.onlineText}>● Online now</Text>
+              ? <Text style={s.onlineText}>● {t('dm.onlineNow')}</Text>
               : <Text style={s.offlineText}>{t('dm.usuallyReplies')}</Text>
             }
           </View>

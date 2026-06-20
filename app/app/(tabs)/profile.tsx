@@ -523,9 +523,9 @@ export default function ProfileScreen() {
 
           {/* Stats */}
           <View style={s.statsRow}>
-            <StatCol value={profile?.stats.totalPosts   ?? 0} label="Posts" />
+            <StatCol value={profile?.stats.totalPosts   ?? 0} label={t('profile.statsPosts')} />
             <View style={s.statDivider} />
-            <StatCol value={profile?.stats.totalFriends ?? 0} label="Friends" />
+            <StatCol value={profile?.stats.totalFriends ?? 0} label={t('profile.statsFriends')} />
             <View style={s.statDivider} />
             <StatCol value={profile?.stats.totalBadges  ?? 0} label="Badges" />
           </View>

@@ -31,10 +31,11 @@ function fmtDate(iso: string, lang: string) {
   return new Date(iso).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function RelBadge({ type, via }: { type?: string; via?: string }) {
-  if (via)  return <View style={s.relBadgePurple}><Text style={s.relBadgeText}>Friend of {via}</Text></View>;
-  if (type === 'star' || type === 'is_star_friend') return <View style={s.relBadgeOrange}><Text style={s.relBadgeText}>⭐ Star friend</Text></View>;
-  return <View style={s.relBadgeGreen}><Text style={s.relBadgeText}>Your friend</Text></View>;
+function RelBadge({ type, via, t, gender }: { type?: string; via?: string; t: (key: string, opts?: Record<string, unknown>) => string; gender?: string }) {
+  const isFeminine = gender === 'girl' || gender === 'female';
+  if (via)  return <View style={s.relBadgePurple}><Text style={s.relBadgeText}>{t('friendProfile.friendOf', { name: via })}</Text></View>;
+  if (type === 'star' || type === 'is_star_friend') return <View style={s.relBadgeOrange}><Text style={s.relBadgeText}>⭐ {t('friendProfile.starFriend')}</Text></View>;
+  return <View style={s.relBadgeGreen}><Text style={s.relBadgeText}>{t(isFeminine ? 'friendProfile.yourFriendF' : 'friendProfile.yourFriendM')}</Text></View>;
 }
 
 function NetworkCard({
@@ -96,7 +97,7 @@ export default function FriendProfileScreen() {
 
       try {
         const [friendRes, netRes] = await Promise.all([
-          tok ? friendNetwork.getWithStatus(tok, friendId) : friendNetwork.getPublic(friendId),
+          tok ? friendNetwork.getWithStatus(tok, friendId, language) : friendNetwork.getPublic(friendId, language),
           friendNetwork.getNetwork(friendId, tok ?? undefined),
         ]);
 
@@ -133,7 +134,7 @@ export default function FriendProfileScreen() {
       await friendNetwork.addFriend(token, friendId, via ?? undefined);
       setIsAdded(true);
       // refresh friendship stats
-      const res = await friendNetwork.getWithStatus(token, friendId);
+      const res = await friendNetwork.getWithStatus(token, friendId, language);
       setFriend(res.data.friend);
     } catch (e) {
       console.error('[friend-profile] add error:', e);
@@ -193,10 +194,9 @@ export default function FriendProfileScreen() {
           <Text style={s.friendName}>{friend.name}</Text>
 
           <View style={s.badgeRow}>
-            {isAdded && <RelBadge type="your_friend" />}
-            {referringFriendName && !isAdded && <RelBadge via={referringFriendName} />}
-            {friend.is_star_friend && <RelBadge type="star" />}
-            <View style={s.aiBadge}><Text style={s.aiBadgeText}>AI friend</Text></View>
+            {isAdded && <RelBadge type="your_friend" t={t} gender={friend.gender} />}
+            {referringFriendName && !isAdded && <RelBadge via={referringFriendName} t={t} />}
+            {friend.is_star_friend && <RelBadge type="star" t={t} />}
           </View>
 
           <Text style={s.bio}>{friend.bio}</Text>

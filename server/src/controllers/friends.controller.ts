@@ -4,9 +4,14 @@ import { AuthRequest } from '../middleware/auth';
 import { triggerWelcomeFlow } from '../services/friendWelcome';
 import { checkBadgesForChild } from './badges.controller';
 
-export async function listFriends(_req: Request, res: Response) {
+export async function listFriends(req: Request, res: Response) {
   try {
-    const friends = await db('ai_friends').orderBy('name');
+    const language = req.query.language as string | undefined;
+    const rows = await db('ai_friends').orderBy('name');
+    const friends = (rows as Record<string, unknown>[]).map(f => ({
+      ...f,
+      bio: language === 'fr' && f.bio_fr ? f.bio_fr : f.bio,
+    }));
     res.json({ friends });
   } catch {
     res.status(500).json({ error: 'Failed to fetch friends' });
@@ -18,6 +23,9 @@ export async function getFriend(req: AuthRequest, res: Response) {
   try {
     const friend = await db('ai_friends').where({ id: req.params.friendId }).first();
     if (!friend) { res.status(404).json({ error: 'Friend not found' }); return; }
+
+    const language = req.query.language as string | undefined;
+    const friendRecord = friend as Record<string, unknown>;
 
     let is_added = false;
     let friendship: Record<string, unknown> | undefined;
@@ -57,6 +65,7 @@ export async function getFriend(req: AuthRequest, res: Response) {
     res.json({
       friend: {
         ...friend,
+        bio: language === 'fr' && friendRecord.bio_fr ? friendRecord.bio_fr : friendRecord.bio,
         is_added,
         friendship,
         referringFriendName: referrer?.referring_friend_name ?? null,

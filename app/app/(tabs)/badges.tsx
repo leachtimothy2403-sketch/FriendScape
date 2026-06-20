@@ -85,14 +85,14 @@ function BadgeCard({
 // ── Graduation track ──────────────────────────────────────────────────────────
 
 function GraduationTrack({
-  data, t,
-}: { data: GraduationProgress | null; t: (k: string, opts?: Record<string, unknown>) => string }) {
+  data, t, mascotName,
+}: { data: GraduationProgress | null; t: (k: string, opts?: Record<string, unknown>) => string; mascotName: string }) {
   const milestones = data?.milestones ?? [
-    { key: 'joined_migo',               label: 'Join Migo',                                   completed: false, completedAt: null },
-    { key: 'first_post',                label: 'Share your first post',                        completed: false, completedAt: null },
-    { key: 'heart_to_heart',            label: 'Have a heart-to-heart conversation',           completed: false, completedAt: null },
-    { key: 'digital_citizenship_lesson',label: 'Complete a digital citizenship lesson',        completed: false, completedAt: null },
-    { key: 'introduced_friend',         label: 'Introduce a friend',                           completed: false, completedAt: null },
+    { key: 'joined_migo',               label: t('badges.milestones.joinMigo'),                                   completed: false, completedAt: null },
+    { key: 'first_post',                label: t('badges.milestones.firstPost'),                                  completed: false, completedAt: null },
+    { key: 'heart_to_heart',            label: t('badges.milestones.heartToHeart'),                               completed: false, completedAt: null },
+    { key: 'digital_citizenship_lesson',label: t('badges.milestones.digitalCitizenship', { mascot: mascotName }), completed: false, completedAt: null },
+    { key: 'introduced_friend',         label: t('badges.milestones.introducedFriend'),                           completed: false, completedAt: null },
   ];
   const completed = data?.completed ?? 0;
 
@@ -227,7 +227,20 @@ export default function BadgesScreen() {
   const [token,      setToken]      = useState<string | null>(null);
   const [selected,   setSelected]   = useState<BadgeDefinition | null>(null);
   const [modalMode,  setMode]       = useState<'earned' | 'locked'>('earned');
+  const [mascotName, setMascotName] = useState('Miga');
   const recalcDone = useRef(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem('childProfile').then(stored => {
+      if (!stored) return;
+      try {
+        const p = JSON.parse(stored) as { mascotId?: string };
+        const id = (p.mascotId || 'miga').toLowerCase();
+        const names: Record<string, string> = { pixel: 'Pixel', finn: 'Finn', miga: 'Miga', sage: 'Sage' };
+        setMascotName(names[id] || 'Miga');
+      } catch {}
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -350,7 +363,7 @@ export default function BadgesScreen() {
         ) : null}
 
         {/* Graduation track */}
-        <GraduationTrack data={graduation} t={t} />
+        <GraduationTrack data={graduation} t={t} mascotName={mascotName} />
 
       </ScrollView>
 

@@ -144,7 +144,8 @@ export default function MascotScreen() {
 
     startTypewriter(introText2);
 
-    gridTimerRef.current = setTimeout(() => setIntroComplete(true), 5000);
+    const phase2Duration = introText2.length * 30 + 1800;
+    gridTimerRef.current = setTimeout(() => setIntroComplete(true), phase2Duration);
   }
 
   function skipIntro() {

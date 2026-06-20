@@ -1,23 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  SafeAreaView, ScrollView, Modal, FlatList,
+  SafeAreaView, ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 import { useOnboardingStore } from '@/store/onboardingStore';
+import { useLanguageStore } from '@/store/languageStore';
 
 const AGE_CHIPS = ['5–6', '7–8', '9–10', '11–12'];
-
-const LANGUAGES = [
-  { code: 'en', label: 'English'       },
-  { code: 'fr', label: 'Français'      },
-  { code: 'es', label: 'Español'       },
-  { code: 'ar', label: 'العربية'       },
-  { code: 'zh', label: '中文'           },
-  { code: 'other', label: 'Other'      },
-];
 
 export default function BasicsScreen() {
   const { t } = useTranslation();
@@ -26,10 +18,12 @@ export default function BasicsScreen() {
     childName, setChildName,
     age, setAge,
     gender, setGender,
-    language, setLanguage,
+    setLanguage,
     specialNeeds, setSpecialNeeds,
     preReader, setPreReader,
   } = useOnboardingStore();
+
+  const { language: globalLang } = useLanguageStore();
 
   const GENDER_CHIPS = [
     { label: t('onboarding.basics.genderGirl'), value: 'girl'  },
@@ -37,9 +31,8 @@ export default function BasicsScreen() {
     { label: t('onboarding.basics.genderOther'), value: 'other' },
   ];
 
-  const [langOpen, setLangOpen] = useState(false);
-
   useEffect(() => { void initParentEmail(); }, []);
+  useEffect(() => { setLanguage(globalLang); }, [globalLang]);
 
   const canContinue = childName.trim().length > 0 && age !== '' && gender !== '';
 
@@ -47,8 +40,6 @@ export default function BasicsScreen() {
     if (!canContinue) return;
     router.push(specialNeeds ? '/onboarding/needs' : '/onboarding/photo');
   }
-
-  const selectedLangLabel = LANGUAGES.find(l => l.code === language)?.label ?? 'English';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F7FF' }}>
@@ -151,69 +142,6 @@ export default function BasicsScreen() {
             );
           })}
         </View>
-
-        {/* ── Language ── */}
-        <Text style={{ fontSize: 14, fontWeight: '600', color: '#2C2C2A', marginBottom: 8 }}>{t('onboarding.basics.languageLabel')}</Text>
-        <TouchableOpacity
-          onPress={() => setLangOpen(true)}
-          style={{
-            backgroundColor: '#fff',
-            borderWidth: 1.5,
-            borderColor: '#E0E0E0',
-            borderRadius: 14,
-            paddingHorizontal: 16,
-            paddingVertical: 14,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 28,
-          }}
-        >
-          <Text style={{ fontSize: 16, color: '#2C2C2A' }}>{selectedLangLabel}</Text>
-          <Text style={{ fontSize: 12, color: '#BDBDBD' }}>▼</Text>
-        </TouchableOpacity>
-
-        {/* Language modal */}
-        <Modal visible={langOpen} transparent animationType="fade">
-          <TouchableOpacity
-            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}
-            activeOpacity={1}
-            onPress={() => setLangOpen(false)}
-          >
-            <View style={{ backgroundColor: '#fff', borderRadius: 24, paddingBottom: 32, overflow: 'hidden' }}>
-              <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' }}>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: '#2C2C2A', textAlign: 'center' }}>
-                  {t('onboarding.basics.languageLabel')}
-                </Text>
-              </View>
-              <FlatList
-                data={LANGUAGES}
-                keyExtractor={(item) => item.code}
-                renderItem={({ item }) => {
-                  const selected = language === item.code;
-                  return (
-                    <TouchableOpacity
-                      onPress={() => { setLanguage(item.code); setLangOpen(false); }}
-                      style={{
-                        paddingHorizontal: 24,
-                        paddingVertical: 16,
-                        backgroundColor: selected ? '#EEEDFE' : '#fff',
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                      }}
-                    >
-                      <Text style={{ fontSize: 16, color: selected ? '#7F77DD' : '#2C2C2A', fontWeight: selected ? '600' : '400' }}>
-                        {item.label}
-                      </Text>
-                      {selected && <Text style={{ color: '#7F77DD', fontWeight: '700' }}>✓</Text>}
-                    </TouchableOpacity>
-                  );
-                }}
-              />
-            </View>
-          </TouchableOpacity>
-        </Modal>
 
         {/* ── Special needs ── */}
         <TouchableOpacity
