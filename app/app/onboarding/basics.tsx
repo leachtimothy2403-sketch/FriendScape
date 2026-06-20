@@ -8,6 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { useLanguageStore } from '@/store/languageStore';
+import { dedupeDictatedText } from '@/utils/dedupeDictatedText';
 
 const AGE_CHIPS = ['5–6', '7–8', '9–10', '11–12'];
 
@@ -84,7 +85,7 @@ export default function BasicsScreen() {
           placeholder={t('onboarding.basics.namePlaceholder')}
           placeholderTextColor="#BDBDBD"
           value={childName}
-          onChangeText={setChildName}
+          onChangeText={(text) => setChildName(dedupeDictatedText(text))}
           autoCapitalize="words"
           autoCorrect={false}
         />

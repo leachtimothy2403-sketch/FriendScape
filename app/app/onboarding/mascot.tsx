@@ -263,6 +263,7 @@ export default function MascotScreen() {
           {!introComplete && introStarted && (
             <View style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'center', marginTop: 10 }}>
               <AudioPlayer
+                key={phase2Started ? 'intro-phase2' : 'intro-phase1'}
                 text={introAudioText}
                 characterId="miga"
                 size="sm"

@@ -17,6 +17,7 @@ import { Colors } from '@/constants/theme';
 import AudioPlayer from '@/components/AudioPlayer';
 import { useNotificationStore } from '@/store/notificationStore';
 import { sendWebNotification } from '@/utils/webNotifications';
+import { dedupeDictatedText } from '@/utils/dedupeDictatedText';
 
 interface ChatMessage {
   id: string;
@@ -598,7 +599,7 @@ export default function DMScreen() {
             }
           </View>
         </TouchableOpacity>
-        <AudioPlayer text={`Hi, I'm ${friendName}!`} characterId={friendName} size="md" />
+        <AudioPlayer text={language === 'fr' ? `Salut, je suis ${friendName} !` : `Hi, I'm ${friendName}!`} characterId={friendName} size="md" />
       </View>
 
       <KeyboardAvoidingView
@@ -759,7 +760,7 @@ export default function DMScreen() {
             }
             placeholderTextColor="#B4B2A9"
             value={inputText}
-            onChangeText={setInputText}
+            onChangeText={(text) => setInputText(dedupeDictatedText(text))}
             multiline={false}
             returnKeyType="send"
             onSubmitEditing={() => void sendMessage()}

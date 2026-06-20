@@ -1,13 +1,14 @@
 import {
   View, Text, SafeAreaView, ScrollView, FlatList, TouchableOpacity,
   Modal, TextInput, RefreshControl, ActivityIndicator, Animated,
-  AppState, AppStateStatus, StyleSheet, Platform, KeyboardAvoidingView, Image, Dimensions,
+  AppState, AppStateStatus, StyleSheet, Platform, KeyboardAvoidingView, Image, Dimensions, Alert,
 } from 'react-native';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { router, usePathname } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Audio } from 'expo-av';
 import { useTranslation } from 'react-i18next';
-import { childAuth, childPosts, childSession, childProfileApi, childMessages, childNotifications, FriendWithStats, mascotAvatars as mascotAvatarApi } from '@/services/api';
+import { childAuth, childPosts, childSession, childProfileApi, childMessages, childNotifications, FriendWithStats, mascotAvatars as mascotAvatarApi, audioApi } from '@/services/api';
 import { useNotificationStore } from '@/store/notificationStore';
 import MigoLogo from '@/components/MigoLogo';
 import EmojiAvatar from '@/components/EmojiAvatar';
@@ -19,6 +20,7 @@ import { useLanguageStore } from '@/store/languageStore';
 import TourOverlay from '@/components/TourOverlay';
 import { TOUR_STEPS } from '@/constants/tourSteps';
 import { useTourStore } from '@/store/tourStore';
+import { dedupeDictatedText } from '@/utils/dedupeDictatedText';
 
 interface PostComment {
   authorName:     string;
@@ -569,6 +571,7 @@ export default function FeedScreen() {
         post={item}
         avatarEmoji={childEmoji}
         childAvatarUrl={childAvatarUrl}
+        childToken={childToken}
         onReact={(emoji) => void handleReact(item.id, emoji)}
         onSubmitComment={(text) => submitComment(item.id, text)}
         audioButtonScale={item.author_type === 'ai' && index === 0 ? audioButtonPulse : undefined}
@@ -780,11 +783,12 @@ export default function FeedScreen() {
 }
 
 function PostCard({
-  post, avatarEmoji, childAvatarUrl, onReact, onSubmitComment, audioButtonScale, friendPostScale, t,
+  post, avatarEmoji, childAvatarUrl, childToken, onReact, onSubmitComment, audioButtonScale, friendPostScale, t,
 }: {
   post: FeedPost;
   avatarEmoji: string;
   childAvatarUrl: string | null;
+  childToken: string | null;
   onReact: (emoji: string) => void;
   onSubmitComment: (text: string) => Promise<void>;
   audioButtonScale?: Animated.Value;
@@ -794,6 +798,9 @@ function PostCard({
   const [showInput, setShowInput]       = useState(false);
   const [commentText, setCommentText]   = useState('');
   const [submitting, setSubmitting]     = useState(false);
+  const { language }                    = useLanguageStore();
+  const [isRecording, setIsRecording]   = useState(false);
+  const recordingRef                    = useRef<Audio.Recording | null>(null);
 
   async function handleSubmit() {
     if (!commentText.trim() || submitting) return;
@@ -803,6 +810,58 @@ function PostCard({
     setShowInput(false);
     try { await onSubmitComment(text); } finally { setSubmitting(false); }
   }
+
+  async function handleVoiceMemo() {
+    if (isRecording) {
+      setIsRecording(false);
+      const rec = recordingRef.current;
+      if (!rec) return;
+      try {
+        await rec.stopAndUnloadAsync();
+        const uri = rec.getURI();
+        recordingRef.current = null;
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+        if (!uri || !childToken) return;
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.responseType = 'arraybuffer';
+          xhr.onload = () => {
+            const bytes = new Uint8Array(xhr.response as ArrayBuffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+            resolve(btoa(binary));
+          };
+          xhr.onerror = reject;
+          xhr.open('GET', uri);
+          xhr.send();
+        });
+        const result = await audioApi.transcribe(childToken, {
+          audioBase64: base64,
+          mimeType: 'audio/m4a',
+          language,
+        });
+        const transcript = result.data.transcript?.trim();
+        if (transcript) setCommentText(transcript);
+      } catch (err) {
+        console.error('[voice] transcription failed:', err);
+        Alert.alert(t('dm.voiceError'));
+      }
+    } else {
+      try {
+        const { granted } = await Audio.requestPermissionsAsync();
+        if (!granted) { Alert.alert(t('dm.micPermissionDenied')); return; }
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+        const { recording } = await Audio.Recording.createAsync(
+          Audio.RecordingOptionsPresets.HIGH_QUALITY,
+        );
+        recordingRef.current = recording;
+        setIsRecording(true);
+      } catch (err) {
+        console.error('[voice] recording start failed:', err);
+      }
+    }
+  }
+
   const isOwn      = post.author_type === 'child';
   const name       = isOwn ? t('feed.you') : (post.friend_name ?? 'Friend');
   const friendBg   = isOwn ? '#E1F5EE' : (FRIEND_BG[name]   ?? '#EEEDFE');
@@ -921,9 +980,15 @@ function PostCard({
 
       {showInput && (
         <View style={s.commentInputRow}>
+          <TouchableOpacity
+            style={[{ width: 38, height: 38, borderRadius: 19, backgroundColor: Colors.orange + '33', alignItems: 'center', justifyContent: 'center' }, isRecording && { backgroundColor: '#FF4B4B' }]}
+            onPress={() => void handleVoiceMemo()}
+          >
+            <Text style={{ fontSize: 18 }}>{isRecording ? '⏹️' : '🎤'}</Text>
+          </TouchableOpacity>
           <TextInput
             value={commentText}
-            onChangeText={setCommentText}
+            onChangeText={(text) => setCommentText(dedupeDictatedText(text))}
             placeholder={t('feed.commentPlaceholder')}
             placeholderTextColor="#B4B2A9"
             style={s.commentInputField}

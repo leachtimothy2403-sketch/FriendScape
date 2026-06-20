@@ -49,7 +49,7 @@ cron.schedule('0 8 * * *', async () => {
         const repMemoryBrief = repMemoryRow ? buildMemoryBrief(toMemoryType(repMemoryRow)) : null;
 
         const starFriend = toFriendType(starFriendRow);
-        const result = await generateDailyPostsAI([starFriend], repChild, repMemoryBrief, repLang);
+        const result = await generateDailyPostsAI([starFriend], repChild, null, repLang, true);
 
         if (result.error || result.posts.length === 0) continue;
 

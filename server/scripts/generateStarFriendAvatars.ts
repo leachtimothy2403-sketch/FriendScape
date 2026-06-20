@@ -8,6 +8,7 @@ const ADULT_STYLE_NAMES = ['Coach Mike', 'Capitaine Coquillage'];
 
 async function run() {
   console.log('\nStar Friend Avatar Generator\n' + '='.repeat(40));
+  console.log('Reminder: if you see UNABLE_TO_VERIFY_LEAF_SIGNATURE errors, temporarily disable Avast Web Shield / HTTPS scanning, then re-run this script.\n');
 
   const rows = await db('ai_friends')
     .where({ is_star_friend: true })

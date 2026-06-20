@@ -1012,7 +1012,7 @@ export async function getMyFriendsList(req: AuthRequest, res: Response) {
       .join('ai_friends as af', 'af.id', 'cf.friend_id')
       .where('cf.child_id', childId)
       .select(
-        'af.id', 'af.name', 'af.bio', 'af.cover_emojis', 'af.avatar_url',
+        'af.id', 'af.name', 'af.bio', 'af.bio_fr', 'af.cover_emojis', 'af.avatar_url',
         'af.personality', 'af.interests', 'af.is_star_friend',
         'af.is_teacher', 'af.age', 'af.gender', 'af.relationship_type',
         'cf.friendship_level', 'cf.friendship_xp', 'cf.activated_at',
@@ -1025,9 +1025,12 @@ export async function getMyFriendsList(req: AuthRequest, res: Response) {
       )
       .orderByRaw('last_message_at DESC NULLS LAST') as Record<string, unknown>[];
 
+    const language = req.query.language as string | undefined;
     const friends = friendRows.map(f => {
       const { levelName, xpToNext } = getFriendshipInfo(f.friendship_level as number, f.friendship_xp as number);
-      return { ...f, level_name: levelName, xp_to_next_level: xpToNext };
+      const { bio_fr, ...rest } = f;
+      const bio = language === 'fr' && bio_fr ? bio_fr : f.bio;
+      return { ...rest, bio, level_name: levelName, xp_to_next_level: xpToNext };
     });
 
     res.json({ friends });
@@ -1092,52 +1095,3 @@ export async function saveMyAvatar(req: AuthRequest, res: Response) {
   }
 }
 
-// ─── POST /children/generate-avatar (unauthed — called during onboarding) ─────
-const AVATAR_THEMES = ['princess', 'astronaut', 'cat', 'superhero', 'nature', 'wizard', 'artist', 'dino'] as const;
-
-export async function generateAvatar(req: Request, res: Response) {
-  const { imageBase64, mediaType } = req.body as { imageBase64?: string; mediaType?: string };
-
-  if (!imageBase64?.trim()) {
-    res.status(400).json({ error: 'imageBase64 is required' });
-    return;
-  }
-
-  const imgMediaType: 'image/jpeg' | 'image/png' | 'image/webp' =
-    mediaType === 'image/png'  ? 'image/png'  :
-    mediaType === 'image/webp' ? 'image/webp' :
-    'image/jpeg';
-
-  try {
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-    const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 20,
-      messages: [{
-        role: 'user',
-        content: [
-          {
-            type: 'image',
-            source: { type: 'base64', media_type: imgMediaType, data: imageBase64 },
-          },
-          {
-            type: 'text',
-            text: `This is a child's photo. Pick the one word from this list that best matches their vibe: ${AVATAR_THEMES.join(', ')}. Reply with ONLY that one word.`,
-          },
-        ],
-      }],
-    });
-
-    const raw = (message.content[0] as { type: string; text: string }).text.trim().toLowerCase();
-    const theme = (AVATAR_THEMES as readonly string[]).includes(raw)
-      ? raw
-      : AVATAR_THEMES[Math.floor(Math.random() * AVATAR_THEMES.length)];
-
-    res.json({ theme });
-  } catch (err) {
-    console.error('[children] generateAvatar error:', err);
-    const theme = AVATAR_THEMES[Math.floor(Math.random() * AVATAR_THEMES.length)];
-    res.json({ theme });
-  }
-}

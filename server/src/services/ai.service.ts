@@ -595,6 +595,7 @@ export async function generateDailyPosts(
   child: Child,
   memoryBrief: string | null,
   language = 'en',
+  isShared = false,
 ): Promise<DailyPostsResult> {
   const today      = new Date().toLocaleDateString('en-US', { weekday: 'long' });
   const hour       = new Date().getHours();
@@ -612,12 +613,14 @@ ${buildLanguageInstruction(language)}
 You generate daily social media posts for AI friends on Migo, a safe children's social app.
 Posts appear in a child's feed like Instagram — short, fun, visual, and designed to spark a reply.
 
-${buildChildContext(child, memoryBrief)}
+${isShared ? '' : buildChildContext(child, memoryBrief)}
 
 TODAY: ${today} ${timeOfDay}
 
 RULES FOR ALL POSTS:
-- Each post must feel personal to ${child.name} — reference their interests, recent events from memory, or the day/time
+${isShared
+  ? '- Posts must be generic and NOT reference any specific child by name or personal details — write about what the friend themselves is doing, thinking, or experiencing today, in a way that could be shown to any child'
+  : `- Each post must feel personal to ${child.name} — reference their interests, recent events from memory, or the day/time`}
 - Posts should prompt a reply naturally — end with a question or something share-worthy
 - Keep each post to 2–3 sentences maximum
 - Age-appropriate language for a ${child.age}-year-old
@@ -644,7 +647,9 @@ Return ONLY valid JSON — no markdown, no explanation. Format:
     system,
     messages: [{
       role: 'user',
-      content: `Generate one post for each of these friends for ${child.name}:\n${friendList}`,
+      content: isShared
+        ? `Generate one post for each of these friends. The post should be about what the friend is doing/experiencing today — NOT personalized to any specific child:\n${friendList}`
+        : `Generate one post for each of these friends for ${child.name}:\n${friendList}`,
     }],
   }));
 
