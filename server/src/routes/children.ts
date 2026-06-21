@@ -22,12 +22,12 @@ import {
   saveMyAvatar,
   removeMyFriend,
 } from '../controllers/children.controller';
-import { requireAuth } from '../middleware/auth';
+import { requireAuth, optionalAuth } from '../middleware/auth';
 
 const router = Router();
 
-// Unauthed: onboarding creates the child via approved enrollment record
-router.post('/onboarding', createChildFromOnboarding);
+// Unauthed or parent-authed: creates a child via enrollment (unauthenticated) or directly (parent JWT)
+router.post('/onboarding', optionalAuth, createChildFromOnboarding);
 
 // All routes below require a JWT (parent or child)
 router.use(requireAuth);

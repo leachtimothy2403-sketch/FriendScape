@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
@@ -137,7 +137,7 @@ const DEFAULT_PARENT_SETTINGS = {
   bedtimeLockEnd: '07:00',
 };
 
-export async function createChildFromOnboarding(req: Request, res: Response) {
+export async function createChildFromOnboarding(req: AuthRequest, res: Response) {
   try {
     const {
       parentEmail, name, age, gender, language,
@@ -149,34 +149,53 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
       cartoonUrl,
     } = req.body as Record<string, unknown>;
 
-    // 1. Validate required fields
-    if (!name || !age || !parentEmail) {
-      res.status(400).json({ error: 'name, age, and parentEmail are required' });
-      return;
-    }
+    // 1 & 2. Resolve parent — two paths depending on whether a parent JWT was supplied
+    let parentUser: Record<string, unknown>;
+    let enrollment: Record<string, unknown> | undefined;
 
-    // 2. Verify approved enrollment
-    const enrollment = await db('enrollments')
-      .where({ parent_email: parentEmail as string, status: 'approved' })
-      .first();
-    if (!enrollment) {
-      res.status(403).json({ error: 'Parent approval required — ask your parent to approve the Migo request first.' });
-      return;
-    }
+    if (req.userId) {
+      // PARENT-AUTHENTICATED PATH: JWT already verified by optionalAuth
+      if (!name || !age) {
+        res.status(400).json({ error: 'name and age are required' });
+        return;
+      }
+      const found = await db('users').where({ id: req.userId }).first();
+      if (!found) {
+        res.status(401).json({ error: 'Parent account not found' });
+        return;
+      }
+      parentUser = found as Record<string, unknown>;
+    } else {
+      // UNAUTHENTICATED PATH: enrollment-based flow (unchanged)
+      if (!name || !age || !parentEmail) {
+        res.status(400).json({ error: 'name, age, and parentEmail are required' });
+        return;
+      }
 
-    // 3. Find or create parent user account
-    let parentUser = await db('users').where({ email: parentEmail as string }).first();
-    if (!parentUser) {
-      const tempPassword = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
-      [parentUser] = await db('users')
-        .insert({
-          email:          parentEmail,
-          display_name:   'Parent',
-          password_hash:  tempPassword,
-          email_verified: false,
-          settings:       DEFAULT_PARENT_SETTINGS,
-        })
-        .returning('*');
+      // 2. Verify approved enrollment
+      enrollment = await db('enrollments')
+        .where({ parent_email: parentEmail as string, status: 'approved' })
+        .first();
+      if (!enrollment) {
+        res.status(403).json({ error: 'Parent approval required — ask your parent to approve the Migo request first.' });
+        return;
+      }
+
+      // 3. Find or create parent user account
+      let found = await db('users').where({ email: parentEmail as string }).first();
+      if (!found) {
+        const tempPassword = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
+        [found] = await db('users')
+          .insert({
+            email:          parentEmail,
+            display_name:   'Parent',
+            password_hash:  tempPassword,
+            email_verified: false,
+            settings:       DEFAULT_PARENT_SETTINGS,
+          })
+          .returning('*');
+      }
+      parentUser = found as Record<string, unknown>;
     }
 
     // 4. Map and create child record
@@ -217,10 +236,12 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
       })
       .returning('*');
 
-    // 5. Stamp enrollment
-    await db('enrollments')
-      .where({ id: enrollment.id })
-      .update({ child_device_id: child.id });
+    // 5. Stamp enrollment (unauthenticated path only — no enrollment row in parent-auth path)
+    if (enrollment) {
+      await db('enrollments')
+        .where({ id: enrollment.id })
+        .update({ child_device_id: child.id });
+    }
 
     // 6. Include free-interest note in logs if provided
     if (freeInterest) {

@@ -39,7 +39,7 @@ export default function AlertsScreen() {
   useEffect(() => {
     async function load() {
       const [tok, profileStr] = await AsyncStorage.multiGet(['authToken', 'childProfile']);
-      if (!tok[1]) { router.replace('/enroll'); return; }
+      if (!tok[1]) { router.replace('/landing'); return; }
       setAuthToken(tok[1]);
       let cid: string | null = null;
       try { cid = JSON.parse(profileStr[1] ?? '{}').childId ?? null; } catch {}

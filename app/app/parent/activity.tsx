@@ -39,7 +39,7 @@ export default function ActivityScreen() {
   useEffect(() => {
     async function load() {
       const [authToken, profileStr] = await AsyncStorage.multiGet(['authToken', 'childProfile']);
-      if (!authToken[1]) { router.replace('/enroll'); return; }
+      if (!authToken[1]) { router.replace('/landing'); return; }
       let cid: string | null = null;
       try { cid = JSON.parse(profileStr[1] ?? '{}').childId ?? null; } catch {}
       if (!cid) { setLoading(false); return; }

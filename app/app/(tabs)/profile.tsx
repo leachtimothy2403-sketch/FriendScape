@@ -365,8 +365,8 @@ export default function ProfileScreen() {
   }, []);
 
   const doSignOut = useCallback(async () => {
-    await AsyncStorage.multiRemove(['authToken', 'childToken', 'childProfile']);
-    router.replace('/enroll' as never);
+    await AsyncStorage.multiRemove(['authToken', 'childToken', 'childProfile', 'childId', 'childAvatarUrl']);
+    router.replace('/landing' as never);
   }, []);
 
   const handleTogglePreReader = useCallback(async (val: boolean) => {
@@ -637,7 +637,7 @@ export default function ProfileScreen() {
                     'authToken', 'childToken', 'childProfile',
                     'pendingParentEmail', 'preReader',
                   ]);
-                  router.replace('/enroll' as never);
+                  router.replace('/landing' as never);
                 }}
                 style={s.devResetBtn}
               >

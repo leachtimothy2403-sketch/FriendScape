@@ -9,6 +9,7 @@ import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { children as childrenApi, childAuth, mascotAvatars as mascotAvatarApi } from '@/services/api';
+import { addChildProfile } from '@/utils/childProfiles';
 import EmojiAvatar from '@/components/EmojiAvatar';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { useLanguageStore } from '@/store/languageStore';
@@ -231,6 +232,7 @@ export default function AllSetScreen() {
       await AsyncStorage.setItem('avatarBackground', store.avatarBackground || '#EEEDFE');
       await AsyncStorage.setItem('childEmoji', childEmoji);
       if (data.avatarUrl) await AsyncStorage.setItem('childAvatarUrl', data.avatarUrl);
+      await addChildProfile({ childId: data.childId, name: data.name, mascotId: data.mascotId, avatarUrl: data.avatarUrl ?? undefined });
 
       setStatus('success');
       if (__DEV__) { void handleLaunch(); }

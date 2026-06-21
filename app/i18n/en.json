@@ -515,12 +515,23 @@
       "about": "ℹ️ About Migo",
       "privacyPolicy": "Privacy Policy →",
       "termsOfService": "Terms of Service →",
-      "signOut": "Sign out",
-      "signOutConfirm": "Are you sure? You'll need to sign in again.",
-      "signOutConfirmButton": "Sign out",
+      "signOut": "Switch Profile",
+      "signOutConfirm": "You'll be able to pick your profile again, or add a new one.",
+      "signOutConfirmButton": "Switch Profile",
       "devReset": "🔄 Reset app (dev)"
     },
     "avatarTapMessage": "Ask a parent to change your photo 👨‍👩‍👧"
+  },
+  "landing": {
+    "kidButton": "I'm a Kid 🎮",
+    "kidSubtitle": "Jump into your Migo world",
+    "parentButton": "I'm a Parent 👨‍👩‍👧",
+    "parentSubtitle": "Manage your child's account"
+  },
+  "kidPicker": {
+    "title": "Who's playing?",
+    "subtitle": "Tap your name to jump in!",
+    "addChild": "Add another child +"
   },
   "common": {
     "continue": "Continue →",

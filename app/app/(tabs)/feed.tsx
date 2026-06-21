@@ -426,7 +426,7 @@ export default function FeedScreen() {
   async function devReset() {
     await AsyncStorage.multiRemove(['childId', 'childToken', 'parentEmail', 'onboardingComplete', 'pendingParentEmail', 'childProfile']);
     resetStore();
-    router.replace('/enroll' as never);
+    router.replace('/landing' as never);
   }
 
   function measureRefs() {

@@ -45,7 +45,7 @@ export default function DevResetButton() {
   setUnreadCount(0);
 
   setResult({ text: '✅ Database reset started', color: '#2D7D46' });
-  setTimeout(() => { setResetting(false); router.replace('/enroll' as never); }, 2000);
+  setTimeout(() => { setResetting(false); router.replace('/landing' as never); }, 2000);
 }
 
   async function clearCache() {
@@ -58,7 +58,7 @@ export default function DevResetButton() {
       clearNotification();
       setUnreadCount(0);
       setResult({ text: '✅ Cache cleared', color: '#2D7D46' });
-      setTimeout(() => { setClearing(false); router.replace('/enroll' as never); }, 1000);
+      setTimeout(() => { setClearing(false); router.replace('/landing' as never); }, 1000);
     } catch {
       setResult({ text: '❌ Clear failed', color: '#C0392B' });
       setClearing(false);
