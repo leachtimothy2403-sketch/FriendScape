@@ -358,6 +358,7 @@ export async function showSetPasswordForm(req: Request, res: Response) {
   const { token } = req.query as { token?: string };
 
   if (!token) {
+    console.log('[auth] ❌ set-password form rejected — invalid/expired token:', token);
     res.send(expiredHtml('Invalid link.'));
     return;
   }
@@ -365,25 +366,30 @@ export async function showSetPasswordForm(req: Request, res: Response) {
   const enrollment = await db('enrollments').where({ approval_token: token }).first();
 
   if (!enrollment || new Date() > new Date(enrollment.expires_at) || enrollment.status !== 'approved') {
+    console.log('[auth] ❌ set-password form rejected — invalid/expired token:', token);
     res.send(expiredHtml());
     return;
   }
 
+  console.log('[auth] 🔑 Showing set-password form for', enrollment.parent_email);
   res.send(setPasswordFormHtml(token));
 }
 
 export async function setApprovalPassword(req: Request, res: Response) {
   const { token, password } = req.body as { token?: string; password?: string };
+  console.log('[auth] 📨 setApprovalPassword called, token:', token, 'password length:', password?.length ?? 0);
 
   try {
     const enrollment = await db('enrollments').where({ approval_token: token }).first();
 
     if (!token || !enrollment || new Date() > new Date(enrollment.expires_at) || enrollment.status !== 'approved') {
+      console.log('[auth] ❌ setApprovalPassword rejected — invalid/expired token');
       res.send(expiredHtml());
       return;
     }
 
     if (!password || password.length < 8) {
+      console.log('[auth] ❌ setApprovalPassword rejected — password too short');
       res.send(setPasswordFormHtml(token, 'Password must be at least 8 characters.'));
       return;
     }
@@ -413,6 +419,8 @@ export async function setApprovalPassword(req: Request, res: Response) {
         settings: defaultSettings,
       });
     }
+
+    console.log('[auth] ✅ Password set for', enrollment.parent_email, '— existing user updated:', !!existing);
 
     res.send(htmlShell('🎉', 'All Set!', `
       <h1>All Set!</h1>
