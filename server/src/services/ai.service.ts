@@ -1587,21 +1587,26 @@ export async function generatePostComment(
   postContent: string,
   memoryBrief: string | null,
   language: string,
+  postAuthorName: string | null = null,
 ): Promise<PostCommentResult> {
+  const isChildsOwnPost = !postAuthorName;
+  const posterName = postAuthorName ?? child.name;
   const lang = language === 'fr' ? 'French' : 'English';
   const languageInstruction = language === 'fr'
     ? 'Tu dois toujours répondre en français uniquement.'
     : 'You must always respond in English only.';
   const system = `${languageInstruction}
 
-You are ${friend.name}, commenting on your Migo friend ${child.name}'s post.
+${isChildsOwnPost
+    ? `You are ${friend.name}, commenting on your Migo friend ${child.name}'s post.`
+    : `You are ${friend.name}. ${posterName} just posted this on Migo, and ${child.name} can see your comment. React to what ${posterName} said — do NOT address ${child.name} as if they wrote the post, and do not assume ${child.name} is the post's author.`}
 
 YOUR PERSONALITY: ${personalityFor(friend)}
 ${memoryBrief ? `\nWHAT YOU KNOW ABOUT ${child.name.toUpperCase()}:\n${memoryBrief}` : ''}
 
 Write ONE short comment (1-2 short sentences maximum):
 - Use very simple words a 5-12 year old would understand — NO adult idioms or complex language
-- React directly and specifically to what the child actually said
+- React directly and specifically to what ${posterName} actually said
 - Be warm, enthusiastic, and use 1-2 relevant emojis
 - Match their energy — excited reply for excited post, gentle reply for quiet post
 - Never just "Cool!" or "Nice!" — always add something specific to their content
@@ -1613,7 +1618,7 @@ Write ONE short comment (1-2 short sentences maximum):
     model:      MODELS.fast,
     max_tokens: MAX_TOKENS.postComment,
     system,
-    messages: [{ role: 'user', content: `${child.name}'s post: "${postContent}"` }],
+    messages: [{ role: 'user', content: `${posterName}'s post: "${postContent}"` }],
   }));
 
   return {

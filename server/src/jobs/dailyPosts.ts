@@ -114,7 +114,7 @@ export async function runDailyPostsJob() {
             const memoryRow   = await db('child_memories').where({ child_id: childId, friend_id: String(reactorRow.id) }).first();
             const memoryBrief = memoryRow ? buildMemoryBrief(toMemoryType(memoryRow)) : null;
 
-            const comment = await generatePostComment(reactor, child, post.text, memoryBrief, childLang);
+            const comment = await generatePostComment(reactor, child, post.text, memoryBrief, childLang, starFriend.name);
 
             await db('post_comments').insert({
               post_id:     postId,

@@ -18,6 +18,7 @@ import AudioPlayer from '@/components/AudioPlayer';
 import { useNotificationStore } from '@/store/notificationStore';
 import { sendWebNotification } from '@/utils/webNotifications';
 import { dedupeDictatedText } from '@/utils/dedupeDictatedText';
+import { getDisplayName } from '@/utils/displayName';
 
 interface ChatMessage {
   id: string;
@@ -184,7 +185,7 @@ export default function DMScreen() {
         const avatarUrl = friend.avatar_url ? String(friend.avatar_url) : null;
 
         if (!cancelled) {
-          setFriendName(name);
+          setFriendName(getDisplayName(name, language === 'fr'));
           setFriendEmoji(emoji);
           setFriendBg(FRIEND_BG[name] ?? '#EEEDFE');
           setIsTeacher(teacher);
