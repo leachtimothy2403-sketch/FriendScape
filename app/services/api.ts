@@ -203,6 +203,8 @@ export const friendNetwork = {
 export const myFriendsApi = {
   list: (token: string) =>
     api.get<{ friends: MyChildFriend[] }>('/children/me/friends', withToken(token)),
+  remove: (token: string, friendId: string) =>
+    api.delete<{ success: boolean }>(`/children/me/friends/${friendId}`, withToken(token)),
 };
 
 // ─── Types for friend network ─────────────────────────────────────────────────

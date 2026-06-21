@@ -1,6 +1,6 @@
 import {
   View, Text, SafeAreaView, ScrollView, TouchableOpacity,
-  ActivityIndicator, StyleSheet, Image,
+  ActivityIndicator, StyleSheet, Image, Alert,
 } from 'react-native';
 import { useState, useEffect, useCallback } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -94,6 +94,7 @@ export default function FriendProfileScreen() {
   const [isAdded,             setIsAdded]            = useState(false);
   const [referringFriendName, setReferringFriendName] = useState<string | null>(null);
   const [referringFriendGender, setReferringFriendGender] = useState<string | null>(null);
+  const [removing,             setRemoving]           = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -149,6 +150,30 @@ export default function FriendProfileScreen() {
       setAdding(false);
     }
   }, [token, friendId, via, adding]);
+
+  function confirmRemove() {
+    Alert.alert(
+      t('friendProfile.removeFriendTitle', { defaultValue: 'Remove friend?' }),
+      t('friendProfile.removeFriendBody', { name: getDisplayName(friend?.name ?? '', isFr), defaultValue: `Are you sure you want to remove ${friend?.name} as a friend? Your conversation history will be kept in case you add them again.` }),
+      [
+        { text: t('common.cancel', { defaultValue: 'Cancel' }), style: 'cancel' },
+        { text: t('friendProfile.removeFriendConfirm', { defaultValue: 'Remove' }), style: 'destructive', onPress: () => void handleRemove() },
+      ],
+    );
+  }
+
+  async function handleRemove() {
+    if (!token) return;
+    setRemoving(true);
+    try {
+      await myFriendsApi.remove(token, friendId);
+      setIsAdded(false);
+    } catch (e) {
+      console.error('[friend-profile] remove error:', e);
+    } finally {
+      setRemoving(false);
+    }
+  }
 
   const handleNetworkAdd = useCallback(async (targetId: string) => {
     if (!token) return;
@@ -237,9 +262,16 @@ export default function FriendProfileScreen() {
         {/* Action button */}
         <View style={s.actionRow}>
           {isAdded ? (
-            <TouchableOpacity onPress={() => router.push(`/dm/${friendId}` as never)} style={s.btnMessage}>
-              <Text style={s.btnMessageText}>{t('friends.messageFriend', { name: getDisplayName(friend.name, isFr) })}</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity onPress={() => router.push(`/dm/${friendId}` as never)} style={s.btnMessage}>
+                <Text style={s.btnMessageText}>{t('friends.messageFriend', { name: getDisplayName(friend.name, isFr) })}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={confirmRemove} style={s.btnRemoveLink} disabled={removing}>
+                {removing
+                  ? <ActivityIndicator size="small" color={Colors.gray[400]} />
+                  : <Text style={s.btnRemoveLinkText}>{t('friendProfile.removeFriend', { defaultValue: 'Remove friend' })}</Text>}
+              </TouchableOpacity>
+            </>
           ) : (
             <TouchableOpacity onPress={handleAdd} style={s.btnAdd} disabled={adding}>
               {adding
@@ -335,4 +367,7 @@ const s = StyleSheet.create({
   networkAdded:   { fontSize: 14, color: Colors.green },
   networkAddBtn:  { backgroundColor: Colors.purple + '18', borderRadius: 99, paddingHorizontal: 6, paddingVertical: 3 },
   networkAddText: { fontSize: 10, color: Colors.purple, fontWeight: '700' },
+
+  btnRemoveLink:     { marginTop: 12, alignItems: 'center', paddingVertical: 6 },
+  btnRemoveLinkText: { fontSize: 12, color: Colors.gray[400] },
 });

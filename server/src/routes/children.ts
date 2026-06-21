@@ -20,6 +20,7 @@ import {
   regenerateFriends,
   getMyAvatar,
   saveMyAvatar,
+  removeMyFriend,
 } from '../controllers/children.controller';
 import { requireAuth } from '../middleware/auth';
 
@@ -43,6 +44,7 @@ router.patch('/me/profile',    updateMyProfile);
 router.get('/me/memories',     getMyMemories);
 router.get('/me/posts',        getMyPosts);
 router.get('/me/friends-list',           getMyFriendsList);
+router.delete('/me/friends/:friendId',   removeMyFriend);
 router.post('/me/interests/validate',    validateInterest);
 router.post('/me/regenerate-friends',    regenerateFriends);
 router.get('/me/avatar',                 getMyAvatar);

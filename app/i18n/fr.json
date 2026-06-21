@@ -419,7 +419,11 @@
     "starFriendF": "Amie vedette",
     "starFriendM": "Ami vedette",
     "friendOfF": "Amie de {{name}}",
-    "friendOfM": "Ami de {{name}}"
+    "friendOfM": "Ami de {{name}}",
+    "removeFriend": "Retirer cet ami",
+    "removeFriendTitle": "Retirer cet ami ?",
+    "removeFriendBody": "Tu es sûr(e) de vouloir retirer {{name}} de tes amis ? Ton historique de conversation sera conservé au cas où tu l'ajoutes à nouveau.",
+    "removeFriendConfirm": "Retirer"
   },
   "friends": {
     "yourFriends": "Tes amis",
@@ -539,7 +543,8 @@
     "back": "Retour",
     "loading": "Chargement...",
     "retry": "Réessayer",
-    "error": "Oups, quelque chose a mal tourné !"
+    "error": "Oups, quelque chose a mal tourné !",
+    "cancel": "Annuler"
   },
   "parent": {
     "noChildProfile": "Aucun profil enfant trouvé.",

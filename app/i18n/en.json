@@ -403,7 +403,11 @@
     "starFriendF": "Star friend",
     "starFriendM": "Star friend",
     "friendOfF": "Friend of {{name}}",
-    "friendOfM": "Friend of {{name}}"
+    "friendOfM": "Friend of {{name}}",
+    "removeFriend": "Remove friend",
+    "removeFriendTitle": "Remove friend?",
+    "removeFriendBody": "Are you sure you want to remove {{name}} as a friend? Your conversation history will be kept in case you add them again.",
+    "removeFriendConfirm": "Remove"
   },
   "friends": {
     "yourFriends": "Your friends",
@@ -523,7 +527,8 @@
     "back": "Back",
     "loading": "Loading...",
     "retry": "Try again",
-    "error": "Something went wrong"
+    "error": "Something went wrong",
+    "cancel": "Cancel"
   },
   "parent": {
     "noChildProfile": "No child profile found.",

@@ -1020,6 +1020,20 @@ export async function getMyFriendsList(req: AuthRequest, res: Response) {
   }
 }
 
+// ─── DELETE /children/me/friends/:friendId ───────────────────────────────────
+export async function removeMyFriend(req: AuthRequest, res: Response) {
+  const childId = req.childId;
+  if (!childId) { res.status(401).json({ error: 'Child authentication required' }); return; }
+
+  try {
+    await db('child_friends').where({ child_id: childId, friend_id: req.params.friendId }).delete();
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[friends] removeMyFriend error:', err);
+    res.status(500).json({ error: 'Failed to remove friend' });
+  }
+}
+
 // ─── GET /children/me/avatar ──────────────────────────────────────────────────
 export async function getMyAvatar(req: AuthRequest, res: Response) {
   const childId = req.childId;
