@@ -3,7 +3,7 @@ import {
   ActivityIndicator, TextInput, StyleSheet, Image,
 } from 'react-native';
 import { useState, useEffect, useCallback } from 'react';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import {
@@ -287,48 +287,50 @@ export default function DiscoverScreen() {
   const [loading,     setLoading]     = useState(true);
   const [childAge,    setChildAge]    = useState<number>(10);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      const tok = await AsyncStorage.getItem('childToken');
-      if (!cancelled) setToken(tok);
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      async function load() {
+        const tok = await AsyncStorage.getItem('childToken');
+        if (!cancelled) setToken(tok);
 
-      try {
-        const [allRes, myRes, profileRes] = await Promise.all([
-          allFriendsApi.list(language),
-          tok ? myFriendsApi.list(tok) : Promise.resolve(null),
-          tok ? childProfileApi.getProfile(tok).catch(() => null) : Promise.resolve(null),
-        ]);
+        try {
+          const [allRes, myRes, profileRes] = await Promise.all([
+            allFriendsApi.list(language),
+            tok ? myFriendsApi.list(tok) : Promise.resolve(null),
+            tok ? childProfileApi.getProfile(tok).catch(() => null) : Promise.resolve(null),
+          ]);
 
-        const all  = (allRes.data.friends   as AiFriendRecord[]);
-        const mine = (myRes?.data.friends   as MyChildFriend[]) ?? [];
+          const all  = (allRes.data.friends   as AiFriendRecord[]);
+          const mine = (myRes?.data.friends   as MyChildFriend[]) ?? [];
 
-        if (!cancelled) {
-          setAllFriends(all);
-          setMyFriends(mine);
-          if (profileRes?.data?.age) setChildAge(profileRes.data.age);
-        }
-
-        // Fetch networks for each of child's non-teacher friends in parallel
-        if (tok && mine.length > 0 && !cancelled) {
-          const netResults = await Promise.all(
-            mine.filter(f => !f.is_teacher).map(f => friendNetwork.getNetwork(f.id, tok).then(r => ({ id: f.id, data: r.data.friends })).catch(() => ({ id: f.id, data: [] as FriendWithRelationship[] }))),
-          );
           if (!cancelled) {
-            const map: Record<string, FriendWithRelationship[]> = {};
-            for (const { id, data } of netResults) map[id] = data;
-            setNetworks(map);
+            setAllFriends(all);
+            setMyFriends(mine);
+            if (profileRes?.data?.age) setChildAge(profileRes.data.age);
           }
+
+          // Fetch networks for each of child's non-teacher friends in parallel
+          if (tok && mine.length > 0 && !cancelled) {
+            const netResults = await Promise.all(
+              mine.filter(f => !f.is_teacher).map(f => friendNetwork.getNetwork(f.id, tok).then(r => ({ id: f.id, data: r.data.friends })).catch(() => ({ id: f.id, data: [] as FriendWithRelationship[] }))),
+            );
+            if (!cancelled) {
+              const map: Record<string, FriendWithRelationship[]> = {};
+              for (const { id, data } of netResults) map[id] = data;
+              setNetworks(map);
+            }
+          }
+        } catch (e) {
+          console.error('[discover] load error:', e);
+        } finally {
+          if (!cancelled) setLoading(false);
         }
-      } catch (e) {
-        console.error('[discover] load error:', e);
-      } finally {
-        if (!cancelled) setLoading(false);
       }
-    }
-    void load();
-    return () => { cancelled = true; };
-  }, []);
+      void load();
+      return () => { cancelled = true; };
+    }, [language]),
+  );
 
   const addFriend = useCallback(async (friendId: string, refId?: string) => {
     if (!token) return;

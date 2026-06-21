@@ -13,6 +13,8 @@ import {
   decline,
   enrollmentStatus,
   simulateApprove,
+  showSetPasswordForm,
+  setApprovalPassword,
   devReset,
 } from '../controllers/auth.controller';
 import { requireAuth } from '../middleware/auth';
@@ -32,6 +34,8 @@ router.post('/child-login', childLogin);
 router.post('/enroll', enroll);
 router.get('/approve', approve);
 router.get('/decline', decline);
+router.get('/set-password', showSetPasswordForm);
+router.post('/set-password', setApprovalPassword);
 router.get('/enrollment-status', enrollmentStatus);
 router.post('/simulate-approve', simulateApprove);
 

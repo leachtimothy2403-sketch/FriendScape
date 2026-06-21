@@ -189,7 +189,7 @@ export async function approve(req: Request, res: Response) {
       .where({ approval_token: token })
       .update({ status: 'approved', approved_at: new Date() });
 
-    res.send(approvedHtml());
+    res.send(approvedHtml(token));
   } catch (err) {
     console.error('Approve error:', err);
     res.status(500).send('<h1>Something went wrong. Please try again.</h1>');
@@ -316,11 +316,25 @@ function htmlShell(emoji: string, title: string, body: string): string {
 </html>`;
 }
 
-function approvedHtml(): string {
+function approvedHtml(token: string): string {
   return htmlShell('✅', 'Approved!', `
     <h1>Approved!</h1>
     <p>You can now set up Migo together with your child. Hand the device back and tap "Let's set up Migo!" to get started.</p>
     <a href="http://localhost:3000" class="btn">Download the Parent Dashboard →</a>
+    <a href="/auth/set-password?token=${token}" class="btn" style="background:#fff;color:#7F77DD;border:2px solid #7F77DD;margin-top:12px">Set Up Parent Account →</a>
+  `);
+}
+
+function setPasswordFormHtml(token: string, error?: string): string {
+  return htmlShell('🔐', 'Set Up Parent Account', `
+    <h1>Set up your Parent account</h1>
+    <p>Create a password to access Migo's Parent Dashboard.</p>
+    ${error ? `<p style="color:#C0392B">${error}</p>` : ''}
+    <form method="POST" action="/auth/set-password">
+      <input type="hidden" name="token" value="${token}">
+      <input type="password" name="password" placeholder="Choose a password (min 8 characters)" required minlength="8" style="width:100%;padding:14px;border-radius:12px;border:1px solid #E8E6FF;margin-bottom:16px;font-size:15px;box-sizing:border-box">
+      <button type="submit" class="btn" style="border:none;width:100%;cursor:pointer">Set Password →</button>
+    </form>
   `);
 }
 
@@ -336,6 +350,82 @@ function declinedHtml(): string {
     <h1>Request declined</h1>
     <p>No problem — this request has been cancelled. If you change your mind, ask your child to open the Migo app and try again.</p>
   `);
+}
+
+// ─── Set-password flow ───────────────────────────────────────────────────────
+
+export async function showSetPasswordForm(req: Request, res: Response) {
+  const { token } = req.query as { token?: string };
+
+  if (!token) {
+    res.send(expiredHtml('Invalid link.'));
+    return;
+  }
+
+  const enrollment = await db('enrollments').where({ approval_token: token }).first();
+
+  if (!enrollment || new Date() > new Date(enrollment.expires_at) || enrollment.status !== 'approved') {
+    res.send(expiredHtml());
+    return;
+  }
+
+  res.send(setPasswordFormHtml(token));
+}
+
+export async function setApprovalPassword(req: Request, res: Response) {
+  const { token, password } = req.body as { token?: string; password?: string };
+
+  try {
+    const enrollment = await db('enrollments').where({ approval_token: token }).first();
+
+    if (!token || !enrollment || new Date() > new Date(enrollment.expires_at) || enrollment.status !== 'approved') {
+      res.send(expiredHtml());
+      return;
+    }
+
+    if (!password || password.length < 8) {
+      res.send(setPasswordFormHtml(token, 'Password must be at least 8 characters.'));
+      return;
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+    const existing = await db('users').where({ email: enrollment.parent_email }).first();
+
+    if (existing) {
+      await db('users')
+        .where({ email: enrollment.parent_email })
+        .update({ password_hash: passwordHash, email_verified: true });
+    } else {
+      const defaultSettings = {
+        alertsEnabled: true,
+        weeklyReportEnabled: true,
+        contentFilterLevel: 'strict',
+        screenTimeLimitMinutes: 60,
+        bedtimeLockEnabled: false,
+        bedtimeLockStart: '20:00',
+        bedtimeLockEnd: '07:00',
+      };
+      await db('users').insert({
+        email: enrollment.parent_email,
+        display_name: 'Parent',
+        password_hash: passwordHash,
+        email_verified: true,
+        settings: defaultSettings,
+      });
+    }
+
+    res.send(htmlShell('🎉', 'All Set!', `
+      <h1>All Set!</h1>
+      <p>You can now log in to the Migo Parent Dashboard with your email (<strong>${enrollment.parent_email}</strong>) and your new password.</p>
+      <a href="http://localhost:3000" class="btn">Open Parent Dashboard →</a>
+    `));
+  } catch (err) {
+    console.error('setApprovalPassword error:', err);
+    res.send(htmlShell('❌', 'Error', `
+      <h1>Something went wrong</h1>
+      <p>We couldn't set your password. Please try again or contact support.</p>
+    `));
+  }
 }
 
 // ─── DEV ONLY ────────────────────────────────────────────────────────────────
