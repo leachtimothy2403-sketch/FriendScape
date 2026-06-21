@@ -2,10 +2,10 @@ import {
   View, Text, SafeAreaView, FlatList, Image,
   ActivityIndicator, StyleSheet,
 } from 'react-native';
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/theme';
 import api from '@/services/api';
 
@@ -70,13 +70,14 @@ export default function FriendsScreen() {
   const [loading, setLoading] = useState(true);
   const [childId, setChildId] = useState<string | null>(null);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     async function load() {
-      const [authToken, profileStr] = await AsyncStorage.multiGet(['authToken', 'childProfile']);
+      setLoading(true);
+      const [authToken, profileStr] = await AsyncStorage.multiGet(['authToken', 'selectedChild']);
       if (!authToken[1]) { router.replace('/landing'); return; }
       let cid: string | null = null;
       try { cid = JSON.parse(profileStr[1] ?? '{}').childId ?? null; } catch {}
-      if (!cid) { setLoading(false); return; }
+      if (!cid) { router.replace('/parent-children'); return; }
       setChildId(cid);
       try {
         const res = await api.get(`/parent/friends/${cid}`, {
@@ -87,7 +88,7 @@ export default function FriendsScreen() {
       setLoading(false);
     }
     void load();
-  }, []);
+  }, []));
 
   if (loading) {
     return (

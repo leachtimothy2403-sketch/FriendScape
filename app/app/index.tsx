@@ -15,7 +15,7 @@ export default function Index() {
       if (childToken[1] && childProfile[1]) {
         setDestination('/(tabs)/feed');
       } else if (authToken[1]) {
-        setDestination('/landing');
+        setDestination('/parent-children');
       } else {
         setDestination('/landing');
       }

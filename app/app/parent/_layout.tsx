@@ -1,5 +1,7 @@
-import { Tabs } from 'expo-router';
-import { Text } from 'react-native';
+import { Tabs, router, useFocusEffect } from 'expo-router';
+import { Text, View, TouchableOpacity } from 'react-native';
+import { useState, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '@/constants/theme';
 
 function TabIcon({ emoji, active }: { emoji: string; active: boolean }) {
@@ -7,10 +9,60 @@ function TabIcon({ emoji, active }: { emoji: string; active: boolean }) {
 }
 
 export default function ParentLayout() {
+  const [childName, setChildName] = useState('');
+
+  useFocusEffect(useCallback(() => {
+    AsyncStorage.getItem('selectedChild').then(raw => {
+      try {
+        const parsed = JSON.parse(raw ?? '{}') as { name?: string };
+        setChildName(parsed.name ?? '');
+      } catch {
+        setChildName('');
+      }
+    });
+  }, []));
+
+  async function handleLogOut() {
+    await AsyncStorage.removeItem('authToken');
+    router.replace('/landing');
+  }
+
   return (
     <Tabs
       screenOptions={{
-        headerShown: false,
+        headerShown: true,
+        header: () => (
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            backgroundColor: '#fff',
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            borderBottomWidth: 1,
+            borderBottomColor: '#F0EFF8',
+          }}>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: '#2C2C2A' }} numberOfLines={1}>
+              {childName || '—'}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 4 }}>
+              <TouchableOpacity
+                onPress={() => router.push('/parent-children')}
+                style={{ padding: 8 }}
+                activeOpacity={0.7}
+              >
+                <Text style={{ fontSize: 20 }}>🔄</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => void handleLogOut()}
+                style={{ padding: 8 }}
+                activeOpacity={0.7}
+              >
+                <Text style={{ fontSize: 20 }}>🚪</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ),
         tabBarActiveTintColor: Colors.purple,
         tabBarInactiveTintColor: Colors.gray[400],
         tabBarStyle: {

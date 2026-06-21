@@ -2,10 +2,10 @@ import {
   View, Text, SafeAreaView, FlatList, TouchableOpacity,
   ActivityIndicator, StyleSheet,
 } from 'react-native';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/theme';
 import api from '@/services/api';
 
@@ -36,14 +36,15 @@ export default function AlertsScreen() {
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [childId, setChildId] = useState<string | null>(null);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     async function load() {
-      const [tok, profileStr] = await AsyncStorage.multiGet(['authToken', 'childProfile']);
+      setLoading(true);
+      const [tok, profileStr] = await AsyncStorage.multiGet(['authToken', 'selectedChild']);
       if (!tok[1]) { router.replace('/landing'); return; }
       setAuthToken(tok[1]);
       let cid: string | null = null;
       try { cid = JSON.parse(profileStr[1] ?? '{}').childId ?? null; } catch {}
-      if (!cid) { setLoading(false); return; }
+      if (!cid) { router.replace('/parent-children'); return; }
       setChildId(cid);
       try {
         const res = await api.get(`/parent/alerts/${cid}`, {
@@ -54,7 +55,7 @@ export default function AlertsScreen() {
       setLoading(false);
     }
     void load();
-  }, []);
+  }, []));
 
   const markRead = useCallback(async (id: string) => {
     if (!authToken) return;

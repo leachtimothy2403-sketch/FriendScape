@@ -522,6 +522,24 @@
     },
     "avatarTapMessage": "Ask a parent to change your photo 👨‍👩‍👧"
   },
+  "parentLogin": {
+    "title": "Parent Login",
+    "subtitle": "Sign in to manage your child's Migo account.",
+    "emailLabel": "Email address",
+    "emailPlaceholder": "your@email.com",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "Your password",
+    "loginButton": "Log In",
+    "errorEmptyFields": "Please enter your email and password.",
+    "errorInvalid": "Incorrect email or password. Please try again."
+  },
+  "parentChildren": {
+    "title": "Your Children",
+    "subtitle": "Select a child to view their dashboard.",
+    "addChild": "Add a child +",
+    "age": "Age {{age}}",
+    "logOut": "Log out"
+  },
   "landing": {
     "kidButton": "I'm a Kid 🎮",
     "kidSubtitle": "Jump into your Migo world",

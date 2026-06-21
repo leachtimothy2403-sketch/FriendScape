@@ -20,11 +20,35 @@ export default function LandingScreen() {
   return (
     <SafeAreaView className="flex-1 bg-bg">
       <StatusBar style="dark" />
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 }}>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28, backgroundColor: '#00FFFF' }}>
 
         <MigoLogo size="lg" showTagline />
 
         <View style={{ height: 52 }} />
+
+        <View style={{ width: '100%', backgroundColor: '#FFCCCC', padding: 12, marginBottom: 8, alignItems: 'center' }}>
+          <Text style={{ fontSize: 22, fontWeight: '800', color: '#000' }}>TEST 1</Text>
+        </View>
+
+        <View style={{ width: '100%', backgroundColor: '#CCFFCC', padding: 12, marginBottom: 8, borderRadius: 20, alignItems: 'center' }}>
+          <Text style={{ fontSize: 22, fontWeight: '800', color: '#000' }}>TEST 2</Text>
+        </View>
+
+        <View style={{ width: '100%', backgroundColor: '#CCCCFF', padding: 12, marginBottom: 8, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 10, elevation: 4 }}>
+          <Text style={{ fontSize: 22, fontWeight: '800', color: '#000' }}>TEST 3</Text>
+        </View>
+
+        <View style={{ width: '100%', backgroundColor: '#FFFFCC', padding: 12, marginBottom: 8, borderRadius: 20, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 10, elevation: 4 }}>
+          <Text style={{ fontSize: 22, fontWeight: '800', color: '#000' }}>TEST 4</Text>
+        </View>
+
+        <TouchableOpacity style={{ width: '100%', backgroundColor: '#FFCCFF', padding: 12, marginBottom: 8, borderRadius: 20, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 10, elevation: 4 }}>
+          <Text style={{ fontSize: 22, fontWeight: '800', color: '#000' }}>TEST 5</Text>
+        </TouchableOpacity>
+
+        <View style={{ width: '100%', backgroundColor: '#CCFFFF', padding: 12, marginBottom: 8, alignItems: 'center' }}>
+          <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#000' }}>TEST 6</Text>
+        </View>
 
         <TouchableOpacity
           onPress={() => void handleKid()}
@@ -42,10 +66,10 @@ export default function LandingScreen() {
             elevation: 4,
           }}
         >
-          <Text style={{ fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 4 }}>
+          <Text style={{ fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 4, backgroundColor: '#FF00FF', borderWidth: 1, borderColor: '#FFFF00' }}>
             {t('landing.kidButton')}
           </Text>
-          <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>
+          <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', backgroundColor: '#FF00FF', borderWidth: 1, borderColor: '#FFFF00' }}>
             {t('landing.kidSubtitle')}
           </Text>
         </TouchableOpacity>
@@ -67,10 +91,10 @@ export default function LandingScreen() {
             elevation: 2,
           }}
         >
-          <Text style={{ fontSize: 22, fontWeight: '800', color: '#7F77DD', marginBottom: 4 }}>
+          <Text style={{ fontSize: 22, fontWeight: '800', color: '#7F77DD', marginBottom: 4, backgroundColor: '#FF00FF', borderWidth: 1, borderColor: '#FFFF00' }}>
             {t('landing.parentButton')}
           </Text>
-          <Text style={{ fontSize: 13, color: '#888780' }}>
+          <Text style={{ fontSize: 13, color: '#888780', backgroundColor: '#FF00FF', borderWidth: 1, borderColor: '#FFFF00' }}>
             {t('landing.parentSubtitle')}
           </Text>
         </TouchableOpacity>
