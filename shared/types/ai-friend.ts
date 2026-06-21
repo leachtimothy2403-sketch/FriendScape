@@ -22,4 +22,5 @@ export interface AIFriend {
   bio: string;
   greeting: string;      // first message sent to a new child
   packId: string | null; // null = available in all packs
+  personalityPrompt?: string;
 }

@@ -533,6 +533,8 @@ export default function FeedScreen() {
     },
   }));
 
+  const lunaFriend = friendsList.find(f => f.is_teacher && f.name === 'Ms. Luna');
+
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
   const postedTodayIds = new Set(
     posts
@@ -647,6 +649,22 @@ export default function FeedScreen() {
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={{ paddingLeft: 14, paddingRight: 6, paddingVertical: 14 }}
                   >
+                    {lunaFriend && (
+                      <TouchableOpacity
+                        onPress={() => router.push(`/friend/${lunaFriend.id}` as never)}
+                        style={{ alignItems: 'center', marginRight: 14 }}
+                      >
+                        <View style={s.lunaStoryRingOuter}>
+                          <View style={s.storyRingInner}>
+                            {lunaFriend.avatar_url
+                              ? <Image source={{ uri: lunaFriend.avatar_url }} style={{ width: 52, height: 52, borderRadius: 26 }} />
+                              : <Text style={{ fontSize: 28 }}>{firstEmoji(lunaFriend.cover_emojis)}</Text>
+                            }
+                          </View>
+                        </View>
+                        <Text style={s.storyName}>{lunaFriend.name}</Text>
+                      </TouchableOpacity>
+                    )}
                     {storyFriends.map((f) => (
                       <TouchableOpacity
                         key={f.id}
@@ -1049,7 +1067,8 @@ const s = StyleSheet.create({
   avatarCircle:  { width: 36, height: 36, borderRadius: 18, backgroundColor: '#EAE8FF',
                    alignItems: 'center', justifyContent: 'center' },
 
-  storyRingOuter:{ width: 66, height: 66, borderRadius: 33, backgroundColor: Colors.purple, padding: 2 },
+  storyRingOuter:    { width: 66, height: 66, borderRadius: 33, backgroundColor: Colors.purple, padding: 2 },
+  lunaStoryRingOuter:{ width: 66, height: 66, borderRadius: 33, backgroundColor: Colors.green, padding: 2 },
   storyRingInner:{ flex: 1, borderRadius: 31, borderWidth: 2, borderColor: Colors.green,
                    backgroundColor: '#EEEDFE', alignItems: 'center', justifyContent: 'center' },
   storyName:     { fontSize: 11, fontWeight: '700', color: '#888780', marginTop: 5 },

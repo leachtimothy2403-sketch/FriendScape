@@ -134,6 +134,10 @@ export type ExtendedMemory = Partial<ChildMemory> & {
 
 // ── Private helpers ───────────────────────────────────────────────────────────
 
+function personalityFor(friend: FriendForAI): string {
+  return friend.personalityPrompt?.trim() || friend.personality.join(', ');
+}
+
 function buildChildContext(child: Child, memoryBrief: string | null): string {
   const needs: string[] = [];
   if (child.preReader)                               needs.push('cannot read yet — keep all text very simple and short');
@@ -243,7 +247,7 @@ ${buildLanguageInstruction(language, true)}
 You are ${friend.name}, a ${friend.age ?? child.age}-year-old child on Migo, a safe social app for kids.
 
 YOUR PERSONALITY:
-${friend.personality.join(', ')}
+${personalityFor(friend)}
 
 YOUR INTERESTS: ${friend.interests.join(', ')}
 
@@ -271,6 +275,8 @@ CONVERSATION BALANCE RULES:
 - If the child makes a statement (not a question): respond warmly, then you MAY ask ONE follow-up question if it feels natural — but you don't have to.
 
 - If the child gives a very short reply (1-3 words like 'cool' or 'ok' or 'yes'): do NOT pepper them with questions. Just respond warmly and briefly. Let them lead.
+
+- EXCEPTION: if your own previous message ended by asking whether the child wants you to explain, show, or tell them something (e.g. 'want me to explain how it works?'), and their short reply is an affirmative ('yes', 'ok', 'sure', 'oui', 'd'accord', etc.), this is consent — follow through and actually give that explanation now. Do not treat it as a generic short reply to brush off.
 
 - Never ask TWO questions in one message.
 
@@ -545,7 +551,7 @@ You are creating the social circle for ${friend.name}, an AI friend on Migo.
 
 ${friend.name}'s profile:
 - Age: ${friend.age}, ${friend.gender}
-- Personality: ${friend.personality.join(', ')}
+- Personality: ${friend.personalityPrompt || friend.personality.join(', ')}
 - Interests: ${friend.interests.join(', ')}
 - Quirk: ${friend.quirk}
 
@@ -603,7 +609,7 @@ export async function generateDailyPosts(
 
   const friendList = friends
     .map(f =>
-      `- ${f.name} (${f.isTeacher ? 'teacher friend' : `age ${f.age ?? child.age}`}): ${f.personality.join(', ')}. Interests: ${f.interests.join(', ')}`,
+      `- ${f.name} (${f.isTeacher ? 'teacher friend' : `age ${f.age ?? child.age}`}): ${personalityFor(f)}. Interests: ${f.interests.join(', ')}`,
     )
     .join('\n');
 
@@ -1521,7 +1527,7 @@ export async function generateReferralExcitement(
 
   const system = `
 ${buildLanguageInstruction(language)}
-You are ${referringFriend.name}. Your personality: ${referringFriend.personality.join(', ')}.
+You are ${referringFriend.name}. Your personality: ${personalityFor(referringFriend)}.
 The child (${child.name}, age ${child.age}) just added your friend ${newFriendName} from your network.
 React with genuine excitement in 1–2 sentences. Say something warm about ${newFriendName} that makes ${child.name} excited to chat with them.
 Stay completely in character. Use your personality. Keep it SHORT — max 2 sentences.
@@ -1546,7 +1552,7 @@ export async function generateNewFriendIntro(
 ): Promise<FriendReplyResult> {
   const system = `
 ${buildLanguageInstruction(language)}
-You are ${newFriend.name}. Your personality: ${newFriend.personality.join(', ')}.
+You are ${newFriend.name}. Your personality: ${personalityFor(newFriend)}.
 This is your very first message to ${child.name} (age ${child.age}).
 You were just introduced through ${referringFriendName}.
 Be warm, curious, and make a great first impression.
@@ -1590,7 +1596,7 @@ export async function generatePostComment(
 
 You are ${friend.name}, commenting on your Migo friend ${child.name}'s post.
 
-YOUR PERSONALITY: ${friend.personality.join(', ')}
+YOUR PERSONALITY: ${personalityFor(friend)}
 ${memoryBrief ? `\nWHAT YOU KNOW ABOUT ${child.name.toUpperCase()}:\n${memoryBrief}` : ''}
 
 Write ONE short comment (1-2 short sentences maximum):
@@ -1661,7 +1667,7 @@ export async function generateRPSMove(
   const system = `${languageInstruction}
 
 You are ${friend.name}, playing Rock Paper Scissors with ${child.name}.
-Personality: ${friend.personality.join(', ')}.
+Personality: ${personalityFor(friend)}.
 React in 1 sentence, fully in character. Be playful. No markdown. Respond in ${lang}.`;
 
   const response = await callWithRetry(() => client.messages.create({
@@ -1743,7 +1749,7 @@ export async function generateTicTacToeMove(
   const system = `${languageInstruction}
 
 You are ${friend.name}, playing Tic-Tac-Toe with ${child.name}.
-Personality: ${friend.personality.join(', ')}.
+Personality: ${personalityFor(friend)}.
 React in 1-2 short sentences, fully in character. No markdown. Respond in ${lang}.`;
 
   const response = await callWithRetry(() => client.messages.create({
@@ -1785,7 +1791,7 @@ export async function generateStoryContribution(
   const system = `${languageInstruction}
 
 You are ${friend.name}, building a collaborative story with ${child.name}.
-Personality: ${friend.personality.join(', ')}.
+Personality: ${personalityFor(friend)}.
 ${isEnding
     ? 'This is the FINAL round. Write a satisfying, warm ending in 2-3 sentences. Wrap everything up.'
     : 'Add 1-2 sentences that continue the story naturally and end with something that invites the child to add more.'}

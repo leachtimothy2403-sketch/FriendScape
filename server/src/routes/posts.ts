@@ -9,10 +9,13 @@ import {
   getChildFeed,
   deletePost,
   likePost,
+  devTriggerDailyPosts,
 } from '../controllers/posts.controller';
 import { requireAuth } from '../middleware/auth';
 
 const router = Router();
+
+router.post('/dev-trigger-daily', devTriggerDailyPosts);
 
 router.use(requireAuth);
 

@@ -12,18 +12,16 @@ export async function seed(knex: Knex): Promise<void> {
   const CAMILLE_ID = 'b1000006-0000-0000-0000-000000000006';
   const LUCA_ID   = 'b1000007-0000-0000-0000-000000000007';
   const SOFIA_ID  = 'b1000008-0000-0000-0000-000000000008';
-  const PROF_ID   = 'b1000010-0000-0000-0000-000000000010';
 
   // Look up existing core friends by name
-  const [mia, jake, zara, coachMike, msLuna] = await Promise.all([
+  const [mia, jake, zara, coachMike] = await Promise.all([
     knex('ai_friends').where({ name: 'Mia' }).first(),
     knex('ai_friends').where({ name: 'Jake' }).first(),
     knex('ai_friends').where({ name: 'Zara' }).first(),
     knex('ai_friends').where({ name: 'Coach Mike' }).first(),
-    knex('ai_friends').where({ name: 'Ms. Luna' }).first(),
   ]);
 
-  if (!mia || !jake || !zara || !coachMike || !msLuna) {
+  if (!mia || !jake || !zara || !coachMike) {
     throw new Error('Core AI friends not found — run 01_ai_friends seed first');
   }
 
@@ -31,7 +29,6 @@ export async function seed(knex: Knex): Promise<void> {
   const JAKE_ID = jake.id as string;
   const ZARA_ID = zara.id as string;
   const MIKE_ID = coachMike.id as string;
-  const LUNA_ID = msLuna.id as string;
 
   await knex('ai_friend_network').insert([
     // ── Mia's network ─────────────────────────────────────────────────────────
@@ -56,9 +53,5 @@ export async function seed(knex: Knex): Promise<void> {
     // ── Coach Mike's network ──────────────────────────────────────────────────
     { ai_friend_id: MIKE_ID, connected_friend_id: JAKE_ID,  relationship_type: 'online_friend', relationship_description: "Jake is Coach Mike's biggest football fan" },
     { ai_friend_id: MIKE_ID, connected_friend_id: NICO_ID,  relationship_type: 'teammate',      relationship_description: "Coach Mike coaches Nico's team" },
-
-    // ── Ms. Luna's network ────────────────────────────────────────────────────
-    { ai_friend_id: LUNA_ID, connected_friend_id: PROF_ID,  relationship_type: 'close_friend',  relationship_description: 'Colleagues and friends who debate whose subject is better' },
-    { ai_friend_id: LUNA_ID, connected_friend_id: MIKE_ID,  relationship_type: 'close_friend',  relationship_description: 'Ms Luna and Coach Mike agree that healthy body + healthy mind go together' },
   ]);
 }

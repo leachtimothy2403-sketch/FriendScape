@@ -225,11 +225,11 @@ export async function sendMessage(req: AuthRequest, res: Response) {
 
     const hasImage   = !!imageBase64;
     const historyLimit = hasImage ? 3 : 15;
-    const recentMessages = await db('messages')
+    const recentMessages = (await db('messages')
       .where({ conversation_id: conversation.id })
-      .orderBy('created_at', 'asc')
+      .orderBy('created_at', 'desc')
       .limit(historyLimit)
-      .select('content', 'sender_type') as Array<{ content: string; sender_type: string }>;
+      .select('content', 'sender_type') as Array<{ content: string; sender_type: string }>).reverse();
 
     const childFriendRows = await db('child_friends')
       .where({ child_id: childId })

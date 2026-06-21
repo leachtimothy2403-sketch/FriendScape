@@ -8,7 +8,7 @@ import {
 import { generatePostImage } from '../services/avatar.service';
 import { toChildType, toFriendType, toMemoryType } from '../utils/db-mappers';
 
-cron.schedule('0 8 * * *', async () => {
+export async function runDailyPostsJob() {
   console.log('[posts] 🌅 Starting daily post generation…');
 
   try {
@@ -30,7 +30,10 @@ cron.schedule('0 8 * * *', async () => {
           .where({ author_id: starFriendId, author_type: 'ai', child_id: null })
           .where('created_at', '>=', startOfDay)
           .first();
-        if (existingShared) continue;
+        if (existingShared) {
+          console.log(`[posts] ⏭️ Skipping ${starFriendRow.name} — shared post already exists today`);
+          continue;
+        }
 
         // Find a representative child who has this star friend
         const repRow = await db('child_friends')
@@ -38,7 +41,10 @@ cron.schedule('0 8 * * *', async () => {
           .where({ 'child_friends.friend_id': starFriendId })
           .select('children.*')
           .first();
-        if (!repRow) continue;
+        if (!repRow) {
+          console.log(`[posts] ⏭️ Skipping ${starFriendRow.name} — no child has added this friend yet`);
+          continue;
+        }
 
         const repChild = toChildType(repRow);
         const repLang  = (repRow.language as string) || 'en';
@@ -51,7 +57,10 @@ cron.schedule('0 8 * * *', async () => {
         const starFriend = toFriendType(starFriendRow);
         const result = await generateDailyPostsAI([starFriend], repChild, null, repLang, true);
 
-        if (result.error || result.posts.length === 0) continue;
+        if (result.error || result.posts.length === 0) {
+          console.log(`[posts] ⏭️ Skipping ${starFriendRow.name} — AI generation returned no posts (error: ${result.error ?? 'none'})`);
+          continue;
+        }
 
         const post = result.posts[0];
         const friendAge = (starFriendRow.age as number) ?? 10;
@@ -206,6 +215,8 @@ cron.schedule('0 8 * * *', async () => {
   } catch (err) {
     console.error('[posts] ❌ Daily post scheduler failed:', err);
   }
-});
+}
+
+cron.schedule('0 8 * * *', runDailyPostsJob);
 
 console.log('[posts] 🌅 Daily posts job scheduled');

@@ -441,6 +441,33 @@ export async function devReset(req: Request, res: Response) {
         } catch (err) {
           console.error('[dev] Ms. Luna avatar regeneration failed:', err);
         }
+
+        // Regenerate secondary/network friend avatars (reseed wipes them since seed data has no avatar_url)
+        try {
+          const networkRows = await db('ai_friends')
+            .where({ is_star_friend: false })
+            .whereNot({ name: 'Ms. Luna' })
+            .whereNull('avatar_url');
+          console.log(`[dev] 🎨 Regenerating ${networkRows.length} network friend avatar(s)...`);
+          for (const row of networkRows) {
+            try {
+              const personality: string[] = row.personality ?? [];
+              let url: string;
+              if (row.is_teacher) {
+                url = await generateAdultFriendPortrait(row.name, row.gender, personality, 'en');
+              } else {
+                const age: number = row.age ?? 10;
+                url = await generateFriendPortrait(row.name, age, row.gender, personality, 'en');
+              }
+              await db('ai_friends').where({ id: row.id }).update({ avatar_url: url });
+              console.log(`[dev]   ✓ ${row.name} avatar regenerated`);
+            } catch (avatarErr) {
+              console.error(`[dev]   ✗ ${row.name} avatar failed:`, avatarErr);
+            }
+          }
+        } catch (err) {
+          console.error('[dev] Network friend avatar regeneration failed:', err);
+        }
       } catch (err) {
         console.error('[dev] devReset background error:', err);
       }

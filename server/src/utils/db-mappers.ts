@@ -45,8 +45,9 @@ export function toFriendType(row: Record<string, unknown>): FriendForAI {
     bio:          String(row.bio ?? ''),
     greeting:     String(row.greeting ?? ''),
     packId:       row.pack_id ? String(row.pack_id) : null,
-    age:          row.age    ? Number(row.age)    : undefined,
-    subject:      row.subject ? String(row.subject) : undefined,
+    age:              row.age    ? Number(row.age)    : undefined,
+    subject:          row.subject ? String(row.subject) : undefined,
+    personalityPrompt: row.personality_prompt ? String(row.personality_prompt) : undefined,
   };
 }
 

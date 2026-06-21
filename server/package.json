@@ -15,7 +15,9 @@
     "db:check": "ts-node -r dotenv/config scripts/check-db.ts",
     "generate:audio": "ts-node -r dotenv/config scripts/generateMigaAudio.ts",
     "demo:generate": "ts-node -r dotenv/config scripts/generateDemoFriends.ts",
-    "avatars:star-friends": "ts-node scripts/generateStarFriendAvatars.ts"
+    "avatars:star-friends": "ts-node scripts/generateStarFriendAvatars.ts",
+    "avatars:network-friends": "ts-node scripts/generateNetworkFriendAvatars.ts",
+    "avatars:luna": "ts-node scripts/generateLunaAvatar.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.3",

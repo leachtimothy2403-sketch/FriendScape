@@ -1,0 +1,54 @@
+import * as dotenv from 'dotenv';
+dotenv.config();
+
+import db from '../src/db';
+import { generateFriendPortrait, generateAdultFriendPortrait } from '../src/services/avatar.service';
+
+async function run() {
+  console.log('\nNetwork Friend Avatar Generator\n' + '='.repeat(40));
+  console.log('Reminder: if you see UNABLE_TO_VERIFY_LEAF_SIGNATURE errors, temporarily disable Avast Web Shield / HTTPS scanning, then re-run this script.\n');
+
+  const rows = await db('ai_friends')
+    .where({ is_star_friend: false })
+    .whereNot({ name: 'Ms. Luna' })
+    .whereNull('avatar_url');
+
+  console.log(`Found ${rows.length} network friend(s) without an avatar.\n`);
+
+  let succeeded = 0;
+  let failed = 0;
+
+  for (const row of rows) {
+    const personality: string[] = row.personality ?? [];
+    const language = row.language ?? 'en';
+
+    try {
+      let url: string;
+
+      if (row.is_teacher) {
+        console.log(`[adult] Generating portrait for ${row.name}...`);
+        url = await generateAdultFriendPortrait(row.name, row.gender, personality, language);
+      } else {
+        const age: number = row.age ?? 10;
+        console.log(`[child] Generating portrait for ${row.name} (age ${age})...`);
+        url = await generateFriendPortrait(row.name, age, row.gender, personality, language);
+      }
+
+      await db('ai_friends').where({ id: row.id }).update({ avatar_url: url });
+      console.log(`  ✓ ${row.name}: ${url}`);
+      succeeded++;
+    } catch (err) {
+      console.error(`  ✗ ${row.name}: failed —`, err);
+      failed++;
+    }
+  }
+
+  console.log('\n' + '='.repeat(40));
+  console.log(`Done. ${succeeded} succeeded, ${failed} failed.\n`);
+  process.exit(0);
+}
+
+run().catch((err) => {
+  console.error('Fatal error:', err);
+  process.exit(1);
+});

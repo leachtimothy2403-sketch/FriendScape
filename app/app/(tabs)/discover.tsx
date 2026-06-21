@@ -228,12 +228,16 @@ function StarCard({
 }
 
 // ── Ms. Luna discovery card ────────────────────────────────────────────────────
-function LunaCard({ luna, onAdd, isFr }: { luna: AiFriendRecord; onAdd: () => Promise<void>; isFr: boolean }) {
+function LunaCard({ luna, onAdd, isFr, alreadyAdded }: { luna: AiFriendRecord; onAdd: () => Promise<void>; isFr: boolean; alreadyAdded: boolean }) {
   const { t } = useTranslation();
   const [adding, setAdding] = useState(false);
 
   async function handleMeet() {
     if (adding) return;
+    if (alreadyAdded) {
+      router.push(`/dm/${luna.id}` as never);
+      return;
+    }
     setAdding(true);
     try {
       await onAdd();
@@ -263,7 +267,7 @@ function LunaCard({ luna, onAdd, isFr }: { luna: AiFriendRecord; onAdd: () => Pr
       <TouchableOpacity style={s.meetBtn} onPress={() => void handleMeet()} disabled={adding}>
         {adding
           ? <ActivityIndicator size="small" color="#fff" />
-          : <Text style={s.meetBtnText}>{t('discover.meetLunaButton')}</Text>}
+          : <Text style={s.meetBtnText}>{alreadyAdded ? t('discover.chatLunaButton') : t('discover.meetLunaButton')}</Text>}
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -305,10 +309,10 @@ export default function DiscoverScreen() {
           if (profileRes?.data?.age) setChildAge(profileRes.data.age);
         }
 
-        // Fetch networks for each of child's friends in parallel
+        // Fetch networks for each of child's non-teacher friends in parallel
         if (tok && mine.length > 0 && !cancelled) {
           const netResults = await Promise.all(
-            mine.map(f => friendNetwork.getNetwork(f.id, tok).then(r => ({ id: f.id, data: r.data.friends })).catch(() => ({ id: f.id, data: [] as FriendWithRelationship[] }))),
+            mine.filter(f => !f.is_teacher).map(f => friendNetwork.getNetwork(f.id, tok).then(r => ({ id: f.id, data: r.data.friends })).catch(() => ({ id: f.id, data: [] as FriendWithRelationship[] }))),
           );
           if (!cancelled) {
             const map: Record<string, FriendWithRelationship[]> = {};
@@ -339,7 +343,7 @@ export default function DiscoverScreen() {
   const myFriendIds = new Set(myFriends.map(f => f.id));
 
   const msLuna = allFriends.find(f => f.is_teacher && f.name === 'Ms. Luna') ?? null;
-  const showLunaCard = !!msLuna && !myFriendIds.has(msLuna.id) && !!token && childAge >= 6;
+  const showLuna = !!msLuna && !!token && childAge >= 6;
 
   const starFriends = allFriends.filter(
     f => f.is_star_friend && !myFriendIds.has(f.id),
@@ -382,6 +386,11 @@ export default function DiscoverScreen() {
         {/* Mascot chat card */}
         <MigaCard />
 
+        {/* Ms. Luna card — always visible once eligible */}
+        {showLuna && msLuna && (
+          <LunaCard luna={msLuna} onAdd={() => addFriend(msLuna.id)} isFr={language === 'fr'} alreadyAdded={myFriendIds.has(msLuna.id)} />
+        )}
+
         {/* My friends */}
         {displayedFriends.length > 0 && (
           <View style={s.section}>
@@ -404,7 +413,7 @@ export default function DiscoverScreen() {
         {token && myFriends.length > 0 && (
           <View style={s.section}>
             <Text style={s.sectionTitle}>{t('friends.exploreWorlds')}</Text>
-            {myFriends.map(myFriend => {
+            {myFriends.filter(f => !f.is_teacher).map(myFriend => {
               const net = (networks[myFriend.id] ?? []).filter(f => !myFriendIds.has(f.id));
               if (net.length === 0) return null;
               return (
@@ -426,14 +435,6 @@ export default function DiscoverScreen() {
                 </View>
               );
             })}
-          </View>
-        )}
-
-        {/* Ms. Luna discovery card */}
-        {showLunaCard && msLuna && (
-          <View style={s.section}>
-            <Text style={s.sectionTitle}>{t('discover.meetLuna')}</Text>
-            <LunaCard luna={msLuna} onAdd={() => addFriend(msLuna.id)} isFr={language === 'fr'} />
           </View>
         )}
 

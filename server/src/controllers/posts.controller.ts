@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import db from '../db';
 import { AuthRequest } from '../middleware/auth';
 import {
@@ -9,10 +9,28 @@ import {
 import { toChildType, toFriendType, toMemoryType } from '../utils/db-mappers';
 import { generatePostImage } from '../services/avatar.service';
 import { checkBadgesForChild } from './badges.controller';
+import { runDailyPostsJob } from '../jobs/dailyPosts';
 
 function firstEmoji(str: string | null | undefined): string {
   if (!str) return '🌟';
   return [...str][0] ?? '🌟';
+}
+
+// ─── POST /posts/dev-trigger-daily (dev only) ────────────────────────────────
+export async function devTriggerDailyPosts(req: Request, res: Response) {
+  if (process.env.NODE_ENV !== 'development') {
+    res.status(403).json({ error: 'This endpoint is only available in development' });
+    return;
+  }
+  res.json({ success: true, message: 'Daily post job triggered' });
+  setImmediate(async () => {
+    try {
+      await runDailyPostsJob();
+      console.log('[posts] ✅ Manual trigger of daily post job complete');
+    } catch (err) {
+      console.error('[posts] ❌ Manual trigger of daily post job failed:', err);
+    }
+  });
 }
 
 // ─── POST /posts/generate-daily ──────────────────────────────────────────────
@@ -184,8 +202,6 @@ export async function getFeed(req: AuthRequest, res: Response) {
         createdAt:      String(c.comment_at ?? ''),
       });
     }
-    const sampleComment = Object.values(commentsMap)[0]?.[0];
-    if (sampleComment) console.log('[comments] sample:', JSON.stringify(sampleComment));
 
     const enriched = (posts as Record<string, unknown>[]).map((p) => ({
       ...p,

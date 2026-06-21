@@ -389,26 +389,6 @@ export async function createChildFromOnboarding(req: Request, res: Response) {
         }
       }
       console.log(`[friends] ✅ Network: ${networkCount} connections created for ${gf.name}`);
-
-      // Connect Ms. Luna to any friend with learning-related interests
-      const LEARNING_INTERESTS = ['learning', 'school', 'science', 'reading', 'math', 'histoire', 'français'];
-      const friendInterestsLower = gf.interests.map((i) => i.toLowerCase());
-      if (friendInterestsLower.some((i) => LEARNING_INTERESTS.includes(i))) {
-        const msLunaRow = await db('ai_friends')
-          .where({ name: 'Ms. Luna', is_teacher: true })
-          .first();
-        if (msLunaRow) {
-          await db('ai_friend_network')
-            .insert({
-              ai_friend_id:             newFriend.id,
-              connected_friend_id:      msLunaRow.id,
-              relationship_type:        'close_friend',
-              relationship_description: `${gf.name} always goes to Ms. Luna when stuck on homework — she is the best!`,
-            })
-            .onConflict(['ai_friend_id', 'connected_friend_id']).ignore();
-          console.log(`[luna] 📚 Added Ms. Luna to ${gf.name}'s network`);
-        }
-      }
     }
 
     res.status(201).json({
