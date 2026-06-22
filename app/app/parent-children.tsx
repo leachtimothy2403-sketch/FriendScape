@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, TouchableOpacity, SafeAreaView, Image,
-  ActivityIndicator, FlatList,
+  ActivityIndicator, FlatList, ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -60,9 +60,11 @@ export default function ParentChildrenScreen() {
   if (loading) {
     return (
       <SafeAreaView className="flex-1 bg-bg">
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator size="large" color={Colors.purple} />
-        </View>
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <ActivityIndicator size="large" color={Colors.purple} />
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }

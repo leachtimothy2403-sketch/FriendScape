@@ -43,7 +43,7 @@ export default function ParentLoginScreen() {
     <SafeAreaView className="flex-1 bg-bg">
       <StatusBar style="dark" />
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView

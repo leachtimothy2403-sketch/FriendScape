@@ -1,5 +1,6 @@
 import { Tabs, router, useFocusEffect } from 'expo-router';
 import { Text, View, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '@/constants/theme';
@@ -9,6 +10,7 @@ function TabIcon({ emoji, active }: { emoji: string; active: boolean }) {
 }
 
 export default function ParentLayout() {
+  const insets = useSafeAreaInsets();
   const [childName, setChildName] = useState('');
 
   useFocusEffect(useCallback(() => {
@@ -38,7 +40,8 @@ export default function ParentLayout() {
             justifyContent: 'space-between',
             backgroundColor: '#fff',
             paddingHorizontal: 16,
-            paddingVertical: 12,
+            paddingTop: insets.top + 8,
+            paddingBottom: 12,
             borderBottomWidth: 1,
             borderBottomColor: '#F0EFF8',
           }}>

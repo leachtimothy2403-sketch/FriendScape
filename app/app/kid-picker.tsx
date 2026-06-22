@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, Image, ActivityIndicator, FlatList } from 'react-native';
+import { View, Text, TouchableOpacity, SafeAreaView, Image, ActivityIndicator, FlatList, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
@@ -48,9 +48,11 @@ export default function KidPickerScreen() {
   if (loading) {
     return (
       <SafeAreaView className="flex-1 bg-bg">
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator size="large" color={Colors.purple} />
-        </View>
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <ActivityIndicator size="large" color={Colors.purple} />
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
