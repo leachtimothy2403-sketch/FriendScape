@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
@@ -20,86 +20,66 @@ export default function LandingScreen() {
   return (
     <SafeAreaView className="flex-1 bg-bg">
       <StatusBar style="dark" />
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28, backgroundColor: '#00FFFF' }}>
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28, paddingVertical: 40 }}>
 
-        <MigoLogo size="lg" showTagline />
+          <MigoLogo size="lg" showTagline />
 
-        <View style={{ height: 52 }} />
+          <TouchableOpacity
+            onPress={() => void handleKid()}
+            activeOpacity={0.85}
+            style={{
+              width: '100%',
+              backgroundColor: '#7F77DD',
+              borderRadius: 20,
+              paddingVertical: 22,
+              alignItems: 'center',
+              marginTop: 52,
+              marginBottom: 16,
+              shadowColor: '#7F77DD',
+              shadowOpacity: 0.25,
+              shadowRadius: 10,
+              elevation: 4,
+            }}
+          >
+            <Text style={{ fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 4 }}>
+              {t('landing.kidButton')}
+            </Text>
+            <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>
+              {t('landing.kidSubtitle')}
+            </Text>
+          </TouchableOpacity>
 
-        <View style={{ width: '100%', backgroundColor: '#FFCCCC', padding: 12, marginBottom: 8, alignItems: 'center' }}>
-          <Text style={{ fontSize: 22, fontWeight: '800', color: '#000' }}>TEST 1</Text>
+          <TouchableOpacity
+            onPress={() => router.push('/parent-login' as never)}
+            activeOpacity={0.85}
+            style={{
+              width: '100%',
+              backgroundColor: '#fff',
+              borderRadius: 20,
+              paddingVertical: 22,
+              alignItems: 'center',
+              borderWidth: 2,
+              borderColor: '#7F77DD',
+              shadowColor: '#000',
+              shadowOpacity: 0.06,
+              shadowRadius: 8,
+              elevation: 2,
+            }}
+          >
+            <Text style={{ fontSize: 22, fontWeight: '800', color: '#7F77DD', marginBottom: 4 }}>
+              {t('landing.parentButton')}
+            </Text>
+            <Text style={{ fontSize: 13, color: '#888780' }}>
+              {t('landing.parentSubtitle')}
+            </Text>
+          </TouchableOpacity>
+
         </View>
-
-        <View style={{ width: '100%', backgroundColor: '#CCFFCC', padding: 12, marginBottom: 8, borderRadius: 20, alignItems: 'center' }}>
-          <Text style={{ fontSize: 22, fontWeight: '800', color: '#000' }}>TEST 2</Text>
-        </View>
-
-        <View style={{ width: '100%', backgroundColor: '#CCCCFF', padding: 12, marginBottom: 8, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 10, elevation: 4 }}>
-          <Text style={{ fontSize: 22, fontWeight: '800', color: '#000' }}>TEST 3</Text>
-        </View>
-
-        <View style={{ width: '100%', backgroundColor: '#FFFFCC', padding: 12, marginBottom: 8, borderRadius: 20, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 10, elevation: 4 }}>
-          <Text style={{ fontSize: 22, fontWeight: '800', color: '#000' }}>TEST 4</Text>
-        </View>
-
-        <TouchableOpacity style={{ width: '100%', backgroundColor: '#FFCCFF', padding: 12, marginBottom: 8, borderRadius: 20, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 10, elevation: 4 }}>
-          <Text style={{ fontSize: 22, fontWeight: '800', color: '#000' }}>TEST 5</Text>
-        </TouchableOpacity>
-
-        <View style={{ width: '100%', backgroundColor: '#CCFFFF', padding: 12, marginBottom: 8, alignItems: 'center' }}>
-          <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#000' }}>TEST 6</Text>
-        </View>
-
-        <TouchableOpacity
-          onPress={() => void handleKid()}
-          activeOpacity={0.85}
-          style={{
-            width: '100%',
-            backgroundColor: '#7F77DD',
-            borderRadius: 20,
-            paddingVertical: 22,
-            alignItems: 'center',
-            marginBottom: 16,
-            shadowColor: '#7F77DD',
-            shadowOpacity: 0.25,
-            shadowRadius: 10,
-            elevation: 4,
-          }}
-        >
-          <Text style={{ fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 4, backgroundColor: '#FF00FF', borderWidth: 1, borderColor: '#FFFF00' }}>
-            {t('landing.kidButton')}
-          </Text>
-          <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', backgroundColor: '#FF00FF', borderWidth: 1, borderColor: '#FFFF00' }}>
-            {t('landing.kidSubtitle')}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => router.push('/parent-login' as never)}
-          activeOpacity={0.85}
-          style={{
-            width: '100%',
-            backgroundColor: '#fff',
-            borderRadius: 20,
-            paddingVertical: 22,
-            alignItems: 'center',
-            borderWidth: 2,
-            borderColor: '#7F77DD',
-            shadowColor: '#000',
-            shadowOpacity: 0.06,
-            shadowRadius: 8,
-            elevation: 2,
-          }}
-        >
-          <Text style={{ fontSize: 22, fontWeight: '800', color: '#7F77DD', marginBottom: 4, backgroundColor: '#FF00FF', borderWidth: 1, borderColor: '#FFFF00' }}>
-            {t('landing.parentButton')}
-          </Text>
-          <Text style={{ fontSize: 13, color: '#888780', backgroundColor: '#FF00FF', borderWidth: 1, borderColor: '#FFFF00' }}>
-            {t('landing.parentSubtitle')}
-          </Text>
-        </TouchableOpacity>
-
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

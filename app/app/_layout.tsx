@@ -26,6 +26,10 @@ export default function RootLayout() {
         <Stack.Screen name="enroll" />
         <Stack.Screen name="waiting" />
         <Stack.Screen name="celebration" />
+        <Stack.Screen name="landing" />
+        <Stack.Screen name="kid-picker" />
+        <Stack.Screen name="parent-login" />
+        <Stack.Screen name="parent-children" />
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
