@@ -83,6 +83,13 @@ export default function ParentLayout() {
       }}
     >
       <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Overview',
+          tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" active={focused} />,
+        }}
+      />
+      <Tabs.Screen
         name="activity"
         options={{
           title: 'Activity',

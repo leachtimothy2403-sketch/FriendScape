@@ -98,6 +98,7 @@ export const parent = {
   friends: (childId: string) => api.get(`/parent/friends/${childId}`),
   badges: (childId: string) => api.get(`/parent/badges/${childId}`),
   childAlerts: (childId: string) => api.get(`/parent/alerts/${childId}`),
+  childStats: (childId: string) => api.get(`/parent/children/${childId}/stats`),
 };
 
 // ─── Child-session helpers ────────────────────────────────────────────────────

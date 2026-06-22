@@ -606,6 +606,18 @@
       "earnedSection": "✅ Earned",
       "lockedSection": "🔒 Not yet earned"
     },
+    "overview": {
+      "title": "Overview",
+      "moodSub": "This week's mood",
+      "screenToday": "Today",
+      "screenAvg": "Daily avg this week",
+      "messagesToday": "Messages today",
+      "friends": "Friends",
+      "alerts": "Alerts",
+      "allTime": "All time",
+      "none": "None",
+      "unknown": "Unknown"
+    },
     "alerts": {
       "title": "Safety Alerts",
       "severityCrisis": "🚨 Crisis",

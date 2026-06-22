@@ -622,6 +622,18 @@
       "earnedSection": "✅ Obtenus",
       "lockedSection": "🔒 Pas encore obtenus"
     },
+    "overview": {
+      "title": "Aperçu",
+      "moodSub": "Humeur de la semaine",
+      "screenToday": "Aujourd'hui",
+      "screenAvg": "Moyenne quotidienne cette semaine",
+      "messagesToday": "Messages aujourd'hui",
+      "friends": "Amis",
+      "alerts": "Alertes",
+      "allTime": "Depuis le début",
+      "none": "Aucun",
+      "unknown": "Inconnu"
+    },
     "alerts": {
       "title": "Alertes de sécurité",
       "severityCrisis": "🚨 Crise",
