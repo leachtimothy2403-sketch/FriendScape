@@ -432,13 +432,23 @@ export async function updateChildScreenTime(req: AuthRequest, res: Response) {
     }
     if (extensionMinutes !== undefined) {
       if (extensionMinutes > 0) {
-        if (extensionMinutes % 5 !== 0 || extensionMinutes > 60) {
-          res.status(400).json({ error: 'extensionMinutes must be a multiple of 5 and at most 60' });
+        if (extensionMinutes % 5 !== 0 || extensionMinutes > 120) {
+          res.status(400).json({ error: 'extensionMinutes must be a multiple of 5 and at most 120' });
           return;
         }
         const todayStr = new Date().toISOString().slice(0, 10);
-        updates.screen_time_extension_minutes = extensionMinutes;
-        updates.screen_time_extension_date    = todayStr;
+        const existingDate = child.screen_time_extension_date
+          ? String(child.screen_time_extension_date).slice(0, 10)
+          : null;
+        const existingMinutes = Number(child.screen_time_extension_minutes ?? 0);
+
+        if (existingDate === todayStr && existingMinutes > 0) {
+          const newTotal = Math.min(existingMinutes + extensionMinutes, 120);
+          updates.screen_time_extension_minutes = newTotal;
+        } else {
+          updates.screen_time_extension_minutes = extensionMinutes;
+        }
+        updates.screen_time_extension_date = todayStr;
       } else {
         updates.screen_time_extension_minutes = 0;
         updates.screen_time_extension_date    = null;

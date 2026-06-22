@@ -454,7 +454,8 @@ export async function getScreenTimeStatus(req: AuthRequest, res: Response) {
         'screen_time_limit_weekday_minutes',
         'screen_time_limit_weekend_minutes',
         'screen_time_extension_minutes',
-        'screen_time_extension_date',
+        db.raw('screen_time_extension_date::text as screen_time_extension_date'),
+        db.raw('CURRENT_DATE::text as today_str'),
       )
       .first();
 
@@ -471,7 +472,7 @@ export async function getScreenTimeStatus(req: AuthRequest, res: Response) {
       return;
     }
 
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = (child as any).today_str as string;
 
     const usedRow = await db('child_sessions')
       .where({ child_id: childId })
@@ -489,9 +490,7 @@ export async function getScreenTimeStatus(req: AuthRequest, res: Response) {
 
     const liveMinutes = openSession ? Number((openSession as { live_minutes: string }).live_minutes) : 0;
 
-    const extensionDate = child.screen_time_extension_date
-      ? String(child.screen_time_extension_date).slice(0, 10)
-      : null;
+    const extensionDate = child.screen_time_extension_date as string | null;
     const extensionMinutes = Number(child.screen_time_extension_minutes ?? 0);
     const extensionApplies = extensionDate === todayStr && extensionMinutes > 0;
     const effectiveLimit = baseLimit + (extensionApplies ? extensionMinutes : 0);

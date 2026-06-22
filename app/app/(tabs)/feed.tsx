@@ -4,7 +4,7 @@ import {
   AppState, AppStateStatus, StyleSheet, Platform, KeyboardAvoidingView, Image, Dimensions, Alert,
 } from 'react-native';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { router, usePathname } from 'expo-router';
+import { router, usePathname, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Audio } from 'expo-av';
 import { useTranslation } from 'react-i18next';
@@ -300,6 +300,21 @@ export default function FeedScreen() {
     const cleanup = initSessionTracking();
     return cleanup;
   }, []);
+
+  useFocusEffect(useCallback(() => {
+    async function checkScreenTimeLimit() {
+      try {
+        const token = await AsyncStorage.getItem('childToken');
+        if (token) {
+          const statusRes = await childSession.status(token);
+          if (statusRes.data.limitExceeded) {
+            router.replace('/time-limit');
+          }
+        }
+      } catch { /* non-fatal */ }
+    }
+    void checkScreenTimeLimit();
+  }, []));
 
   // Check server for avatar_url 10s after mount — catches cartoon arriving after onboarding
   useEffect(() => {
