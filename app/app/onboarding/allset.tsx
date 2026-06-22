@@ -183,6 +183,70 @@ export default function AllSetScreen() {
   const celebStyle = useAnimatedStyle(() => ({ transform: [{ scale: celebScale.value }] }));
 
   async function createChild() {
+    const isParentAdding = await AsyncStorage.getItem('parentAddingChild');
+
+    if (isParentAdding === 'true') {
+      await AsyncStorage.removeItem('parentAddingChild');
+      const authToken = await AsyncStorage.getItem('authToken');
+      if (!authToken) {
+        // fall through to parentEmail path below
+      } else {
+        const payload = {
+          parentEmail:         '',
+          name:                store.childName,
+          age:                 store.age,
+          gender:              store.gender,
+          language:            store.language,
+          specialNeeds:        store.specialNeeds,
+          specialNeedsDetails: store.specialNeedsDetails,
+          preReader:           store.preReader,
+          avatarTheme:         store.avatarTheme,
+          mascotId:            store.mascotId,
+          interests:           store.interests,
+          freeInterest:        store.freeInterest,
+          avatarPack:          store.avatarPack,
+          personalityTraits:   store.personalityTraits,
+          personalityFreeText: store.personalityFreeText,
+          avatarConfig:        store.avatarConfig ?? undefined,
+          avatarBackground:    store.avatarBackground,
+          cartoonUrl:          store.cartoonUrl || undefined,
+        };
+        try {
+          const res = await childrenApi.createFromOnboarding(payload);
+          const data = res.data;
+          if (data.assignedFriends?.length) {
+            setAssignedFriends(data.assignedFriends);
+          }
+          const tokenRes = await childAuth.login(data.childId);
+          await AsyncStorage.setItem('childToken', tokenRes.data.token);
+          await AsyncStorage.setItem('childId', data.childId);
+          await AsyncStorage.setItem('childProfile', JSON.stringify({
+            childId:  data.childId,
+            name:     data.name,
+            mascotId: data.mascotId,
+          }));
+          await AsyncStorage.setItem('avatarBackground', store.avatarBackground || '#EEEDFE');
+          await AsyncStorage.setItem('childEmoji', childEmoji);
+          if (data.avatarUrl) await AsyncStorage.setItem('childAvatarUrl', data.avatarUrl);
+          await addChildProfile({ childId: data.childId, name: data.name, mascotId: data.mascotId, avatarUrl: data.avatarUrl ?? undefined });
+          await AsyncStorage.removeItem('authToken');
+          setStatus('success');
+          if (__DEV__) { void handleLaunch(); }
+        } catch (err: unknown) {
+          console.error('[allset] createChild error:', err);
+          const e = err as { message?: string; response?: { status?: number; data?: { error?: string } } };
+          const serverMsg = e?.response?.data?.error;
+          const msg = __DEV__
+            ? (serverMsg ?? e?.message ?? t('common.error'))
+            : t('common.error');
+          setErrorMsg(msg);
+          _createChildStarted = false;
+          setStatus('error');
+        }
+        return;
+      }
+    }
+
     const parentEmail = store.parentEmail ||
       (await AsyncStorage.getItem('pendingParentEmail')) || '';
 

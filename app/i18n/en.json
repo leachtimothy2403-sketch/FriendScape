@@ -533,6 +533,16 @@
     "errorEmptyFields": "Please enter your email and password.",
     "errorInvalid": "Incorrect email or password. Please try again."
   },
+  "parentAddChild": {
+    "title": "Add a Child",
+    "subtitle": "Enter your child's name and age to get started. They'll complete the rest of the setup themselves.",
+    "nameLabel": "Child's name",
+    "namePlaceholder": "e.g. Emma",
+    "ageLabel": "Child's age",
+    "startButton": "Start Setup →",
+    "errorNoName": "Please enter your child's name.",
+    "errorNoAge": "Please select your child's age."
+  },
   "parentChildren": {
     "title": "Your Children",
     "subtitle": "Select a child to view their dashboard.",

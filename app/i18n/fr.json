@@ -549,6 +549,16 @@
     "errorEmptyFields": "Veuillez saisir votre e-mail et votre mot de passe.",
     "errorInvalid": "E-mail ou mot de passe incorrect. Veuillez réessayer."
   },
+  "parentAddChild": {
+    "title": "Ajouter un enfant",
+    "subtitle": "Entrez le prénom et l'âge de votre enfant pour commencer. Il complètera le reste de la configuration lui-même.",
+    "nameLabel": "Prénom de l'enfant",
+    "namePlaceholder": "ex. Emma",
+    "ageLabel": "Âge de l'enfant",
+    "startButton": "Commencer la configuration →",
+    "errorNoName": "Veuillez entrer le prénom de votre enfant.",
+    "errorNoAge": "Veuillez sélectionner l'âge de votre enfant."
+  },
   "parentChildren": {
     "title": "Vos enfants",
     "subtitle": "Sélectionnez un enfant pour voir son tableau de bord.",
