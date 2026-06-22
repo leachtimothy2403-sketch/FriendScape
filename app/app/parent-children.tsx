@@ -49,7 +49,7 @@ export default function ParentChildrenScreen() {
       name:      child.name,
       avatarUrl: child.avatar_url,
     }));
-    router.push('/parent/activity' as never);
+    router.push('/parent' as never);
   }
 
   async function handleLogOut() {
