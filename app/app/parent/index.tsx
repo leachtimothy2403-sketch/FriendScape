@@ -117,7 +117,7 @@ export default function OverviewScreen() {
   }
 
   const moodEmoji  = MOOD_EMOJI[stats.topMoodThisWeek] ?? '😐';
-  const unread     = alertsData?.unreadCount ?? 0;
+  const unread = (alertsData?.alerts ?? []).filter((a: { read: boolean }) => !a.read).length;
 
   return (
     <SafeAreaView className="flex-1 bg-bg">

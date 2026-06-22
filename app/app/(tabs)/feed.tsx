@@ -21,6 +21,7 @@ import TourOverlay from '@/components/TourOverlay';
 import { TOUR_STEPS } from '@/constants/tourSteps';
 import { useTourStore } from '@/store/tourStore';
 import { dedupeDictatedText } from '@/utils/dedupeDictatedText';
+import { initSessionTracking } from '@/utils/sessionManager';
 
 interface PostComment {
   authorName:     string;
@@ -293,6 +294,11 @@ export default function FeedScreen() {
       }
     });
     return () => sub.remove();
+  }, []);
+
+  useEffect(() => {
+    const cleanup = initSessionTracking();
+    return cleanup;
   }, []);
 
   // Check server for avatar_url 10s after mount — catches cartoon arriving after onboarding

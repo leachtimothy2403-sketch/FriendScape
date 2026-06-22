@@ -8,7 +8,7 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
-import { children as childrenApi, childAuth, mascotAvatars as mascotAvatarApi } from '@/services/api';
+import { children as childrenApi, childAuth, childSession, mascotAvatars as mascotAvatarApi } from '@/services/api';
 import { addChildProfile } from '@/utils/childProfiles';
 import EmojiAvatar from '@/components/EmojiAvatar';
 import { useOnboardingStore } from '@/store/onboardingStore';
@@ -230,6 +230,7 @@ export default function AllSetScreen() {
           if (data.avatarUrl) await AsyncStorage.setItem('childAvatarUrl', data.avatarUrl);
           await addChildProfile({ childId: data.childId, name: data.name, mascotId: data.mascotId, avatarUrl: data.avatarUrl ?? undefined });
           await AsyncStorage.removeItem('authToken');
+          try { await childSession.start(tokenRes.data.token); } catch { /* non-fatal */ }
           setStatus('success');
           if (__DEV__) { void handleLaunch(); }
         } catch (err: unknown) {
@@ -297,7 +298,7 @@ export default function AllSetScreen() {
       await AsyncStorage.setItem('childEmoji', childEmoji);
       if (data.avatarUrl) await AsyncStorage.setItem('childAvatarUrl', data.avatarUrl);
       await addChildProfile({ childId: data.childId, name: data.name, mascotId: data.mascotId, avatarUrl: data.avatarUrl ?? undefined });
-
+      try { await childSession.start(tokenRes.data.token); } catch { /* non-fatal */ }
       setStatus('success');
       if (__DEV__) { void handleLaunch(); }
     } catch (err: unknown) {

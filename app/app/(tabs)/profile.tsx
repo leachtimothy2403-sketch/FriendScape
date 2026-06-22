@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { Colors, Mascots } from '@/constants/theme';
 import { useLanguageStore } from '@/store/languageStore';
 import {
-  childProfileApi,
+  childProfileApi, childSession,
   ChildProfile, MemoryItem, FriendWithStats, ProfilePost, ModerationResult,
 } from '@/services/api';
 import MigoLogo from '@/components/MigoLogo';
@@ -365,6 +365,8 @@ export default function ProfileScreen() {
   }, []);
 
   const doSignOut = useCallback(async () => {
+    const childToken = await AsyncStorage.getItem('childToken');
+    if (childToken) { try { await childSession.end(childToken); } catch { /* non-fatal */ } }
     await AsyncStorage.multiRemove(['authToken', 'childToken', 'childProfile', 'childId', 'childAvatarUrl']);
     router.replace('/landing' as never);
   }, []);
@@ -633,6 +635,8 @@ export default function ProfileScreen() {
             {__DEV__ && (
               <TouchableOpacity
                 onPress={async () => {
+                  const tok = await AsyncStorage.getItem('childToken');
+                  if (tok) { try { await childSession.end(tok); } catch { /* non-fatal */ } }
                   await AsyncStorage.multiRemove([
                     'authToken', 'childToken', 'childProfile',
                     'pendingParentEmail', 'preReader',
