@@ -1,5 +1,6 @@
 import { AppState, AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 import { childSession } from '@/services/api';
 
 export function initSessionTracking(): () => void {
@@ -9,8 +10,15 @@ export function initSessionTracking(): () => void {
         if (token) childSession.end(token).catch(() => {});
       }).catch(() => {});
     } else if (state === 'active') {
-      AsyncStorage.getItem('childToken').then(token => {
-        if (token) childSession.start(token).catch(() => {});
+      AsyncStorage.getItem('childToken').then(async (token) => {
+        if (!token) return;
+        try { await childSession.start(token); } catch {}
+        try {
+          const res = await childSession.status(token);
+          if (res.data.limitExceeded) {
+            router.replace('/time-limit');
+          }
+        } catch {}
       }).catch(() => {});
     }
   });

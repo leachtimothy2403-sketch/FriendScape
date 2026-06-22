@@ -231,6 +231,10 @@ export default function AllSetScreen() {
           await addChildProfile({ childId: data.childId, name: data.name, mascotId: data.mascotId, avatarUrl: data.avatarUrl ?? undefined });
           await AsyncStorage.removeItem('authToken');
           try { await childSession.start(tokenRes.data.token); } catch { /* non-fatal */ }
+          try {
+            const stRes = await childSession.status(tokenRes.data.token);
+            if (stRes.data.limitExceeded) { router.replace('/time-limit'); return; }
+          } catch { /* fail open */ }
           setStatus('success');
           if (__DEV__) { void handleLaunch(); }
         } catch (err: unknown) {
@@ -299,6 +303,10 @@ export default function AllSetScreen() {
       if (data.avatarUrl) await AsyncStorage.setItem('childAvatarUrl', data.avatarUrl);
       await addChildProfile({ childId: data.childId, name: data.name, mascotId: data.mascotId, avatarUrl: data.avatarUrl ?? undefined });
       try { await childSession.start(tokenRes.data.token); } catch { /* non-fatal */ }
+      try {
+        const stRes = await childSession.status(tokenRes.data.token);
+        if (stRes.data.limitExceeded) { router.replace('/time-limit'); return; }
+      } catch { /* fail open */ }
       setStatus('success');
       if (__DEV__) { void handleLaunch(); }
     } catch (err: unknown) {

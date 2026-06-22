@@ -569,6 +569,15 @@
     "error": "Something went wrong",
     "cancel": "Cancel"
   },
+  "timeLimit": {
+    "title": "See you tomorrow!",
+    "message": "You've had a great day on Migo! Your friends will be waiting for you when you come back 🌟",
+    "usedMinutes": "You used {{count}} minutes today",
+    "askParent": "Ask a parent for more time",
+    "parentHint": "Ask your parent to open Migo and tap 'Give more time' on your dashboard.",
+    "ok": "OK",
+    "parentLogin": "Parent login"
+  },
   "parent": {
     "noChildProfile": "No child profile found.",
     "noChildProfileDesc": "Complete the child setup in the app first.",
@@ -616,7 +625,17 @@
       "alerts": "Alerts",
       "allTime": "All time",
       "none": "None",
-      "unknown": "Unknown"
+      "unknown": "Unknown",
+      "screenTime": {
+        "title": "Screen Time Limits",
+        "weekdays": "Weekdays",
+        "weekends": "Weekends",
+        "noLimit": "No limit",
+        "save": "Save limits",
+        "saved": "✓ Saved",
+        "giveMore": "Give 5 more minutes today 🎁",
+        "done": "✓ Done"
+      }
     },
     "alerts": {
       "title": "Safety Alerts",

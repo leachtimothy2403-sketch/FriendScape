@@ -442,13 +442,92 @@ export async function createChildFromOnboarding(req: AuthRequest, res: Response)
   }
 }
 
+// ─── GET /children/me/screen-time-status ─────────────────────────────────────
+export async function getScreenTimeStatus(req: AuthRequest, res: Response) {
+  const childId = req.childId;
+  if (!childId) { res.status(401).json({ error: 'Child authentication required' }); return; }
+
+  try {
+    const child = await db('children')
+      .where({ id: childId })
+      .select(
+        'screen_time_limit_weekday_minutes',
+        'screen_time_limit_weekend_minutes',
+        'screen_time_extension_minutes',
+        'screen_time_extension_date',
+      )
+      .first();
+
+    if (!child) { res.status(404).json({ error: 'Child not found' }); return; }
+
+    const day = new Date().getDay();
+    const isWeekend = day === 0 || day === 6;
+    const baseLimit: number | null = isWeekend
+      ? child.screen_time_limit_weekend_minutes
+      : child.screen_time_limit_weekday_minutes;
+
+    if (baseLimit === null || baseLimit === undefined) {
+      res.json({ limitEnabled: false, usedMinutes: 0, limitMinutes: null, limitExceeded: false });
+      return;
+    }
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    const usedRow = await db('child_sessions')
+      .where({ child_id: childId })
+      .whereRaw("date::date = ?", [todayStr])
+      .sum('duration_minutes as total')
+      .first();
+
+    const used = Number(usedRow?.total ?? 0);
+
+    const openSession = await db('child_sessions')
+      .where({ child_id: req.childId, session_end: null })
+      .whereRaw('date = CURRENT_DATE')
+      .select(db.raw('EXTRACT(EPOCH FROM (NOW() - session_start)) / 60 as live_minutes'))
+      .first();
+
+    const liveMinutes = openSession ? Number((openSession as { live_minutes: string }).live_minutes) : 0;
+
+    const extensionDate = child.screen_time_extension_date
+      ? String(child.screen_time_extension_date).slice(0, 10)
+      : null;
+    const extensionMinutes = Number(child.screen_time_extension_minutes ?? 0);
+    const extensionApplies = extensionDate === todayStr && extensionMinutes > 0;
+    const effectiveLimit = baseLimit + (extensionApplies ? extensionMinutes : 0);
+
+    const totalUsed = used + liveMinutes;
+
+    res.json({
+      limitEnabled:  true,
+      usedMinutes:   Math.round(totalUsed),
+      limitMinutes:  effectiveLimit,
+      limitExceeded: totalUsed >= effectiveLimit,
+    });
+  } catch (err) {
+    console.error('[session] getScreenTimeStatus error:', err);
+    res.status(500).json({ error: 'Failed to fetch screen time status' });
+  }
+}
+
 // ─── POST /children/session/start ────────────────────────────────────────────
 export async function startSession(req: AuthRequest, res: Response) {
   const childId = req.childId;
   if (!childId) { res.status(401).json({ error: 'Child authentication required' }); return; }
 
   try {
-    // Close any open sessions first
+    // Check if an open session from today already exists
+    const existing = await db('child_sessions')
+      .where({ child_id: childId, session_end: null })
+      .whereRaw('date = CURRENT_DATE')
+      .first();
+
+    if (existing) {
+      res.json({ sessionId: (existing as { id: string }).id });
+      return;
+    }
+
+    // No open session from today; close any stale sessions from previous days
     await db('child_sessions')
       .where({ child_id: childId, session_end: null })
       .update({

@@ -1,8 +1,9 @@
-import { Redirect } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '@/constants/theme';
+import { childSession } from '@/services/api';
 
 export default function Index() {
   const [destination, setDestination] = useState<string | null>(null);
@@ -13,6 +14,13 @@ export default function Index() {
         'childToken', 'childProfile', 'authToken',
       ]);
       if (childToken[1] && childProfile[1]) {
+        try {
+          const statusRes = await childSession.status(childToken[1]);
+          if (statusRes.data.limitExceeded) {
+            router.replace('/time-limit');
+            return;
+          }
+        } catch { /* non-fatal — if check fails, proceed to feed normally */ }
         setDestination('/(tabs)/feed');
       } else if (authToken[1]) {
         setDestination('/parent-children');
@@ -20,7 +28,7 @@ export default function Index() {
         setDestination('/landing');
       }
     }
-    check();
+    void check();
   }, []);
 
   if (!destination) {

@@ -409,6 +409,50 @@ export async function getChildAlerts(req: AuthRequest, res: Response) {
   }
 }
 
+// ─── PATCH /parent/children/:childId/screen-time ─────────────────────────────
+export async function updateChildScreenTime(req: AuthRequest, res: Response) {
+  try {
+    const { childId } = req.params;
+    const child = await db('children').where({ id: childId, parent_id: req.userId }).first();
+    if (!child) { res.status(404).json({ error: 'Child not found' }); return; }
+
+    const { weekdayLimitMinutes, weekendLimitMinutes, extensionMinutes } = req.body as {
+      weekdayLimitMinutes?: number | null;
+      weekendLimitMinutes?: number | null;
+      extensionMinutes?: number;
+    };
+
+    const updates: Record<string, unknown> = { updated_at: db.fn.now() };
+
+    if (weekdayLimitMinutes !== undefined) {
+      updates.screen_time_limit_weekday_minutes = weekdayLimitMinutes;
+    }
+    if (weekendLimitMinutes !== undefined) {
+      updates.screen_time_limit_weekend_minutes = weekendLimitMinutes;
+    }
+    if (extensionMinutes !== undefined) {
+      if (extensionMinutes > 0) {
+        if (extensionMinutes % 5 !== 0 || extensionMinutes > 60) {
+          res.status(400).json({ error: 'extensionMinutes must be a multiple of 5 and at most 60' });
+          return;
+        }
+        const todayStr = new Date().toISOString().slice(0, 10);
+        updates.screen_time_extension_minutes = extensionMinutes;
+        updates.screen_time_extension_date    = todayStr;
+      } else {
+        updates.screen_time_extension_minutes = 0;
+        updates.screen_time_extension_date    = null;
+      }
+    }
+
+    const [updated] = await db('children').where({ id: childId }).update(updates).returning('*');
+    res.json({ success: true, child: updated });
+  } catch (err) {
+    console.error('[parent] updateChildScreenTime error:', err);
+    res.status(500).json({ error: 'Failed to update screen time settings' });
+  }
+}
+
 export async function updateSettings(req: AuthRequest, res: Response) {
   try {
     const allowed = ['alertsEnabled', 'weeklyReportEnabled', 'contentFilterLevel',

@@ -8,6 +8,7 @@ import {
   createChildFromOnboarding,
   startSession,
   endSession,
+  getScreenTimeStatus,
   getMyFriends,
   getMyXP,
   getMyGraduation,
@@ -35,6 +36,7 @@ router.use(requireAuth);
 // Child-session endpoints — require child JWT (handlers check req.childId)
 router.post('/session/start',  startSession);
 router.post('/session/end',    endSession);
+router.get('/me/screen-time-status', getScreenTimeStatus);
 // me/* routes must come before /:childId to avoid param conflicts
 router.get('/me/friends',      getMyFriends);
 router.get('/me/xp',           getMyXP);

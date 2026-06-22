@@ -99,6 +99,8 @@ export const parent = {
   badges: (childId: string) => api.get(`/parent/badges/${childId}`),
   childAlerts: (childId: string) => api.get(`/parent/alerts/${childId}`),
   childStats: (childId: string) => api.get(`/parent/children/${childId}/stats`),
+  updateChildScreenTime: (childId: string, data: { weekdayLimitMinutes?: number | null; weekendLimitMinutes?: number | null; extensionMinutes?: number }) =>
+    api.patch(`/parent/children/${childId}/screen-time`, data),
 };
 
 // ─── Child-session helpers ────────────────────────────────────────────────────
@@ -343,6 +345,10 @@ export const childSession = {
     api.post<{ sessionId: string }>('/children/session/start', {}, withToken(token)),
   end: (token: string) =>
     api.post<{ ended: number }>('/children/session/end', {}, withToken(token)),
+  status: (token: string) =>
+    api.get<{ limitEnabled: boolean; usedMinutes: number; limitMinutes: number | null; limitExceeded: boolean }>(
+      '/children/me/screen-time-status', withToken(token),
+    ),
 };
 
 export const avatarApi = {

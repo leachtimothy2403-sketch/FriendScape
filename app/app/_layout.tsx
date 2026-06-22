@@ -49,6 +49,7 @@ export default function RootLayout() {
           name="parent"
           options={{ animation: 'slide_from_bottom' }}
         />
+        <Stack.Screen name="time-limit" options={{ gestureEnabled: false }} />
       </Stack>
       <NotificationBanner
         visible={notification !== null}

@@ -14,6 +14,7 @@ import {
   getParentFriends,
   getParentBadges,
   getChildAlerts,
+  updateChildScreenTime,
 } from '../controllers/parent.controller';
 import { requireAuth } from '../middleware/auth';
 
@@ -37,5 +38,6 @@ router.get('/mood/:childId',           getMoodHistory);
 router.get('/friends/:childId',        getParentFriends);
 router.get('/badges/:childId',         getParentBadges);
 router.get('/alerts/:childId',         getChildAlerts);
+router.patch('/children/:childId/screen-time', updateChildScreenTime);
 
 export default router;

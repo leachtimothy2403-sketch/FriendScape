@@ -40,6 +40,13 @@ export default function KidPickerScreen() {
       await setActiveChildProfile(profile, token);
       await AsyncStorage.setItem('childId', profile.childId);
       try { await childSession.start(token); } catch { /* non-fatal, don't block navigation */ }
+      try {
+        const statusRes = await childSession.status(token);
+        if (statusRes.data.limitExceeded) {
+          router.replace('/time-limit');
+          return;
+        }
+      } catch { /* fail open */ }
       router.replace('/(tabs)/feed');
     } catch {
       setSwitching(null);

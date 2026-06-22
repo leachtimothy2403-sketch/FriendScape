@@ -585,6 +585,15 @@
     "error": "Oups, quelque chose a mal tourné !",
     "cancel": "Annuler"
   },
+  "timeLimit": {
+    "title": "À demain !",
+    "message": "Tu as passé une super journée sur Migo ! Tes amis t'attendront quand tu reviendras 🌟",
+    "usedMinutes": "Tu as utilisé {{count}} minutes aujourd'hui",
+    "askParent": "Demande à un parent plus de temps",
+    "parentHint": "Demande à ton parent d'ouvrir Migo et d'appuyer sur 'Donner plus de temps' sur ton tableau de bord.",
+    "ok": "OK",
+    "parentLogin": "Connexion parent"
+  },
   "parent": {
     "noChildProfile": "Aucun profil enfant trouvé.",
     "noChildProfileDesc": "Complétez d'abord la configuration de l'enfant dans l'application.",
@@ -632,7 +641,17 @@
       "alerts": "Alertes",
       "allTime": "Depuis le début",
       "none": "Aucun",
-      "unknown": "Inconnu"
+      "unknown": "Inconnu",
+      "screenTime": {
+        "title": "Limites de temps d'écran",
+        "weekdays": "Jours de semaine",
+        "weekends": "Week-ends",
+        "noLimit": "Sans limite",
+        "save": "Enregistrer",
+        "saved": "✓ Enregistré",
+        "giveMore": "Donner 5 minutes de plus aujourd'hui 🎁",
+        "done": "✓ Fait"
+      }
     },
     "alerts": {
       "title": "Alertes de sécurité",
