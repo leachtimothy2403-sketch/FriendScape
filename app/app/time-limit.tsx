@@ -32,6 +32,16 @@ export default function TimeLimitScreen() {
     void load();
   }, []);
 
+  useEffect(() => {
+    async function endSession() {
+      try {
+        const token = await AsyncStorage.getItem('childToken');
+        if (token) await childSession.end(token);
+      } catch { /* non-fatal */ }
+    }
+    void endSession();
+  }, []);
+
   function handleAskParent() {
     Alert.alert('', t('timeLimit.parentHint'), [{ text: t('timeLimit.ok') }]);
   }

@@ -13,37 +13,28 @@ const elevenlabs = new ElevenLabsClient({
 const AUDIO_DIR = path.join(__dirname, '../../public/audio');
 const BASE_URL  = process.env.BASE_URL ?? `http://localhost:${process.env.PORT ?? 3001}`;
 
-// Voice IDs per character and language.
-// EN: ElevenLabs English voices.
-// FR: ElevenLabs multilingual voices with native French output.
 const VOICE_IDS: Record<'en' | 'fr', Record<string, string>> = {
   en: {
-    mia:       'EXAVITQu4vr4xnSDxMaL', // Bella
-    jake:      'VR6AewLTigWG4xSOukaG', // Arnold
-    zara:      'ThT5KcBeYPX3keUQqHPh', // Dorothy
-    coachmike: 'pNInz6obpgDQGcFmaJgB', // Adam
-    msluna:    'EXAVITQu4vr4xnSDxMaL', // Bella
-    miga:      'EXAVITQu4vr4xnSDxMaL', // Bella
-    finn:      'pNInz6obpgDQGcFmaJgB', // Adam
-    pixel:     'VR6AewLTigWG4xSOukaG', // Arnold
-    sage:      'ErXwobaYiN019PkySvjV', // Antoni
+    zara:      'ZLR2VL7jAuie9sowsXqg', // Talia — young female
+    mia:       'NCXuWNJQQvNzPsNoESwl', // Mia — young female
+    'anne-sophie': 'j3QcmAr55TvFW5CDB0Q3', // Iniga — young female
+    juliette:  'IKuPqyuiEnnZFcU4OVzH', // Abby — young female
+    luna:      'ZLR2VL7jAuie9sowsXqg', // Talia — warm young female for Ms. Luna
+    miga:      'j3QcmAr55TvFW5CDB0Q3', // Iniga — energetic for mascot
+    default:   'ZLR2VL7jAuie9sowsXqg', // Talia as default
   },
   fr: {
-    mia:       'Xb7hH8MSUJpSbSDYk0k2', // Alice (multilingual)
-    jake:      'onwK4e9ZLuTAKqWW03F9', // Daniel (multilingual)
-    zara:      'Xb7hH8MSUJpSbSDYk0k2', // Alice
-    coachmike: 'onwK4e9ZLuTAKqWW03F9', // Daniel
-    msluna:    'Xb7hH8MSUJpSbSDYk0k2', // Alice
-    miga:      'Xb7hH8MSUJpSbSDYk0k2', // Alice (female)
-    finn:      'onwK4e9ZLuTAKqWW03F9', // Daniel (male)
-    pixel:     'onwK4e9ZLuTAKqWW03F9', // Daniel (neutral→male)
-    sage:      'Xb7hH8MSUJpSbSDYk0k2', // Alice (neutral→female)
+    zara:          'Yx2a8qp2EqI9c5i8MzBo', // Philippine — young French female
+    mia:           'Yx2a8qp2EqI9c5i8MzBo',
+    'anne-sophie': 'Yx2a8qp2EqI9c5i8MzBo',
+    juliette:      'Yx2a8qp2EqI9c5i8MzBo',
+    luna:          'Yx2a8qp2EqI9c5i8MzBo',
+    miga:          'Yx2a8qp2EqI9c5i8MzBo',
+    jake:          'onwK4e9ZLuTAKqWW03F9', // Daniel — French male
+    'coach-mike':  'onwK4e9ZLuTAKqWW03F9',
+    hugo:          'onwK4e9ZLuTAKqWW03F9',
+    default:       'Yx2a8qp2EqI9c5i8MzBo',
   },
-};
-
-const DEFAULT_VOICE: Record<'en' | 'fr', string> = {
-  en: 'EXAVITQu4vr4xnSDxMaL',
-  fr: 'Xb7hH8MSUJpSbSDYk0k2',
 };
 
 function buildCacheKey(characterId: string, language: string, text: string): string {
@@ -97,18 +88,25 @@ export async function generateSpeech(
 
   // 3. Call ElevenLabs
   const lang    = language === 'fr' ? 'fr' : 'en';
-  const voiceId = VOICE_IDS[lang][characterId.toLowerCase()] ?? DEFAULT_VOICE[lang];
+  const voiceId = VOICE_IDS[lang][characterId.toLowerCase()] ?? VOICE_IDS[lang].default;
   const modelId = lang === 'fr' ? 'eleven_multilingual_v2' : 'eleven_monolingual_v1';
+
+  const isTeacher = characterId.toLowerCase().includes('luna');
+  const isMascot = characterId.toLowerCase().includes('miga');
+  const isMale = ['jake', 'coach-mike', 'hugo', 'nico', 'luca', 'tom', 'daniel'].includes(characterId.toLowerCase());
+
+  const voiceSettings = isTeacher
+    ? { stability: 0.55, similarity_boost: 0.80, style: 0.20, speed: 0.95, use_speaker_boost: true }
+    : isMascot
+    ? { stability: 0.30, similarity_boost: 0.70, style: 0.55, speed: 1.10, use_speaker_boost: true }
+    : isMale
+    ? { stability: 0.40, similarity_boost: 0.75, style: 0.35, speed: 1.00, use_speaker_boost: true }
+    : { stability: 0.35, similarity_boost: 0.75, style: 0.45, speed: 1.05, use_speaker_boost: true };
 
   const audioStream = await elevenlabs.textToSpeech.convert(voiceId, {
     text,
     model_id: modelId,
-    voice_settings: {
-      stability:        0.45,
-      similarity_boost: 0.75,
-      style:            0.3,
-      use_speaker_boost: true,
-    },
+    voice_settings: voiceSettings,
   });
 
   // 4. Save to disk
