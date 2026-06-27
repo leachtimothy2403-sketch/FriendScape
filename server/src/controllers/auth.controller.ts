@@ -351,7 +351,7 @@ function setPasswordFormHtml(token: string, error?: string): string {
       </ul>
       <label style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:#2C2C2A;cursor:pointer">
         <input type="checkbox" name="consent" value="1" required style="margin-top:3px;width:16px;height:16px;flex-shrink:0">
-        <span>I have read and agree to the <a href="https://mymigo.fr/beta-terms" target="_blank" style="color:#7F77DD">beta test terms</a> and the processing of my child's data as described above.</span>
+        <span>I have read and agree to the <a href="https://mymigo-site.vercel.app/beta-terms" target="_blank" style="color:#7F77DD">beta test terms</a> and the processing of my child's data as described above.</span>
       </label>
     </div>
     <form method="POST" action="/auth/set-password">

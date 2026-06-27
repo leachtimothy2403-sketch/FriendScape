@@ -217,6 +217,6 @@ export async function runDailyPostsJob() {
   }
 }
 
-cron.schedule('0 8 * * *', runDailyPostsJob);
+cron.schedule('0 8 * * *', runDailyPostsJob, { timezone: 'Europe/Paris' });
 
 console.log('[posts] 🌅 Daily posts job scheduled');

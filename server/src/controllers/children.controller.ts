@@ -181,6 +181,10 @@ export async function createChildFromOnboarding(req: AuthRequest, res: Response)
         res.status(403).json({ error: 'Parent approval required — ask your parent to approve the Migo request first.' });
         return;
       }
+      if (!enrollment.consent_accepted_at) {
+        res.status(403).json({ error: 'Parent consent required — ask your parent to complete account setup first.' });
+        return;
+      }
 
       // 3. Find or create parent user account
       let found = await db('users').where({ email: parentEmail as string }).first();

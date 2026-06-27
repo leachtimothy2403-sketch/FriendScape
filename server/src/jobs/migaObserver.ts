@@ -113,6 +113,6 @@ cron.schedule('0 18 * * 0', async () => {
   } catch (err) {
     console.error('[miga] ❌ Observer failed:', err);
   }
-});
+}, { timezone: 'Europe/Paris' });
 
-console.log('[miga] 👁️ Digital literacy observer scheduled');
+console.log('[miga] 👁️ Digital literacy observer scheduled (Europe/Paris)');

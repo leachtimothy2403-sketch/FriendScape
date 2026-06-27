@@ -1,11 +1,20 @@
 import { Router, Request, Response } from 'express';
 import { generateSpeech, transcribeAudio } from '../services/audio.service';
+import rateLimit from 'express-rate-limit';
 
 const router = Router();
 
+const audioLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests — please wait a moment and try again.' },
+});
+
 // POST /audio/generate
 // Auth optional — works during onboarding before child account is created.
-router.post('/generate', async (req: Request, res: Response) => {
+router.post('/generate', audioLimiter, async (req: Request, res: Response) => {
   try {
     const { text, characterId, language, messageId } = req.body as {
       text?: string;
@@ -33,7 +42,7 @@ router.post('/generate', async (req: Request, res: Response) => {
 
 // POST /audio/transcribe
 // Auth optional — works during onboarding before child account is created.
-router.post('/transcribe', async (req: Request, res: Response) => {
+router.post('/transcribe', audioLimiter, async (req: Request, res: Response) => {
   try {
     const { audioBase64, mimeType, language } = req.body as {
       audioBase64?: string;

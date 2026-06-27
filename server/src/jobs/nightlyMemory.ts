@@ -129,6 +129,6 @@ cron.schedule('0 0 * * *', async () => {
   } catch (err) {
     console.error('[memory] ❌ Nightly distillation failed:', err);
   }
-});
+}, { timezone: 'Europe/Paris' });
 
-console.log('[memory] 🌙 Nightly memory job scheduled');
+console.log('[memory] 🌙 Nightly memory job scheduled (Europe/Paris)');

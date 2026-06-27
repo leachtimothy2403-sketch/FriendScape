@@ -176,6 +176,7 @@ export async function sendMessage(req: AuthRequest, res: Response) {
       imageMediaType?: string;
     };
     if (!content?.trim()) { res.status(400).json({ error: 'content is required' }); return; }
+    if (content.trim().length > 2000) { res.status(400).json({ error: 'Message too long' }); return; }
 
     // a. Find or create conversation
     let conversation = await db('conversations')
