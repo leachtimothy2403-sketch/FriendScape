@@ -273,9 +273,24 @@ export async function createChildFromOnboarding(req: AuthRequest, res: Response)
     console.log(`[friends] 🤖 Generating personalised friends for ${childObj.name}...`);
     const genResult = await generatePersonalisedFriends(childObj, lang, 3);
 
+    const existingNames = await db('ai_friends').pluck('name') as string[];
+    const existingNamesLower = new Set(existingNames.map(n => n.toLowerCase()));
+
+    const uniqueFriends = genResult.friends.filter(f => !existingNamesLower.has(f.name.toLowerCase()));
+
+    if (uniqueFriends.length < genResult.friends.length) {
+      console.warn(`[friends] ⚠️ Skipped ${genResult.friends.length - uniqueFriends.length} duplicate name(s): ${genResult.friends.filter(f => existingNamesLower.has(f.name.toLowerCase())).map(f => f.name).join(', ')}`);
+    }
+
+    if (uniqueFriends.length === 0) {
+      console.error('[friends] ❌ All generated friend names were duplicates — proceeding with originals');
+    }
+
+    const friendsToInsert = uniqueFriends.length > 0 ? uniqueFriends : genResult.friends;
+
     const assignedFriends: { id: string; name: string; coverEmojis: string; introMessage: string }[] = [];
 
-    for (const gf of genResult.friends) {
+    for (const gf of friendsToInsert) {
       const voiceId = selectVoiceId(gf.gender, lang, gf.personality);
       console.log(`[voice] friend ${gf.name} gender=${gf.gender} voiceId=${voiceId}`);
 
