@@ -34,12 +34,12 @@ export const auth = {
   register: (data: { email: string; displayName: string; password: string }) =>
     api.post('/auth/register', data),
   login: (data: { email: string; password: string }) =>
-    api.post('/auth/login', data),
+    api.post<{ token: string; language: string; user: { id: string; email: string; displayName: string } }>('/auth/login', data),
   logout: () => api.post('/auth/logout'),
   enroll: (data: { parentEmail: string; language?: string }) =>
     api.post<{ status: string; message?: string }>('/auth/enroll', data),
   enrollmentStatus: (parentEmail: string) =>
-    api.get<{ status: 'pending' | 'approved' | 'expired' }>(
+    api.get<{ status: 'pending' | 'approved' | 'expired'; parentLanguage: string | null }>(
       `/auth/enrollment-status?parentEmail=${encodeURIComponent(parentEmail)}`,
     ),
   simulateApprove: (data: { parentEmail: string }) =>

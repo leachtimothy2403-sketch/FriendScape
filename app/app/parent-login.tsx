@@ -8,11 +8,13 @@ import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { auth } from '@/services/api';
+import { useLanguageStore } from '@/store/languageStore';
 import MigoLogo from '@/components/MigoLogo';
 import { Colors } from '@/constants/theme';
 
 export default function ParentLoginScreen() {
   const { t } = useTranslation();
+  const { setLanguage } = useLanguageStore();
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading]   = useState(false);
@@ -30,6 +32,10 @@ export default function ParentLoginScreen() {
       const res = await auth.login({ email: trimmedEmail, password });
       const token = (res.data as { token: string }).token;
       await AsyncStorage.setItem('authToken', token);
+      const lang = (res.data as Record<string, unknown>).language as string | undefined;
+      if (lang === 'en' || lang === 'fr') {
+        await setLanguage(lang);
+      }
       router.replace('/parent-children' as never);
     } catch (err: unknown) {
       const serverMsg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;

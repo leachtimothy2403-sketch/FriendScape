@@ -47,6 +47,7 @@ export default function EnrollScreen() {
   const [checkFocused, setCheckFocused] = useState(false);
   const [checking, setChecking]         = useState(false);
   const [checkMessage, setCheckMessage] = useState<{ text: string; color: string } | null>(null);
+  const [familyLanguage, setFamilyLanguage] = useState<string | null>(null);
 
   const translateY = useSharedValue(0);
 
@@ -123,7 +124,13 @@ if (detectedLang && detectedLang.startsWith('fr')) void setLanguage('fr');
     try {
       const res = await auth.enrollmentStatus(trimmed);
       const status = res.data.status;
+      const pLang = res.data.parentLanguage as string | null | undefined;
       if (status === 'approved') {
+        if (pLang) {
+          setFamilyLanguage(pLang);
+          await setLanguage(pLang as 'en' | 'fr');
+          useOnboardingStore.getState().setLanguage(pLang);
+        }
         await AsyncStorage.setItem('pendingParentEmail', trimmed);
         router.replace('/celebration');
       } else if (status === 'pending') {
@@ -193,50 +200,56 @@ if (detectedLang && detectedLang.startsWith('fr')) void setLanguage('fr');
               <MigoLogo size="lg" />
             </View>
 
-            {/* Language picker */}
-            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 24 }}>
-              <TouchableOpacity
-                onPress={() => void setLanguage('en')}
-                style={{
-                  paddingHorizontal: 18,
-                  paddingVertical: 9,
-                  borderRadius: 9999,
-                  borderWidth: 1.5,
-                  borderColor: language === 'en' ? '#7F77DD' : '#E0E0E0',
-                  backgroundColor: language === 'en' ? '#7F77DD' : '#fff',
-                }}
-                activeOpacity={0.8}
-              >
-                <Text style={{
-                  fontSize: 14,
-                  fontWeight: '600',
-                  color: language === 'en' ? '#fff' : '#888780',
-                }}>
-                  🇬🇧 English
-                </Text>
-              </TouchableOpacity>
+            {/* Language picker — hidden when family language is already set */}
+            {!familyLanguage ? (
+              <View style={{ flexDirection: 'row', gap: 10, marginBottom: 24 }}>
+                <TouchableOpacity
+                  onPress={() => void setLanguage('en')}
+                  style={{
+                    paddingHorizontal: 18,
+                    paddingVertical: 9,
+                    borderRadius: 9999,
+                    borderWidth: 1.5,
+                    borderColor: language === 'en' ? '#7F77DD' : '#E0E0E0',
+                    backgroundColor: language === 'en' ? '#7F77DD' : '#fff',
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={{
+                    fontSize: 14,
+                    fontWeight: '600',
+                    color: language === 'en' ? '#fff' : '#888780',
+                  }}>
+                    🇬🇧 English
+                  </Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                onPress={() => void setLanguage('fr')}
-                style={{
-                  paddingHorizontal: 18,
-                  paddingVertical: 9,
-                  borderRadius: 9999,
-                  borderWidth: 1.5,
-                  borderColor: language === 'fr' ? '#7F77DD' : '#E0E0E0',
-                  backgroundColor: language === 'fr' ? '#7F77DD' : '#fff',
-                }}
-                activeOpacity={0.8}
-              >
-                <Text style={{
-                  fontSize: 14,
-                  fontWeight: '600',
-                  color: language === 'fr' ? '#fff' : '#888780',
-                }}>
-                  🇫🇷 Français
-                </Text>
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity
+                  onPress={() => void setLanguage('fr')}
+                  style={{
+                    paddingHorizontal: 18,
+                    paddingVertical: 9,
+                    borderRadius: 9999,
+                    borderWidth: 1.5,
+                    borderColor: language === 'fr' ? '#7F77DD' : '#E0E0E0',
+                    backgroundColor: language === 'fr' ? '#7F77DD' : '#fff',
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={{
+                    fontSize: 14,
+                    fontWeight: '600',
+                    color: language === 'fr' ? '#fff' : '#888780',
+                  }}>
+                    🇫🇷 Français
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <Text style={{ fontSize: 13, color: '#888780', marginBottom: 24 }}>
+                {t('enroll.familyLanguage')}
+              </Text>
+            )}
 
             {/* Floating mascot */}
             {mascotAvatarUrl

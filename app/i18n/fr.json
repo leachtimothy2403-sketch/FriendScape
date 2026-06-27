@@ -11,7 +11,8 @@
     "alreadyApprovedCheck": "Vérifier si c'est fait →",
     "approvalPending": "En attente — vérifie tes emails ! 📧",
     "approvalNotFound": "Hmm, on ne trouve pas ta demande ! Essaie d'en envoyer une nouvelle là-haut 👆",
-    "privacyNote": "🔒 On utilise cet email uniquement pour demander la permission. C'est tout !"
+    "privacyNote": "🔒 On utilise cet email uniquement pour demander la permission. C'est tout !",
+    "familyLanguage": "Langue définie par votre compte familial"
   },
   "waiting": {
     "title": "Message envoyé ! 🎉",

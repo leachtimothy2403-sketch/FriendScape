@@ -71,8 +71,10 @@ export async function login(req: Request, res: Response) {
       process.env.JWT_SECRET!,
       { expiresIn: '30d' },
     );
+    const language = (user.settings as Record<string, unknown>)?.language as string ?? 'en';
     res.json({
       token,
+      language,
       user: { id: user.id, email: user.email, displayName: user.display_name },
     });
   } catch (err) {
@@ -227,22 +229,25 @@ export async function enrollmentStatus(req: Request, res: Response) {
       .orderBy('created_at', 'desc')
       .first();
 
+    const parentUser = enrollment ? await db('users').where({ email: enrollment.parent_email }).first() : null;
+    const parentLanguage = parentUser ? (parentUser.settings as Record<string, unknown>)?.language as string ?? null : null;
+
     if (!enrollment) {
-      res.json({ status: 'pending' });
+      res.json({ status: 'pending', parentLanguage });
       return;
     }
 
     if (enrollment.status === 'approved') {
-      res.json({ status: 'approved' });
+      res.json({ status: 'approved', parentLanguage });
       return;
     }
 
     if (new Date() > new Date(enrollment.expires_at)) {
-      res.json({ status: 'expired' });
+      res.json({ status: 'expired', parentLanguage });
       return;
     }
 
-    res.json({ status: 'pending' });
+    res.json({ status: 'pending', parentLanguage });
   } catch (err) {
     console.error('Enrollment status error:', err);
     res.status(500).json({ error: 'Failed to check enrollment status' });

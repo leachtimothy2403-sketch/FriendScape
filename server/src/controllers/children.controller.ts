@@ -198,6 +198,16 @@ export async function createChildFromOnboarding(req: AuthRequest, res: Response)
       parentUser = found as Record<string, unknown>;
     }
 
+    // Update parent's language if not already set
+    const currentSettings = parentUser.settings as Record<string, unknown> ?? {};
+    if (!currentSettings.language) {
+      await db('users')
+        .where({ id: parentUser.id })
+        .update({
+          settings: db.raw('settings || ?::jsonb', [JSON.stringify({ language: language || 'en' })])
+        });
+    }
+
     // 4. Map and create child record
     const ageNum       = parseAgeRange(String(age));
     const mappedTheme  = AVATAR_THEME_MAP[String(avatarTheme) || ''] || 'animals';
