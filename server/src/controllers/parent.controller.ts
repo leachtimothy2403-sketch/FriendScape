@@ -413,7 +413,10 @@ export async function getChildAlerts(req: AuthRequest, res: Response) {
 export async function updateChildScreenTime(req: AuthRequest, res: Response) {
   try {
     const { childId } = req.params;
-    const child = await db('children').where({ id: childId, parent_id: req.userId }).first();
+    const child = await db('children')
+      .where({ id: childId, parent_id: req.userId })
+      .select('*', db.raw('screen_time_extension_date::text as screen_time_extension_date'))
+      .first();
     if (!child) { res.status(404).json({ error: 'Child not found' }); return; }
 
     const { weekdayLimitMinutes, weekendLimitMinutes, extensionMinutes } = req.body as {
@@ -436,10 +439,9 @@ export async function updateChildScreenTime(req: AuthRequest, res: Response) {
           res.status(400).json({ error: 'extensionMinutes must be a multiple of 5 and at most 120' });
           return;
         }
-        const todayStr = new Date().toISOString().slice(0, 10);
-        const existingDate = child.screen_time_extension_date
-          ? String(child.screen_time_extension_date).slice(0, 10)
-          : null;
+        const todayResult = await db.raw('SELECT CURRENT_DATE::text as today');
+        const todayStr = todayResult.rows[0].today as string;
+        const existingDate = child.screen_time_extension_date as string | null;
         const existingMinutes = Number(child.screen_time_extension_minutes ?? 0);
 
         if (existingDate === todayStr && existingMinutes > 0) {

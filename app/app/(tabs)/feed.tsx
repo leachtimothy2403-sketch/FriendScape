@@ -113,6 +113,7 @@ export default function FeedScreen() {
   const [showTour, setShowTour]   = useState(false);
   const [tourStep, setTourStep]   = useState(0);
   const [tourSpots, setTourSpots] = useState<Record<string, { x: number; y: number; width: number; height: number }>>({});
+  const [screenTimeLimitExceeded, setScreenTimeLimitExceeded] = useState(false);
 
   const childTokenRef        = useRef<string | null>(null);
   const refreshTimer         = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -301,6 +302,26 @@ export default function FeedScreen() {
     return cleanup;
   }, []);
 
+  useEffect(() => {
+    if (screenTimeLimitExceeded) {
+      router.replace('/time-limit');
+    }
+  }, [screenTimeLimitExceeded]);
+
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const token = await AsyncStorage.getItem('childToken');
+        if (!token) return;
+        const res = await childSession.status(token);
+        if (res.data.limitExceeded) {
+          setScreenTimeLimitExceeded(true);
+        }
+      } catch { /* non-fatal */ }
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   useFocusEffect(useCallback(() => {
     async function checkScreenTimeLimit() {
       try {
@@ -308,7 +329,7 @@ export default function FeedScreen() {
         if (token) {
           const statusRes = await childSession.status(token);
           if (statusRes.data.limitExceeded) {
-            router.replace('/time-limit');
+            setScreenTimeLimitExceeded(true);
           }
         }
       } catch { /* non-fatal */ }
