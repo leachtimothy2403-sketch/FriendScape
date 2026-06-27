@@ -12,6 +12,7 @@ import {
 import { toChildType } from '../utils/db-mappers';
 import Anthropic from '@anthropic-ai/sdk';
 import { generateFriendPortrait } from '../services/avatar.service';
+import { assignVoiceToFriend } from '../services/audio.service';
 
 // ─── Authed CRUD ──────────────────────────────────────────────────────────────
 
@@ -330,6 +331,9 @@ export async function createChildFromOnboarding(req: AuthRequest, res: Response)
           voice_model:        lang === 'fr' ? 'eleven_multilingual_v2' : 'eleven_monolingual_v1',
         })
         .returning('*');
+
+      const geminiVoice = assignVoiceToFriend(gf.name, gf.gender, gf.age, gf.personality ?? []);
+      await db('ai_friends').where({ id: newFriend.id }).update({ gemini_voice_name: geminiVoice });
 
       generateFriendPortrait(gf.name, gf.age, gf.gender, gf.personality, lang)
         .then(url => db('ai_friends').where({ id: newFriend.id }).update({ avatar_url: url }))
