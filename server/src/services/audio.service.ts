@@ -2,7 +2,9 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { ElevenLabsClient } from 'elevenlabs';
-import { Readable } from 'stream';
+import { Readable, PassThrough } from 'stream';
+import wav from 'wav';
+import { GoogleGenAI } from '@google/genai';
 import { get as redisGet, set as redisSet } from './redis.service';
 import db from '../db';
 
@@ -10,44 +12,50 @@ const elevenlabs = new ElevenLabsClient({
   apiKey: process.env.ELEVENLABS_API_KEY ?? '',
 });
 
+const gemini = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY ?? '' });
+
 const AUDIO_DIR = path.join(__dirname, '../../public/audio');
 const BASE_URL  = process.env.BASE_URL ?? `http://localhost:${process.env.PORT ?? 3001}`;
 
-const VOICE_IDS: Record<'en' | 'fr', Record<string, string>> = {
-  en: {
-    zara:      'ZLR2VL7jAuie9sowsXqg', // Talia — young female
-    mia:       'NCXuWNJQQvNzPsNoESwl', // Mia — young female
-    'anne-sophie': 'j3QcmAr55TvFW5CDB0Q3', // Iniga — young female
-    juliette:  'IKuPqyuiEnnZFcU4OVzH', // Abby — young female
-    luna:      'ZLR2VL7jAuie9sowsXqg', // Talia — warm young female for Ms. Luna
-    miga:      'j3QcmAr55TvFW5CDB0Q3', // Iniga — energetic for mascot
-    default:   'ZLR2VL7jAuie9sowsXqg', // Talia as default
-  },
-  fr: {
-    zara:          'Yx2a8qp2EqI9c5i8MzBo', // Philippine — young French female
-    mia:           'Yx2a8qp2EqI9c5i8MzBo',
-    'anne-sophie': 'Yx2a8qp2EqI9c5i8MzBo',
-    juliette:      'Yx2a8qp2EqI9c5i8MzBo',
-    luna:          'Yx2a8qp2EqI9c5i8MzBo',
-    miga:          'Yx2a8qp2EqI9c5i8MzBo',
-    jake:          'onwK4e9ZLuTAKqWW03F9', // Daniel — French male
-    'coach-mike':  'onwK4e9ZLuTAKqWW03F9',
-    hugo:          'onwK4e9ZLuTAKqWW03F9',
-    default:       'Yx2a8qp2EqI9c5i8MzBo',
-  },
+const GEMINI_VOICE_IDS: Record<string, string> = {
+  // Star friends
+  'zara':                'Aoede',
+  'coach-mike':          'Fenrir',
+  'daniel':              'Charon',
+  'anne-sophie':         'Leda',
+  'juliette':            'Kore',
+  'capitaine-coquillage': 'Orus',
+  // Teachers / mascot
+  'luna':                'Schedar',
+  'miga':                'Puck',
+  // Defaults by gender (used for generated friends)
+  'default_female':      'Vindemiatrix',
+  'default_male':        'Algieba',
+  'default':             'Zephyr',
 };
+
+function getGeminiVoice(characterId: string): string {
+  const id = characterId.toLowerCase();
+  if (GEMINI_VOICE_IDS[id]) return GEMINI_VOICE_IDS[id];
+  return GEMINI_VOICE_IDS['default'];
+}
+
+function pcmToWav(pcmBuffer: Buffer): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    const writer = new wav.Writer({ channels: 1, sampleRate: 24000, bitDepth: 16 });
+    const passThrough = new PassThrough();
+    writer.on('data', (chunk: Buffer) => chunks.push(chunk));
+    writer.on('finish', () => resolve(Buffer.concat(chunks)));
+    writer.on('error', reject);
+    passThrough.pipe(writer);
+    passThrough.end(pcmBuffer);
+  });
+}
 
 function buildCacheKey(characterId: string, language: string, text: string): string {
   const hash = crypto.createHash('md5').update(text).digest('hex').slice(0, 12);
   return `${characterId}_${language}_${hash}`;
-}
-
-async function streamToBuffer(stream: Readable | NodeJS.ReadableStream): Promise<Buffer> {
-  const chunks: Buffer[] = [];
-  for await (const chunk of stream as AsyncIterable<Buffer | Uint8Array>) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-  }
-  return Buffer.concat(chunks);
 }
 
 export async function transcribeAudio(
@@ -73,8 +81,8 @@ export async function generateSpeech(
 ): Promise<string> {
   const cacheKey  = cacheKeyOverride ?? buildCacheKey(characterId, language, text);
   const redisKey  = `audio:${cacheKey}`;
-  const filePath  = path.join(AUDIO_DIR, `${cacheKey}.mp3`);
-  const publicUrl = `/audio/${cacheKey}.mp3`;
+  const filePath  = path.join(AUDIO_DIR, `${cacheKey}.wav`);
+  const publicUrl = `/audio/${cacheKey}.wav`;
 
   // 1. Redis cache hit
   const cached = await redisGet(redisKey);
@@ -86,32 +94,39 @@ export async function generateSpeech(
     return publicUrl;
   }
 
-  // 3. Call ElevenLabs
-  const lang    = language === 'fr' ? 'fr' : 'en';
-  const voiceId = VOICE_IDS[lang][characterId.toLowerCase()] ?? VOICE_IDS[lang].default;
-  const modelId = lang === 'fr' ? 'eleven_multilingual_v2' : 'eleven_monolingual_v1';
+  // 3. Call Gemini TTS
+  const voiceName = getGeminiVoice(characterId);
+  const styleInstruction = characterId.toLowerCase().includes('luna')
+    ? 'Speak warmly and gently, like a caring teacher. '
+    : characterId.toLowerCase().includes('miga')
+    ? 'Speak in an excited, playful way, full of energy. '
+    : characterId.toLowerCase().includes('coach')
+    ? 'Speak enthusiastically and encouragingly. '
+    : 'Speak in a friendly, warm way appropriate for talking to a child. ';
 
-  const isTeacher = characterId.toLowerCase().includes('luna');
-  const isMascot = characterId.toLowerCase().includes('miga');
-  const isMale = ['jake', 'coach-mike', 'hugo', 'nico', 'luca', 'tom', 'daniel'].includes(characterId.toLowerCase());
+  const prompt = `${styleInstruction}${text}`;
 
-  const voiceSettings = isTeacher
-    ? { stability: 0.55, similarity_boost: 0.80, style: 0.20, speed: 0.95, use_speaker_boost: true }
-    : isMascot
-    ? { stability: 0.30, similarity_boost: 0.70, style: 0.55, speed: 1.10, use_speaker_boost: true }
-    : isMale
-    ? { stability: 0.40, similarity_boost: 0.75, style: 0.35, speed: 1.00, use_speaker_boost: true }
-    : { stability: 0.35, similarity_boost: 0.75, style: 0.45, speed: 1.05, use_speaker_boost: true };
-
-  const audioStream = await elevenlabs.textToSpeech.convert(voiceId, {
-    text,
-    model_id: modelId,
-    voice_settings: voiceSettings,
+  const response = await gemini.models.generateContent({
+    model: 'gemini-2.5-flash-preview-tts',
+    contents: [{ parts: [{ text: prompt }] }],
+    config: {
+      responseModalities: ['AUDIO'],
+      speechConfig: {
+        voiceConfig: {
+          prebuiltVoiceConfig: { voiceName },
+        },
+      },
+    },
   });
+
+  const audioData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+  if (!audioData) throw new Error('Gemini TTS returned no audio data');
+
+  const pcmBuffer = Buffer.from(audioData, 'base64');
+  const buffer = await pcmToWav(pcmBuffer);
 
   // 4. Save to disk
   fs.mkdirSync(AUDIO_DIR, { recursive: true });
-  const buffer = await streamToBuffer(audioStream as unknown as Readable);
   fs.writeFileSync(filePath, buffer);
 
   // 5. Cache URL for 7 days
