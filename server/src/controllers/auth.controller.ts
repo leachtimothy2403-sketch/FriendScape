@@ -238,6 +238,11 @@ export async function enrollmentStatus(req: Request, res: Response) {
     }
 
     if (enrollment.status === 'approved') {
+      // Only tell the child app they're approved once the parent has signed consent
+      if (!enrollment.consent_accepted_at) {
+        res.json({ status: 'pending', parentLanguage });
+        return;
+      }
       res.json({ status: 'approved', parentLanguage });
       return;
     }
@@ -272,7 +277,7 @@ export async function simulateApprove(req: Request, res: Response) {
       .where({ parent_email: parentEmail })
       .orderBy('created_at', 'desc')
       .limit(1)
-      .update({ status: 'approved', approved_at: new Date() });
+      .update({ status: 'approved', approved_at: new Date(), consent_accepted_at: new Date() });
 
     if (!updated) {
       await db('enrollments').insert({
@@ -323,23 +328,48 @@ function htmlShell(emoji: string, title: string, body: string): string {
 
 function approvedHtml(token: string): string {
   return htmlShell('✅', 'Approved!', `
-    <h1>Approved!</h1>
-    <p>You can now set up Migo together with your child. Hand the device back and tap "Let's set up Migo!" to get started.</p>
-    <a href="http://localhost:3000" class="btn">Download the Parent Dashboard →</a>
-    <a href="/auth/set-password?token=${token}" class="btn" style="background:#fff;color:#7F77DD;border:2px solid #7F77DD;margin-top:12px">Set Up Parent Account →</a>
+    <h1>One more step!</h1>
+    <p>Please set up your parent account to complete the approval and give your child access to myMigo.</p>
+    <a href="/auth/set-password?token=${token}" class="btn">Set Up Parent Account →</a>
   `);
 }
 
 function setPasswordFormHtml(token: string, error?: string): string {
   return htmlShell('🔐', 'Set Up Parent Account', `
     <h1>Set up your Parent account</h1>
-    <p>Create a password to access Migo's Parent Dashboard.</p>
+    <p>Create a password to access the myMigo Parent Dashboard.</p>
     ${error ? `<p style="color:#C0392B">${error}</p>` : ''}
+    <div style="background:#F8F7FF;border-radius:16px;padding:20px;margin-bottom:24px;text-align:left">
+      <p style="margin:0 0 12px;font-size:14px;font-weight:700;color:#2C2C2A">Beta Test Agreement</p>
+      <p style="margin:0 0 12px;font-size:13px;color:#888780;line-height:1.6">By creating your account, you confirm that:</p>
+      <ul style="margin:0 0 12px;padding-left:20px;font-size:13px;color:#888780;line-height:1.9">
+        <li>Your child will use myMigo under your supervision on your device</li>
+        <li>Your child's conversations are processed by Claude (Anthropic) — never sold or used to train AI models</li>
+        <li>Photos and voice recordings are processed in real-time and never stored by myMigo</li>
+        <li>You can request deletion of all your child's data at any time by emailing ${process.env.FEEDBACK_EMAIL || 'privacy@mymigo.fr'}</li>
+        <li>This is a closed beta — please do not share access with others</li>
+      </ul>
+      <label style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:#2C2C2A;cursor:pointer">
+        <input type="checkbox" name="consent" value="1" required style="margin-top:3px;width:16px;height:16px;flex-shrink:0">
+        <span>I have read and agree to the <a href="https://mymigo.fr/beta-terms" target="_blank" style="color:#7F77DD">beta test terms</a> and the processing of my child's data as described above.</span>
+      </label>
+    </div>
     <form method="POST" action="/auth/set-password">
       <input type="hidden" name="token" value="${token}">
+      <input type="hidden" name="consent" value="0">
+      <input type="checkbox" name="consent" value="1" required style="display:none" id="consentCheck">
       <input type="password" name="password" placeholder="Choose a password (min 8 characters)" required minlength="8" style="width:100%;padding:14px;border-radius:12px;border:1px solid #E8E6FF;margin-bottom:16px;font-size:15px;box-sizing:border-box">
-      <button type="submit" class="btn" style="border:none;width:100%;cursor:pointer">Set Password →</button>
+      <button type="submit" class="btn" style="border:none;width:100%;cursor:pointer">Create Account & Give Access →</button>
     </form>
+    <script>
+      document.querySelector('form').addEventListener('submit', function(e) {
+        const cb = document.querySelector('input[name="consent"][type="checkbox"]:not([style*="display:none"])');
+        if (!cb || !cb.checked) {
+          e.preventDefault();
+          alert('Please read and accept the beta test agreement to continue.');
+        }
+      });
+    </script>
   `);
 }
 
@@ -424,6 +454,10 @@ export async function setApprovalPassword(req: Request, res: Response) {
         settings: defaultSettings,
       });
     }
+
+    await db('enrollments')
+      .where({ approval_token: token })
+      .update({ consent_accepted_at: new Date() });
 
     console.log('[auth] ✅ Password set for', enrollment.parent_email, '— existing user updated:', !!existing);
 

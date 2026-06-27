@@ -119,7 +119,7 @@ export async function sendApprovalEmail(
   _childDeviceId?: string,
   language?: string,
 ): Promise<void> {
-  const apiBase = process.env.API_URL || 'http://localhost:3001';
+  const apiBase = process.env.BASE_URL || 'http://localhost:3001';
   const approveUrl = `${apiBase}/auth/approve?token=${approvalToken}`;
   const declineUrl = `${apiBase}/auth/decline?token=${approvalToken}`;
   const fr = language === 'fr';
