@@ -4,7 +4,11 @@
     "slug": "migo",
     "version": "1.0.0",
     "scheme": "migo",
-    "platforms": ["ios", "android", "web"],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "orientation": "portrait",
     "icon": "./assets/images/migo-logo.jpg",
     "userInterfaceStyle": "light",
@@ -13,7 +17,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#F8F7FF"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.migo.app"
@@ -34,8 +40,11 @@
       "expo-font",
       [
         "expo-image-picker",
-        { "photosPermission": "Migo uses your photo library to let you share pictures with your friends." }
-      ]
+        {
+          "photosPermission": "Migo uses your photo library to let you share pictures with your friends."
+        }
+      ],
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true

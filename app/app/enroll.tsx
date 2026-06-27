@@ -48,12 +48,31 @@ export default function EnrollScreen() {
   const [checking, setChecking]         = useState(false);
   const [checkMessage, setCheckMessage] = useState<{ text: string; color: string } | null>(null);
   const [familyLanguage, setFamilyLanguage] = useState<string | null>(null);
+  const [userPickedLanguage, setUserPickedLanguage] = useState(false);
 
   const translateY = useSharedValue(0);
 
   useEffect(() => {
     const detectedLang = i18n.language;
-if (detectedLang && detectedLang.startsWith('fr')) void setLanguage('fr');
+    if (detectedLang && detectedLang.startsWith('fr')) void setLanguage('fr');
+  }, []);
+
+  // On mount: if a pendingParentEmail exists from a previous session, check if the
+  // parent already has a stored language so the picker hides immediately.
+  useEffect(() => {
+    void (async () => {
+      const storedEmail = await AsyncStorage.getItem('pendingParentEmail');
+      if (!storedEmail) return;
+      try {
+        const statusRes = await auth.enrollmentStatus(storedEmail);
+        const pLang = statusRes.data.parentLanguage;
+        if (!userPickedLanguage && pLang) {
+          setFamilyLanguage(pLang);
+          await setLanguage(pLang as 'en' | 'fr');
+          useOnboardingStore.getState().setLanguage(pLang);
+        }
+      } catch { /* non-fatal */ }
+    })();
   }, []);
 
   useEffect(() => {
@@ -90,6 +109,16 @@ if (detectedLang && detectedLang.startsWith('fr')) void setLanguage('fr');
     setLoading(true);
     try {
       const res = await auth.enroll({ parentEmail: trimmed, language });
+      // Check immediately if the parent already has a stored language (second child flow)
+      try {
+        const statusRes = await auth.enrollmentStatus(trimmed);
+        const pLang = statusRes.data.parentLanguage;
+        if (!userPickedLanguage && pLang) {
+          setFamilyLanguage(pLang);
+          await setLanguage(pLang as 'en' | 'fr');
+          useOnboardingStore.getState().setLanguage(pLang);
+        }
+      } catch { /* non-fatal — language stays as-is */ }
       await AsyncStorage.setItem('pendingParentEmail', trimmed);
       if (res.data.status === 'already_approved') {
         router.replace('/celebration');
@@ -126,7 +155,7 @@ if (detectedLang && detectedLang.startsWith('fr')) void setLanguage('fr');
       const status = res.data.status;
       const pLang = res.data.parentLanguage as string | null | undefined;
       if (status === 'approved') {
-        if (pLang) {
+        if (!userPickedLanguage && pLang) {
           setFamilyLanguage(pLang);
           await setLanguage(pLang as 'en' | 'fr');
           useOnboardingStore.getState().setLanguage(pLang);
@@ -204,7 +233,10 @@ if (detectedLang && detectedLang.startsWith('fr')) void setLanguage('fr');
             {!familyLanguage ? (
               <View style={{ flexDirection: 'row', gap: 10, marginBottom: 24 }}>
                 <TouchableOpacity
-                  onPress={() => void setLanguage('en')}
+                  onPress={() => {
+                    setUserPickedLanguage(true);
+                    void setLanguage('en');
+                  }}
                   style={{
                     paddingHorizontal: 18,
                     paddingVertical: 9,
@@ -225,7 +257,10 @@ if (detectedLang && detectedLang.startsWith('fr')) void setLanguage('fr');
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  onPress={() => void setLanguage('fr')}
+                  onPress={() => {
+                    setUserPickedLanguage(true);
+                    void setLanguage('fr');
+                  }}
                   style={{
                     paddingHorizontal: 18,
                     paddingVertical: 9,

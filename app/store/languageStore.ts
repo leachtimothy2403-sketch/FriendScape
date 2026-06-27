@@ -1,21 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getLocales } from 'expo-localization';
 import i18n from '@/i18n';
-
-// Fallback to get device locale without requiring expo-localization
-function getDeviceLocale(): string {
-  try {
-    // Try to use expo-localization if available
-    const { getLocales } = require('expo-localization');
-    return getLocales()[0]?.languageCode ?? 'en';
-  } catch {
-    // Fallback: try navigator language
-    if (typeof navigator !== 'undefined' && navigator.language) {
-      return navigator.language.split('-')[0];
-    }
-    return 'en';
-  }
-}
 
 const LANGUAGE_KEY = 'appLanguage';
 
@@ -42,7 +28,7 @@ export const useLanguageStore = create<LanguageState>((set) => ({
       await i18n.changeLanguage(lang);
     } else {
       // No stored preference — use device locale
-      const deviceLocale = getDeviceLocale();
+      const deviceLocale = getLocales()[0]?.languageCode ?? 'en';
       const lang: 'en' | 'fr' = deviceLocale.startsWith('fr') ? 'fr' : 'en';
       set({ language: lang });
       await i18n.changeLanguage(lang);

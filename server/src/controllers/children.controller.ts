@@ -283,8 +283,11 @@ export async function createChildFromOnboarding(req: AuthRequest, res: Response)
     console.log(`[friends] 🤖 Generating personalised friends for ${childObj.name}...`);
     const genResult = await generatePersonalisedFriends(childObj, lang, 3);
 
-    const existingNames = await db('ai_friends').pluck('name') as string[];
-    const existingNamesLower = new Set(existingNames.map(n => n.toLowerCase()));
+    const existingNames = await db('child_friends')
+      .join('ai_friends', 'ai_friends.id', 'child_friends.friend_id')
+      .where({ 'child_friends.child_id': child.id })
+      .pluck('ai_friends.name') as string[];
+    const existingNamesLower = new Set(existingNames.map((n: string) => n.toLowerCase()));
 
     const uniqueFriends = genResult.friends.filter(f => !existingNamesLower.has(f.name.toLowerCase()));
 
