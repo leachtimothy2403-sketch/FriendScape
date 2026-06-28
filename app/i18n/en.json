@@ -362,6 +362,11 @@
     "retryMessage": "Taking longer than usual...",
     "retryButton": "Retry →"
   },
+  "jules": {
+    "photoPrivacyTitle": "📸 Sending a photo to Jules",
+    "photoPrivacyText": "Jules will look at your photo to help with your mission. Photos are never saved — Jules sees it once and it's gone.",
+    "photoPrivacyButton": "Got it, send photo!"
+  },
   "discover": {
     "meetLuna": "🌙 Meet Ms. Luna",
     "lunaTagline": "Your learning friend 🌙",

@@ -378,6 +378,11 @@
     "retryMessage": "Plus long que d'habitude...",
     "retryButton": "Réessayer →"
   },
+  "jules": {
+    "photoPrivacyTitle": "📸 Envoyer une photo à Jules",
+    "photoPrivacyText": "Jules regardera ta photo pour t'aider dans ta mission. Les photos ne sont jamais sauvegardées — Jules la voit une fois et c'est tout.",
+    "photoPrivacyButton": "Compris, envoyer la photo !"
+  },
   "discover": {
     "meetLuna": "🌙 Rencontre Mme Luna",
     "lunaTagline": "Ton amie pour apprendre 🌙",

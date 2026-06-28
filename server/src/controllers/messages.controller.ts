@@ -254,13 +254,14 @@ export async function sendMessage(req: AuthRequest, res: Response) {
       const childRecord = await db('children').where({ id: childId }).select('school_grade_next', 'name').first();
       const hasGrade = childRecord?.school_grade_next && String(childRecord.school_grade_next).trim() !== '';
 
+
       if (!hasGrade) {
         const msgCount = await db('messages')
           .where({ conversation_id: conversation.id, sender_type: 'child' })
           .count('id as count')
           .first() as { count: string } | undefined;
 
-        const isFirstMessage = Number(msgCount?.count ?? 0) <= 1;
+        const isFirstMessage = Number(msgCount?.count ?? 0) <= 0;
 
         if (isFirstMessage) {
           const gradeQuestion = lang === 'fr'

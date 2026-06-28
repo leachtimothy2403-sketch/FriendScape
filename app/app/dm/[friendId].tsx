@@ -89,6 +89,7 @@ export default function DMScreen() {
   const [replyTimedOut, setReplyTimedOut]     = useState(false);
   const [retryContent, setRetryContent]       = useState<{ text: string; imageB64?: string; imageType?: string } | null>(null);
   const [isTeacher, setIsTeacher]             = useState(false);
+  const [isJules, setIsJules]                 = useState(false);
   const [selectedImage, setSelectedImage]     = useState<{ base64: string; uri: string } | null>(null);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showGradeChips, setShowGradeChips]   = useState(false);
@@ -189,6 +190,7 @@ export default function DMScreen() {
           setFriendEmoji(emoji);
           setFriendBg(FRIEND_BG[name] ?? '#EEEDFE');
           setIsTeacher(teacher);
+          setIsJules(Boolean((friend as Record<string, unknown>).is_jules));
           setFriendAvatarUrl(avatarUrl);
 
           const loadedMsgs = (msgRes.data.messages as ChatMessage[]).reverse();
@@ -308,7 +310,8 @@ export default function DMScreen() {
     if (!result.canceled && result.assets[0]) {
       const compressed = await compressImage(result.assets[0].uri);
       setSelectedImage(compressed);
-      const shown = await AsyncStorage.getItem('luna_photo_privacy_shown');
+      const shownKey = isTeacher ? 'luna_photo_privacy_shown' : 'jules_photo_privacy_shown';
+      const shown = await AsyncStorage.getItem(shownKey);
       if (!shown) setShowPrivacyModal(true);
     }
   }
@@ -318,13 +321,15 @@ export default function DMScreen() {
     if (!result.canceled && result.assets[0]) {
       const compressed = await compressImage(result.assets[0].uri);
       setSelectedImage(compressed);
-      const shown = await AsyncStorage.getItem('luna_photo_privacy_shown');
+      const shownKey = isTeacher ? 'luna_photo_privacy_shown' : 'jules_photo_privacy_shown';
+      const shown = await AsyncStorage.getItem(shownKey);
       if (!shown) setShowPrivacyModal(true);
     }
   }
 
   async function dismissPrivacyModal() {
-    await AsyncStorage.setItem('luna_photo_privacy_shown', '1');
+    const privacyKey = isTeacher ? 'luna_photo_privacy_shown' : 'jules_photo_privacy_shown';
+    await AsyncStorage.setItem(privacyKey, '1');
     setShowPrivacyModal(false);
   }
 
@@ -549,10 +554,10 @@ export default function DMScreen() {
       <Modal visible={showPrivacyModal} transparent animationType="fade">
         <View style={s.modalOverlay}>
           <View style={s.privacyModal}>
-            <Text style={s.privacyTitle}>{t('luna.photoPrivacyTitle')}</Text>
-            <Text style={s.privacyText}>{t('luna.photoPrivacyText')}</Text>
+            <Text style={s.privacyTitle}>{isTeacher ? t('luna.photoPrivacyTitle') : t('jules.photoPrivacyTitle')}</Text>
+            <Text style={s.privacyText}>{isTeacher ? t('luna.photoPrivacyText') : t('jules.photoPrivacyText')}</Text>
             <TouchableOpacity style={s.privacyBtn} onPress={() => void dismissPrivacyModal()}>
-              <Text style={s.privacyBtnText}>{t('luna.photoPrivacyButton')}</Text>
+              <Text style={s.privacyBtnText}>{isTeacher ? t('luna.photoPrivacyButton') : t('jules.photoPrivacyButton')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -725,7 +730,7 @@ export default function DMScreen() {
 
         {/* Input bar */}
         <View style={s.inputBar}>
-          {isTeacher ? (
+          {(isTeacher || isJules) ? (
             <>
               <TouchableOpacity style={s.cameraBtn} onPress={() => void handleCamera()}>
                 <Text style={{ fontSize: 18 }}>📸</Text>
