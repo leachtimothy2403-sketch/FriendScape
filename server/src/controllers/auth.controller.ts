@@ -160,6 +160,7 @@ export async function enroll(req: Request, res: Response) {
     approval_token: approvalToken,
     status: 'pending',
     expires_at: expiresAt,
+    language: language ?? 'en',
   });
 
   // Send response immediately
@@ -334,45 +335,61 @@ function approvedHtml(token: string): string {
   `);
 }
 
-function setPasswordFormHtml(token: string, error?: string): string {
+function setPasswordFormHtml(token: string, error?: string, lang = 'en'): string {
   return htmlShell('🔐', 'Set Up Parent Account', `
     <h1>Set up your Parent account</h1>
-    <p>Create a password to access the myMigo Parent Dashboard.</p>
+    <p>${lang === 'fr' ? 'Créez un mot de passe pour accéder au tableau de bord myMigo.' : 'Create a password to access the myMigo Parent Dashboard.'}</p>
     ${error ? `<p style="color:#C0392B">${error}</p>` : ''}
-    <div style="background:#F8F7FF;border-radius:16px;padding:20px;margin-bottom:24px;text-align:left">
-      <p style="margin:0 0 12px;font-size:14px;font-weight:700;color:#2C2C2A">Beta Test Agreement</p>
-      <p style="margin:0 0 12px;font-size:13px;color:#888780;line-height:1.6">By creating your account, you confirm that:</p>
-      <ul style="margin:0 0 12px;padding-left:20px;font-size:13px;color:#888780;line-height:1.9">
-        <li>Your child will use myMigo under your supervision on your device</li>
-        <li>Your child's conversations are processed by Claude (Anthropic) — never sold or used to train AI models</li>
-        <li>Photos and voice recordings are processed in real-time and never stored by myMigo</li>
-        <li>You can request deletion of all your child's data at any time by emailing ${process.env.FEEDBACK_EMAIL || 'privacy@mymigo.fr'}</li>
-        <li>This is a closed beta — please do not share access with others</li>
-      </ul>
-      <label style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:#2C2C2A;cursor:pointer">
-        <input type="checkbox" name="consent" value="1" required style="margin-top:3px;width:16px;height:16px;flex-shrink:0">
-        <span>I have read and agree to the <a href="https://mymigo-site.vercel.app/beta-terms" target="_blank" style="color:#7F77DD">beta test terms</a> and the processing of my child's data as described above.</span>
-      </label>
-    </div>
-    <form method="POST" action="/auth/set-password">
+    <form method="POST" action="/auth/set-password" onsubmit="return validateForm()">
       <input type="hidden" name="token" value="${token}">
-      <input type="hidden" name="consent" value="0">
-      <input type="checkbox" name="consent" value="1" required style="display:none" id="consentCheck">
-      <input type="password" name="password" placeholder="Choose a password (min 8 characters)" required minlength="8" style="width:100%;padding:14px;border-radius:12px;border:1px solid #E8E6FF;margin-bottom:16px;font-size:15px;box-sizing:border-box">
-      <button type="submit" class="btn" style="border:none;width:100%;cursor:pointer">Create Account & Give Access →</button>
+      <input type="hidden" name="consent" value="1">
+
+      <div style="background:#F8F7FF;border-radius:16px;padding:20px;margin-bottom:24px;text-align:left">
+        <p style="margin:0 0 12px;font-size:14px;font-weight:700;color:#2C2C2A">${lang === 'fr' ? 'Accord de test bêta' : 'Beta Test Agreement'}</p>
+        <p style="margin:0 0 12px;font-size:13px;color:#888780;line-height:1.6">${lang === 'fr' ? 'En créant votre compte, vous confirmez que :' : 'By creating your account, you confirm that:'}</p>
+        <ul style="margin:0 0 12px;padding-left:20px;font-size:13px;color:#888780;line-height:1.9">
+          ${lang === 'fr' ? `
+          <li>Votre enfant utilisera myMigo sous votre supervision sur votre appareil</li>
+          <li>Les conversations de votre enfant sont traitées par Claude (Anthropic) — jamais vendues ni utilisées pour entraîner des modèles IA</li>
+          <li>Les photos et enregistrements vocaux sont traités en temps réel et jamais stockés par myMigo</li>
+          <li>Vous pouvez demander la suppression de toutes les données de votre enfant à tout moment en écrivant à ${process.env.FEEDBACK_EMAIL || 'privacy@mymigo.fr'}</li>
+          <li>Il s'agit d'un bêta fermé — ne partagez pas l'accès avec d'autres personnes</li>
+          ` : `
+          <li>Your child will use myMigo under your supervision on your device</li>
+          <li>Your child's conversations are processed by Claude (Anthropic) — never sold or used to train AI models</li>
+          <li>Photos and voice recordings are processed in real-time and never stored by myMigo</li>
+          <li>You can request deletion of all your child's data at any time by emailing ${process.env.FEEDBACK_EMAIL || 'privacy@mymigo.fr'}</li>
+          <li>This is a closed beta — please do not share access with others</li>
+          `}
+        </ul>
+        <label style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:#2C2C2A;cursor:pointer">
+          <input type="checkbox" id="consentCheck" style="margin-top:3px;width:16px;height:16px;flex-shrink:0">
+          <span>${lang === 'fr' ? `J'ai lu et j'accepte les <a href="https://mymigo-site.vercel.app/beta-terms" target="_blank" style="color:#7F77DD">conditions du test bêta</a> et le traitement des données de mon enfant tel que décrit ci-dessus.` : `I have read and agree to the <a href="https://mymigo-site.vercel.app/beta-terms" target="_blank" style="color:#7F77DD">beta test terms</a> and the processing of my child's data as described above.`}</span>
+        </label>
+      </div>
+
+      <input type="password" name="password" id="passwordInput" placeholder="${lang === 'fr' ? 'Choisissez un mot de passe (8 caractères min.)' : 'Choose a password (min 8 characters)'}" minlength="8" style="width:100%;padding:14px;border-radius:12px;border:1px solid #E8E6FF;margin-bottom:16px;font-size:15px;box-sizing:border-box">
+      <div id="formError" style="color:#C0392B;font-size:13px;margin-bottom:12px;display:none"></div>
+      <button type="submit" class="btn" style="border:none;width:100%;cursor:pointer">${lang === 'fr' ? "Créer mon compte & donner l'accès →" : 'Create Account & Give Access →'}</button>
     </form>
     <script>
-      document.querySelector('form').addEventListener('submit', function(e) {
-        const visibleCb = document.querySelector('label input[type="checkbox"][name="consent"]');
-        if (!visibleCb || !visibleCb.checked) {
-          e.preventDefault();
-          alert('Please read and accept the beta test agreement to continue.');
-          return;
+      function validateForm() {
+        var cb = document.getElementById('consentCheck');
+        var pw = document.getElementById('passwordInput');
+        var err = document.getElementById('formError');
+        if (!cb.checked) {
+          err.textContent = '${lang === 'fr' ? "Veuillez lire et accepter l'accord de test bêta pour continuer." : 'Please read and accept the beta test agreement to continue.'}';
+          err.style.display = 'block';
+          return false;
         }
-        // Sync visible checkbox state to the hidden one inside the form
-        const hiddenCb = document.getElementById('consentCheck');
-        if (hiddenCb) hiddenCb.checked = true;
-      });
+        if (!pw.value || pw.value.length < 8) {
+          err.textContent = '${lang === 'fr' ? "Veuillez choisir un mot de passe d'au moins 8 caractères." : 'Please choose a password of at least 8 characters.'}';
+          err.style.display = 'block';
+          return false;
+        }
+        err.style.display = 'none';
+        return true;
+      }
     </script>
   `);
 }
@@ -411,7 +428,8 @@ export async function showSetPasswordForm(req: Request, res: Response) {
   }
 
   console.log('[auth] 🔑 Showing set-password form for', enrollment.parent_email);
-  res.send(setPasswordFormHtml(token));
+  const enrollLang = (enrollment.language as string | undefined) ?? 'en';
+  res.send(setPasswordFormHtml(token, undefined, enrollLang));
 }
 
 export async function setApprovalPassword(req: Request, res: Response) {

@@ -315,6 +315,8 @@ export async function sendMessage(req: AuthRequest, res: Response) {
               recentMessages,
               julesPersonalityPrompt,
               schoolGrade || null,
+              imageBase64,
+              imageMediaType,
             ),
           ),
           checkMood(content.trim(), child.name, child.age),

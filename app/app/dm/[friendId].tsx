@@ -544,7 +544,7 @@ export default function DMScreen() {
   }
 
   const renderItem = ({ item }: { item: DisplayItem }) => {
-    if (item.sender_type === 'typing') return <TypingBubble lookingAtPhoto={lastMessageHadPhoto && isTeacher} />;
+    if (item.sender_type === 'typing') return <TypingBubble lookingAtPhoto={lastMessageHadPhoto && (isTeacher || isJules)} />;
     return <MessageBubble message={item as ChatMessage} friendName={friendName} />;
   };
 
@@ -658,7 +658,7 @@ export default function DMScreen() {
         )}
 
         {/* Image preview (Luna only) */}
-        {isTeacher && selectedImage && (
+        {(isTeacher || isJules) && selectedImage && (
           <View style={s.imagePreviewBar}>
             <Image source={{ uri: selectedImage.uri }} style={s.imagePreview} />
             <Text style={s.imagePreviewLabel}>{t('luna.photoAdded')}</Text>

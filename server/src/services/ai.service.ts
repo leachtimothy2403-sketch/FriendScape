@@ -333,6 +333,8 @@ export async function generateJulesReply(
   conversationHistory: Array<{ content: string; sender_type: string }>,
   julesPersonalityPrompt: string,
   schoolGrade: string | null,
+  imageBase64?: string,
+  imageMediaType?: string,
 ): Promise<FriendReplyResult> {
   void memoryBrief; // reserved for future memory integration
 
@@ -362,9 +364,23 @@ RESPONSE RULES:
     }));
 
   // Ensure history ends with assistant if last message is from child (avoid consecutive user messages)
+  const userContent: Anthropic.MessageParam['content'] = imageBase64
+    ? [
+        {
+          type: 'image' as const,
+          source: {
+            type: 'base64' as const,
+            media_type: (imageMediaType ?? 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+            data: imageBase64,
+          },
+        },
+        { type: 'text' as const, text: message || "Here's my work!" },
+      ]
+    : message;
+
   const finalMessages: Anthropic.MessageParam[] = [
     ...historyMessages,
-    { role: 'user' as const, content: message },
+    { role: 'user' as const, content: userContent },
   ];
 
   console.log(`[jules] Calling Claude with ${finalMessages.length} messages, grade=${schoolGrade ?? 'unknown'}`);
