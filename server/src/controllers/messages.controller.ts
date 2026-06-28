@@ -5,6 +5,7 @@ import { AuthRequest } from '../middleware/auth';
 import { checkBadgesForChild } from './badges.controller';
 import {
   generateFriendReply,
+  generateJulesReply,
   generateTutorReply,
   generateRPSMove,
   generateTicTacToeMove,
@@ -243,7 +244,7 @@ export async function sendMessage(req: AuthRequest, res: Response) {
 
     console.log(`[messages] 🤖 Calling Claude — ${friend.name} replies to ${child.name}: "${content.trim().slice(0, 40)}" (lang=${lang}${isTeacher ? ', teacher' : ''})`);
 
-    let reply: FriendReplyResult;
+    let reply: FriendReplyResult = { text: '', inputTokens: 0, outputTokens: 0 };
     let tutorMeta: TutorReply | null = null;
     let rateLimitFallback = false;
 
@@ -277,9 +278,52 @@ export async function sendMessage(req: AuthRequest, res: Response) {
           return;
         }
       }
-    }
 
-    if (isTeacher) {
+      // Jules reply — use Jules-specific prompt, not generic friend reply
+      const julesPersonalityPrompt = String((friendRow as Record<string, unknown>).personality_prompt ?? '');
+      const schoolGrade = String((await db('children').where({ id: childId }).select('school_grade').first() as { school_grade?: string } | undefined)?.school_grade ?? '');
+
+      let julesReply: FriendReplyResult;
+      try {
+        const [resolved, mood2] = await Promise.all([
+          callClaudeWithRetry(() =>
+            generateJulesReply(
+              child,
+              content.trim(),
+              memoryBrief,
+              lang as 'en' | 'fr',
+              recentMessages,
+              julesPersonalityPrompt,
+              schoolGrade || null,
+            ),
+          ),
+          checkMood(content.trim(), child.name, child.age),
+        ]);
+        julesReply = resolved;
+        (req as unknown as Record<string, unknown>)._mood = mood2;
+      } catch (err: unknown) {
+        const status = (err as Record<string, unknown>)?.status;
+        if (status === 429) {
+          julesReply = {
+            text: lang === 'fr'
+              ? "Je suis un peu occupé là — reviens dans un moment ! 🧭"
+              : "I'm a bit busy right now — come back in a moment! 🧭",
+            inputTokens: 0, outputTokens: 0,
+          };
+        } else {
+          throw err;
+        }
+      }
+
+      reply = julesReply;
+      (req as unknown as Record<string, unknown>)._mood ??= await checkMood(content.trim(), child.name, child.age).catch(() => ({
+        mood: 'neutral' as const, intensity: 'low' as const, crisisFlag: false, crisisReason: null,
+        parentAlertNeeded: false, parentAlertReason: null, suggestParentTalk: false, inputTokens: 0, outputTokens: 0,
+      }));
+
+    }  // end if (isJules)
+
+    if (!isJules && isTeacher) {
       const tutorLang = (lang === 'fr' ? 'fr' : 'en') as 'en' | 'fr';
       const isFirstInteraction = !child.schoolGrade;
 
@@ -347,7 +391,7 @@ export async function sendMessage(req: AuthRequest, res: Response) {
         console.log(`[luna] 📸 Image received, processed by Claude, not stored`);
       }
 
-    } else {
+    } else if (!isJules) {
       const aiMsgCountRow = await db('messages')
         .where({ conversation_id: conversation.id, sender_type: 'ai' })
         .count('* as count')

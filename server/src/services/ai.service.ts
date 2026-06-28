@@ -323,6 +323,59 @@ CONVERSATION BALANCE RULES:
 }
 
 
+// ── 1b. Generate Jules reply ──────────────────────────────────────────────────
+
+export async function generateJulesReply(
+  child: Child,
+  message: string,
+  memoryBrief: string | null,
+  language: 'en' | 'fr',
+  conversationHistory: Array<{ content: string; sender_type: string }>,
+  julesPersonalityPrompt: string,
+  schoolGrade: string | null,
+): Promise<FriendReplyResult> {
+  void memoryBrief; // reserved for future memory integration
+
+  const gradeContext = schoolGrade
+    ? `\n\nCHILD GRADE: ${child.name} is going into ${schoolGrade} next year. Generate exercises appropriate for this level.`
+    : '';
+
+  const system = `${buildLanguageInstruction(language, true)}
+
+${julesPersonalityPrompt}
+
+CHILD YOU ARE TALKING TO: ${child.name}, age ${child.age}.${gradeContext}
+
+RESPONSE RULES:
+- Keep replies SHORT — 2 to 4 sentences maximum
+- Use ${child.name}'s name occasionally
+- Speak the child's language (${language === 'fr' ? 'French' : 'English'})
+- Never break character as Jules
+- Use 1-2 emojis maximum`;
+
+  const messages: Anthropic.MessageParam[] = [
+    ...conversationHistory.map(m => ({
+      role: (m.sender_type === 'child' ? 'user' : 'assistant') as 'user' | 'assistant',
+      content: m.content,
+    })),
+    { role: 'user' as const, content: message },
+  ];
+
+  const response = await callWithRetry(() => client.messages.create({
+    model:      MODELS.smart,
+    max_tokens: 300,
+    system,
+    messages,
+  }));
+
+  return {
+    text:         extractText(response),
+    inputTokens:  response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+  };
+}
+
+
 // ── 2. Generate personalised friends ─────────────────────────────────────────
 
 export interface GeneratedFriend {
