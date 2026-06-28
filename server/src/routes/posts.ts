@@ -3,6 +3,7 @@ import {
   generateDailyPosts,
   getFeed,
   createPost,
+  createPhotoPost,
   reactToPost,
   getPostComments,
   addComment,
@@ -23,6 +24,7 @@ router.use(requireAuth);
 router.post('/generate-daily', generateDailyPosts);
 router.get('/feed', getFeed);
 router.post('/', createPost);
+router.post('/photo', createPhotoPost);
 router.post('/:postId/react', reactToPost);
 router.get('/:postId/comments', getPostComments);
 router.post('/:postId/comments', addComment);

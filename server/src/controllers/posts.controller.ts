@@ -7,7 +7,7 @@ import {
   buildMemoryBrief,
 } from '../services/ai.service';
 import { toChildType, toFriendType, toMemoryType } from '../utils/db-mappers';
-import { generatePostImage } from '../services/avatar.service';
+import { generatePostImage, cartoonifyScenePhoto } from '../services/avatar.service';
 import { checkBadgesForChild } from './badges.controller';
 import { runDailyPostsJob } from '../jobs/dailyPosts';
 
@@ -289,6 +289,104 @@ export async function createPost(req: AuthRequest, res: Response) {
   } catch (err) {
     console.error('[posts] createPost error:', err);
     res.status(500).json({ error: 'Failed to create post' });
+  }
+}
+
+// ─── POST /posts/photo ───────────────────────────────────────────────────────
+export async function createPhotoPost(req: AuthRequest, res: Response) {
+  const childId = req.childId;
+  if (!childId) { res.status(401).json({ error: 'Child authentication required' }); return; }
+
+  try {
+    const { photoBase64, photoMediaType, content } = req.body as {
+      photoBase64?: string;
+      photoMediaType?: string;
+      content?: string;
+    };
+
+    if (!photoBase64?.trim()) {
+      res.status(400).json({ error: 'photoBase64 is required' });
+      return;
+    }
+
+    const result = await cartoonifyScenePhoto(
+      photoBase64,
+      photoMediaType ?? 'image/jpeg',
+    );
+
+    if (!result) {
+      res.status(422).json({
+        error: 'photo_rejected',
+        message: 'Photos with people are not allowed. Try a photo of a place, animal, food, or object!',
+        message_fr: 'Les photos avec des personnes ne sont pas autorisées. Essaie une photo d\'un endroit, d\'un animal, d\'un repas ou d\'un objet !',
+      });
+      return;
+    }
+
+    const postContent = content?.trim() || result.sceneDescription;
+
+    const [post] = await db('posts')
+      .insert({
+        child_id:    childId,
+        author_id:   childId,
+        author_type: 'child',
+        content:     postContent,
+        image_url:   result.cartoonUrl,
+      })
+      .returning('*');
+
+    res.status(201).json({ post });
+
+    checkBadgesForChild(childId, 'first_post').catch(console.error);
+    checkBadgesForChild(childId, 'total_posts').catch(console.error);
+
+    const postId     = String((post as Record<string, unknown>).id);
+    const childIdStr = childId;
+    const isDev      = process.env.NODE_ENV === 'development';
+
+    setTimeout(() => void (async () => {
+      try {
+        const childRow = await db('children').where({ id: childIdStr }).first();
+        if (!childRow) return;
+
+        const friendRows = await db('child_friends')
+          .join('ai_friends', 'ai_friends.id', 'child_friends.friend_id')
+          .where({ 'child_friends.child_id': childIdStr, 'ai_friends.is_teacher': false })
+          .select('ai_friends.*') as Record<string, unknown>[];
+
+        if (!friendRows.length) return;
+
+        const child    = toChildType(childRow);
+        const lang     = (childRow.language as string) || 'en';
+        const shuffled = [...friendRows].sort(() => Math.random() - 0.5);
+        const commenters = shuffled.filter(() => Math.random() < 0.6).slice(0, 2);
+        const delays = isDev
+          ? [5000 + Math.random() * 10000, 15000 + Math.random() * 5000]
+          : [30000 + Math.random() * 90000, 60000 + Math.random() * 120000];
+
+        for (let i = 0; i < commenters.length; i++) {
+          const fr     = commenters[i];
+          const friend = toFriendType(fr);
+          await new Promise((r) => setTimeout(r, delays[i]));
+          const memoryRow   = await db('child_memories').where({ child_id: childIdStr, friend_id: String(fr.id) }).first();
+          const memoryBrief = memoryRow ? buildMemoryBrief(toMemoryType(memoryRow)) : null;
+          const comment = await generatePostComment(friend, child, postContent, memoryBrief, lang);
+          await db('post_comments').insert({
+            post_id:     postId,
+            author_id:   String(fr.id),
+            author_type: 'ai',
+            content:     comment.text,
+          });
+          console.log(`[posts] ✅ Photo post comment from ${friend.name}`);
+        }
+      } catch (err) {
+        console.error('[posts] photo post comment error:', err);
+      }
+    })(), 500);
+
+  } catch (err) {
+    console.error('[posts] createPhotoPost error:', err);
+    res.status(500).json({ error: 'Failed to create photo post' });
   }
 }
 

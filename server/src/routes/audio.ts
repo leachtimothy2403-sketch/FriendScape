@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { generateSpeech, transcribeAudio } from '../services/audio.service';
+import { generateSpeech, generateSpeechStream, transcribeAudio } from '../services/audio.service';
 import rateLimit from 'express-rate-limit';
 
 const router = Router();
@@ -58,6 +58,33 @@ router.post('/transcribe', audioLimiter, async (req: Request, res: Response) => 
   } catch (err) {
     console.error('[audio] transcribeAudio error:', err);
     res.status(500).json({ error: 'Failed to transcribe audio' });
+  }
+});
+
+// GET /audio/stream — streams audio directly to client
+router.get('/stream', audioLimiter, async (req: Request, res: Response) => {
+  try {
+    const { text, characterId, language, messageId } = req.query as {
+      text?: string;
+      characterId?: string;
+      language?: string;
+      messageId?: string;
+    };
+
+    if (!text?.trim())        { res.status(400).json({ error: 'text is required' });        return; }
+    if (!characterId?.trim()) { res.status(400).json({ error: 'characterId is required' }); return; }
+
+    const lang = language === 'fr' ? 'fr' : 'en';
+    const cacheKey = messageId
+      ? `${characterId.toLowerCase()}_${lang}_msg_${messageId}`
+      : undefined;
+
+    await generateSpeechStream(text.trim(), characterId.trim(), lang, res, cacheKey);
+  } catch (err) {
+    console.error('[audio] stream error:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to stream audio' });
+    }
   }
 });
 

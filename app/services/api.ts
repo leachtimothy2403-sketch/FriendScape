@@ -125,6 +125,8 @@ export const childPosts = {
     api.get<{ posts: unknown[] }>('/posts/feed', withToken(token)),
   create: (token: string, data: { content: string; mood?: string }) =>
     api.post<{ post: unknown }>('/posts', data, withToken(token)),
+  createPhoto: (token: string, data: { photoBase64: string; photoMediaType?: string; content?: string }) =>
+    api.post('/posts/photo', data, { headers: { Authorization: `Bearer ${token}` } }),
   react: (token: string, postId: string, emoji: string) =>
     api.post<{ reactions: Record<string, number>; toggled: boolean }>(
       `/posts/${postId}/react`, { emoji }, withToken(token),

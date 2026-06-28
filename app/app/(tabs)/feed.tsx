@@ -3,6 +3,7 @@ import {
   Modal, TextInput, RefreshControl, ActivityIndicator, Animated,
   AppState, AppStateStatus, StyleSheet, Platform, KeyboardAvoidingView, Image, Dimensions, Alert,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { router, usePathname, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -106,6 +107,8 @@ export default function FeedScreen() {
   const [showNewPost, setShowNewPost] = useState(false);
   const [newPostText, setNewPostText] = useState('');
   const [newPostMood, setNewPostMood] = useState('');
+  const [newPostPhoto, setNewPostPhoto] = useState<{ base64: string; uri: string; mediaType: string } | null>(null);
+  const [photoProcessing, setPhotoProcessing] = useState(false);
   const [posting, setPosting]         = useState(false);
   const [childEmoji, setChildEmoji]           = useState<string>('👦');
   const [avatarBackground, setAvatarBackground] = useState<string>('#EEEDFE');
@@ -520,22 +523,96 @@ export default function FeedScreen() {
     void loadFeed(childToken, true);
   }, [childToken]);
 
+  async function handlePostCamera(source: 'camera' | 'library') {
+    try {
+      if (source === 'camera') {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') return;
+        const result = await ImagePicker.launchCameraAsync({
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.7,
+          base64: true,
+        });
+        if (!result.canceled && result.assets[0]) {
+          const asset = result.assets[0];
+          setNewPostPhoto({
+            base64: asset.base64 ?? '',
+            uri: asset.uri,
+            mediaType: asset.mimeType ?? 'image/jpeg',
+          });
+        }
+      } else {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') return;
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.7,
+          base64: true,
+        });
+        if (!result.canceled && result.assets[0]) {
+          const asset = result.assets[0];
+          setNewPostPhoto({
+            base64: asset.base64 ?? '',
+            uri: asset.uri,
+            mediaType: asset.mimeType ?? 'image/jpeg',
+          });
+        }
+      }
+    } catch (err) {
+      console.error('[feed] camera error:', err);
+    }
+  }
+
   async function submitPost() {
-    if (!childToken || !newPostText.trim() || posting) return;
+    if (!childToken || posting) return;
+    if (!newPostPhoto && !newPostText.trim()) return;
     setPosting(true);
     try {
-      await childPosts.create(childToken, {
-        content: newPostText.trim(),
-        mood: newPostMood || undefined,
-      });
+      if (newPostPhoto) {
+        setPhotoProcessing(true);
+        const res = await childPosts.createPhoto(childToken, {
+          photoBase64: newPostPhoto.base64,
+          photoMediaType: newPostPhoto.mediaType,
+          content: newPostText.trim() || undefined,
+        });
+        setPhotoProcessing(false);
+        if ((res.data as Record<string, unknown>).error === 'photo_rejected') {
+          const lang = language;
+          alert(lang === 'fr'
+            ? 'Les photos avec des personnes ne sont pas autorisées. Essaie une photo d\'un endroit, d\'un animal, d\'un repas ou d\'un objet !'
+            : 'Photos with people are not allowed. Try a photo of a place, animal, food, or object!');
+          setPosting(false);
+          return;
+        }
+      } else {
+        await childPosts.create(childToken, {
+          content: newPostText.trim(),
+          mood: newPostMood || undefined,
+        });
+      }
       setShowNewPost(false);
       setNewPostText('');
       setNewPostMood('');
+      setNewPostPhoto(null);
       void loadFeed(childToken, true);
-    } catch (e) {
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: string; message?: string; message_fr?: string } } };
+      if (err.response?.data?.error === 'photo_rejected') {
+        setPhotoProcessing(false);
+        const msg = language === 'fr'
+          ? err.response.data.message_fr
+          : err.response.data.message;
+        alert(msg ?? 'Photo not allowed');
+        setPosting(false);
+        return;
+      }
       console.error('[feed] createPost error:', e);
     } finally {
       setPosting(false);
+      setPhotoProcessing(false);
     }
   }
 
@@ -794,6 +871,35 @@ export default function FeedScreen() {
           <View style={s.modalSheet}>
             <Text style={s.modalTitle}>New post</Text>
 
+            {newPostPhoto ? (
+              <View style={{ marginBottom: 12 }}>
+                <Image source={{ uri: newPostPhoto.uri }} style={{ width: '100%', height: 160, borderRadius: 12 }} resizeMode="cover" />
+                <TouchableOpacity
+                  onPress={() => setNewPostPhoto(null)}
+                  style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12, padding: 4 }}
+                >
+                  <Text style={{ color: '#fff', fontSize: 12 }}>✕ Remove</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                <TouchableOpacity
+                  onPress={() => void handlePostCamera('camera')}
+                  style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 12, backgroundColor: '#F8F7FF', borderRadius: 12, borderWidth: 1, borderColor: '#E8E6FF', borderStyle: 'dashed' }}
+                >
+                  <Text style={{ fontSize: 18 }}>📷</Text>
+                  <Text style={{ fontSize: 13, color: '#7F77DD', fontWeight: '600' }}>{language === 'fr' ? 'Appareil photo' : 'Camera'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => void handlePostCamera('library')}
+                  style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 12, backgroundColor: '#F8F7FF', borderRadius: 12, borderWidth: 1, borderColor: '#E8E6FF', borderStyle: 'dashed' }}
+                >
+                  <Text style={{ fontSize: 18 }}>🖼️</Text>
+                  <Text style={{ fontSize: 13, color: '#7F77DD', fontWeight: '600' }}>{language === 'fr' ? 'Galerie' : 'Library'}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             <TextInput
               multiline
               placeholder={t('feed.postPlaceholder')}
@@ -820,12 +926,14 @@ export default function FeedScreen() {
 
             <TouchableOpacity
               onPress={() => void submitPost()}
-              disabled={!newPostText.trim() || posting}
-              style={[s.postBtn, (!newPostText.trim() || posting) && { backgroundColor: '#C8C6E8' }]}
+              disabled={(!newPostText.trim() && !newPostPhoto) || posting}
+              style={[s.postBtn, ((!newPostText.trim() && !newPostPhoto) || posting) && { backgroundColor: '#C8C6E8' }]}
             >
               {posting
-                ? <ActivityIndicator color="#fff" />
-                : <Text style={s.postBtnText}>Post</Text>
+                ? photoProcessing
+                  ? <Text style={[s.postBtnText, { fontSize: 12 }]}>{language === 'fr' ? '✨ Création...' : '✨ Creating...'}</Text>
+                  : <ActivityIndicator color="#fff" />
+                : <Text style={s.postBtnText}>{language === 'fr' ? 'Publier' : 'Post'}</Text>
               }
             </TouchableOpacity>
 
@@ -969,20 +1077,18 @@ function PostCard({
         )}
       </View>
 
-      {!isOwn && (
-        post.image_url
-          ? <Image
-              source={{ uri: post.image_url }}
-              style={{ width: '100%', aspectRatio: 1, borderRadius: 12, marginVertical: 8 }}
-              resizeMode="cover"
-            />
-          : sceneChars.length > 0 && (
-              <View style={[s.sceneStrip, { backgroundColor: friendTint }]}>
-                {sceneChars.slice(0, 5).map((ch, i) => (
-                  <Text key={i} style={{ fontSize: 52 }}>{ch}</Text>
-                ))}
-              </View>
-            )
+      {post.image_url ? (
+        <Image
+          source={{ uri: post.image_url }}
+          style={{ width: '100%', aspectRatio: 1, borderRadius: 12, marginVertical: 8 }}
+          resizeMode="cover"
+        />
+      ) : !isOwn && sceneChars.length > 0 && (
+        <View style={[s.sceneStrip, { backgroundColor: friendTint }]}>
+          {sceneChars.slice(0, 5).map((ch, i) => (
+            <Text key={i} style={{ fontSize: 52 }}>{ch}</Text>
+          ))}
+        </View>
       )}
 
       <Text style={s.postContent}>{post.content}</Text>

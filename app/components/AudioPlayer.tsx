@@ -82,19 +82,15 @@ export default function AudioPlayer({ text, characterId, messageId, size = 'sm' 
       try {
         const token = await AsyncStorage.getItem('childToken');
         const normalised = nameToCharacterId(characterId);
-
         console.log('[audio] calling /audio/generate with characterId:', normalised);
-
         const res = await api.post<{ audioUrl: string }>(
           '/audio/generate',
           { text, characterId: normalised, language, messageId },
           token ? { headers: { Authorization: `Bearer ${token}` } } : undefined,
         );
-
         url = res.data.audioUrl.startsWith('http')
           ? res.data.audioUrl
           : `${api.defaults.baseURL ?? ''}${res.data.audioUrl}`;
-
         console.log('[audio] got audioUrl:', url);
         setAudioUrl(url);
       } catch (err) {

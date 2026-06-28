@@ -179,6 +179,77 @@ export async function cartoonifyPhoto(base64DataUri: string): Promise<string> {
   return url;
 }
 
+export async function cartoonifyScenePhoto(
+  base64DataUri: string,
+  mediaType: string,
+): Promise<{ cartoonUrl: string; sceneDescription: string } | null> {
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+  const visionRes = await client.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 200,
+    messages: [{
+      role: 'user',
+      content: [
+        {
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: mediaType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+            data: base64DataUri.replace(/^data:image\/\w+;base64,/, ''),
+          },
+        },
+        {
+          type: 'text',
+          text: `You are a content moderator for a children's app.
+Look at this photo and respond with EXACTLY one of:
+- REJECTED if you can see any human face, person, or body part
+- A short scene description (max 30 words) describing only objects, animals, food, places, or activities — NO people
+
+Examples of valid descriptions:
+"a birthday cake with candles on a table"
+"a dog playing in a sunny garden"
+"colorful drawings and art supplies spread on a desk"
+"a view of mountains and trees"
+
+Respond with only REJECTED or the description. Nothing else.`,
+        },
+      ],
+    }],
+  });
+
+  const description = visionRes.content[0].type === 'text'
+    ? visionRes.content[0].text.trim()
+    : 'REJECTED';
+
+  if (description === 'REJECTED' || description.toUpperCase().startsWith('REJECTED')) {
+    console.log('[avatar] scene photo rejected — contains people');
+    return null;
+  }
+
+  console.log('[avatar] scene description:', description);
+
+  const prompt = `Pixar cartoon illustration of: ${description}. Vibrant colors, children's app style, warm and friendly, no people or faces, high quality illustration`;
+
+  const result = await fal.subscribe('fal-ai/flux/schnell', {
+    input: {
+      prompt,
+      negative_prompt: 'person, people, face, human, realistic photo, dark, scary, text, watermark',
+      image_size: 'square_hd',
+      num_inference_steps: 4,
+      num_images: 1,
+    } as never,
+    pollInterval: 500,
+  });
+
+  const r = result as unknown as { data: { images: Array<{ url: string }> } };
+  const url = r.data?.images?.[0]?.url;
+  if (!url) throw new Error('No image in fal scene response');
+
+  console.log('[avatar] scene cartoon URL:', url);
+  return { cartoonUrl: url, sceneDescription: description };
+}
+
 const MASCOT_PROMPTS: Record<string, string> = {
   miga: 'Pixar cartoon portrait of an adorable small friendly dragon with sparkly purple and gold scales, big warm expressive eyes, small cute wings, warm happy smile, plain light background, centered, children\'s illustration style, vibrant colors',
   pixel: 'Pixar cartoon portrait of a friendly small robot with big round glowing blue eyes, silver and blue body, warm happy smile, small antenna, plain light background, centered, children\'s illustration style, vibrant colors',
