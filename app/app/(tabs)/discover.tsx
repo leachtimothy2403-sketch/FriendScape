@@ -300,25 +300,29 @@ function JulesCard({ jules, onAdd, isFr, alreadyAdded }: { jules: AiFriendRecord
       activeOpacity={0.9}
       style={s.julesCard}
     >
-      <View style={s.julesAvatar}>
-        {jules.avatar_url
-          ? <Image source={{ uri: jules.avatar_url }} style={{ width: 52, height: 52, borderRadius: 26 }} />
-          : <Text style={{ fontSize: 26 }}>🧭</Text>
-        }
-      </View>
-      <View style={{ flex: 1, marginLeft: 12 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-          <Text style={s.julesName}>{jules.name}</Text>
-          <View style={s.julesBadge}><Text style={s.julesBadgeText}>☀️ Été</Text></View>
+      {/* Top row: avatar + name/badge + button */}
+      <View style={s.julesTopRow}>
+        <View style={s.julesAvatar}>
+          {jules.avatar_url
+            ? <Image source={{ uri: jules.avatar_url }} style={{ width: 52, height: 52, borderRadius: 26 }} />
+            : <Text style={{ fontSize: 26 }}>🧭</Text>
+          }
         </View>
-        <Text style={s.julesTagline}>{t('discover.julesTagline')}</Text>
-        <Text style={s.julesDesc}>{t('discover.julesDesc')}</Text>
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+            <Text style={s.julesName}>{jules.name}</Text>
+            <View style={s.julesBadge}><Text style={s.julesBadgeText}>☀️ Été</Text></View>
+          </View>
+          <Text style={s.julesTagline}>{t('discover.julesTagline')}</Text>
+        </View>
+        <TouchableOpacity style={s.julesBtn} onPress={() => void handleMeet()} disabled={adding}>
+          {adding
+            ? <ActivityIndicator size="small" color="#fff" />
+            : <Text style={s.julesBtnText}>{alreadyAdded ? t('discover.chatJulesButton') : t('discover.meetJulesButton')}</Text>}
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity style={s.julesBtn} onPress={() => void handleMeet()} disabled={adding}>
-        {adding
-          ? <ActivityIndicator size="small" color="#fff" />
-          : <Text style={s.julesBtnText}>{alreadyAdded ? t('discover.chatJulesButton') : t('discover.meetJulesButton')}</Text>}
-      </TouchableOpacity>
+      {/* Full width description below */}
+      <Text style={s.julesDesc}>{t('discover.julesDesc')}</Text>
     </TouchableOpacity>
   );
 }
@@ -607,8 +611,6 @@ const s = StyleSheet.create({
 
   // Jules seasonal card
   julesCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: '#FFF8E7',
     borderRadius: 16,
     padding: 16,
@@ -620,6 +622,11 @@ const s = StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
+  julesTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   julesAvatar: {
     width: 52,
     height: 52,
@@ -628,18 +635,17 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  julesName:      { fontSize: 15, fontWeight: '800', color: '#2C2C2A', marginBottom: 2 },
+  julesName:      { fontSize: 15, fontWeight: '800', color: '#2C2C2A' },
   julesBadge:     { backgroundColor: '#FEF3C7', borderRadius: 99, paddingHorizontal: 7, paddingVertical: 2 },
   julesBadgeText: { fontSize: 10, color: '#D97706', fontWeight: '700' },
-  julesTagline:   { fontSize: 12, color: '#D97706', fontWeight: '600', marginBottom: 4 },
-  julesDesc:      { fontSize: 12, color: '#888780', lineHeight: 17 },
+  julesTagline:   { fontSize: 12, color: '#D97706', fontWeight: '600' },
+  julesDesc:      { fontSize: 13, color: '#666', lineHeight: 19 },
   julesBtn: {
     backgroundColor: '#F59E0B',
     borderRadius: 99,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     alignItems: 'center',
-    minWidth: 72,
     marginLeft: 10,
   },
   julesBtnText: { fontSize: 11, color: '#fff', fontWeight: '800' },
