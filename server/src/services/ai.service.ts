@@ -353,20 +353,35 @@ RESPONSE RULES:
 - Never break character as Jules
 - Use 1-2 emojis maximum`;
 
-  const messages: Anthropic.MessageParam[] = [
-    ...conversationHistory.map(m => ({
+  // Build history WITHOUT appending message again — message is the current child input
+  const historyMessages: Anthropic.MessageParam[] = conversationHistory
+    .filter(m => m.content && m.content.trim() !== '')
+    .map(m => ({
       role: (m.sender_type === 'child' ? 'user' : 'assistant') as 'user' | 'assistant',
       content: m.content,
-    })),
+    }));
+
+  // Ensure history ends with assistant if last message is from child (avoid consecutive user messages)
+  const finalMessages: Anthropic.MessageParam[] = [
+    ...historyMessages,
     { role: 'user' as const, content: message },
   ];
 
-  const response = await callWithRetry(() => client.messages.create({
-    model:      MODELS.smart,
-    max_tokens: 300,
-    system,
-    messages,
-  }));
+  console.log(`[jules] Calling Claude with ${finalMessages.length} messages, grade=${schoolGrade ?? 'unknown'}`);
+
+  const response = await Promise.race([
+    callWithRetry(() => client.messages.create({
+      model:      MODELS.smart,
+      max_tokens: 300,
+      system,
+      messages:   finalMessages,
+    })),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Jules reply timeout after 30s')), 30000)
+    ),
+  ]);
+
+  console.log(`[jules] ✅ Reply generated`);
 
   return {
     text:         extractText(response),

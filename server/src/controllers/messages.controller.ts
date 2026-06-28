@@ -251,8 +251,8 @@ export async function sendMessage(req: AuthRequest, res: Response) {
     // Jules (cahier de vacances) — grade detection on first message
     const isJules = Boolean((friendRow as Record<string, unknown>).is_jules);
     if (isJules) {
-      const childRecord = await db('children').where({ id: childId }).select('school_grade', 'name').first();
-      const hasGrade = childRecord?.school_grade && String(childRecord.school_grade).trim() !== '';
+      const childRecord = await db('children').where({ id: childId }).select('school_grade_next', 'name').first();
+      const hasGrade = childRecord?.school_grade_next && String(childRecord.school_grade_next).trim() !== '';
 
       if (!hasGrade) {
         const msgCount = await db('messages')
@@ -281,7 +281,26 @@ export async function sendMessage(req: AuthRequest, res: Response) {
 
       // Jules reply — use Jules-specific prompt, not generic friend reply
       const julesPersonalityPrompt = String((friendRow as Record<string, unknown>).personality_prompt ?? '');
-      const schoolGrade = String((await db('children').where({ id: childId }).select('school_grade').first() as { school_grade?: string } | undefined)?.school_grade ?? '');
+
+      // Grade capture — extract from child's message if not yet stored
+      const GRADES = ['CP', 'CE1', 'CE2', 'CM1', 'CM2', '6ème', '6eme', '5ème', '5eme', '4ème', '4eme', '3ème', '3eme'];
+      const normalise = (s: string) => s.toLowerCase().replace(/[èé]/g, 'e');
+      const detectedGrade = GRADES.find(g => normalise(content.trim()).includes(normalise(g))) ?? null;
+
+      let schoolGrade = String((await db('children').where({ id: childId }).select('school_grade_next').first() as { school_grade_next?: string } | undefined)?.school_grade_next ?? '');
+
+      if (detectedGrade && !schoolGrade) {
+        const normalisedGrade = (() => {
+          const map: Record<string, string> = {
+            '6eme': '6ème', '5eme': '5ème', '4eme': '4ème', '3eme': '3ème',
+            '6ème': '6ème', '5ème': '5ème', '4ème': '4ème', '3ème': '3ème',
+          };
+          return map[detectedGrade] ?? detectedGrade.toUpperCase();
+        })();
+        await db('children').where({ id: childId }).update({ school_grade_next: normalisedGrade });
+        schoolGrade = normalisedGrade;
+        console.log(`[jules] 📚 Next year grade captured: ${normalisedGrade} for ${child.name}`);
+      }
 
       let julesReply: FriendReplyResult;
       try {

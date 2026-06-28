@@ -20,6 +20,7 @@ export function toChildType(row: Record<string, unknown>): Child {
     personalityFreeText: row.personality_free_text ? String(row.personality_free_text) : undefined,
     personalityCompleted: Boolean(row.personality_completed),
     schoolGrade:          row.school_grade ? String(row.school_grade) : undefined,
+    schoolGradeNext:      row.school_grade_next ? String(row.school_grade_next) : undefined,
     schoolCountry:        row.school_country ? String(row.school_country) : undefined,
     learningSessionsCount: row.learning_sessions_count !== undefined ? Number(row.learning_sessions_count) : undefined,
     lastSubject:           row.last_subject ? String(row.last_subject) : undefined,

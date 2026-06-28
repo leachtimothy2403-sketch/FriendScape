@@ -23,6 +23,7 @@ export interface Child {
   personalityFreeText?: string;
   personalityCompleted?: boolean;
   schoolGrade?: string;         // e.g. 'CP', 'CE1', 'CE2', 'CM1', 'CM2', '6eme', '5eme', '4eme', '3eme'
+  schoolGradeNext?: string;     // grade Jules captured — promoted to schoolGrade each September 1
   schoolCountry?: string;       // default 'FR'
   learningSessionsCount?: number;
   lastSubject?: string;

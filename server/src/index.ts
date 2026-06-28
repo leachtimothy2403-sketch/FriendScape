@@ -35,6 +35,8 @@ import './jobs/dailyPosts';
 import './jobs/migaObserver';
 import './jobs/onlineStatus';
 import './jobs/friendCheckIn';
+import { scheduleGradePromotion } from './jobs/gradePromotion';
+scheduleGradePromotion();
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
