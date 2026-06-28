@@ -192,7 +192,7 @@ export async function approve(req: Request, res: Response) {
       .where({ approval_token: token })
       .update({ status: 'approved', approved_at: new Date() });
 
-    res.send(approvedHtml(token));
+    res.send(approvedHtml(token, (enrollment.language as string | undefined) ?? 'en'));
   } catch (err) {
     console.error('Approve error:', err);
     res.status(500).send('<h1>Something went wrong. Please try again.</h1>');
@@ -327,8 +327,12 @@ function htmlShell(emoji: string, title: string, body: string): string {
 </html>`;
 }
 
-function approvedHtml(token: string): string {
-  return htmlShell('✅', 'Approved!', `
+function approvedHtml(token: string, lang = 'en'): string {
+  return htmlShell('✅', lang === 'fr' ? 'Approuvé !' : 'Approved!', lang === 'fr' ? `
+    <h1>Encore une étape !</h1>
+    <p>Créez votre compte parent pour finaliser l'approbation et donner accès à myMigo à votre enfant.</p>
+    <a href="/auth/set-password?token=${token}" class="btn">Créer mon compte parent →</a>
+  ` : `
     <h1>One more step!</h1>
     <p>Please set up your parent account to complete the approval and give your child access to myMigo.</p>
     <a href="/auth/set-password?token=${token}" class="btn">Set Up Parent Account →</a>
@@ -337,7 +341,7 @@ function approvedHtml(token: string): string {
 
 function setPasswordFormHtml(token: string, error?: string, lang = 'en'): string {
   return htmlShell('🔐', 'Set Up Parent Account', `
-    <h1>Set up your Parent account</h1>
+    <h1>${lang === 'fr' ? 'Créer votre compte parent' : 'Set up your Parent account'}</h1>
     <p>${lang === 'fr' ? 'Créez un mot de passe pour accéder au tableau de bord myMigo.' : 'Create a password to access the myMigo Parent Dashboard.'}</p>
     ${error ? `<p style="color:#C0392B">${error}</p>` : ''}
     <form method="POST" action="/auth/set-password" onsubmit="return validateForm()">
@@ -447,7 +451,8 @@ export async function setApprovalPassword(req: Request, res: Response) {
 
     if (!password || password.length < 8) {
       console.log('[auth] ❌ setApprovalPassword rejected — password too short');
-      res.send(setPasswordFormHtml(token, 'Password must be at least 8 characters.'));
+      const formLang = (enrollment.language as string | undefined) ?? 'en';
+      res.send(setPasswordFormHtml(token, formLang === 'fr' ? 'Le mot de passe doit contenir au moins 8 caractères.' : 'Password must be at least 8 characters.', formLang));
       return;
     }
 
@@ -483,10 +488,15 @@ export async function setApprovalPassword(req: Request, res: Response) {
 
     console.log('[auth] ✅ Password set for', enrollment.parent_email, '— existing user updated:', !!existing);
 
-    res.send(htmlShell('🎉', 'All Set!', `
+    const lang = (enrollment.language as string | undefined) ?? 'en';
+    res.send(htmlShell('🎉', lang === 'fr' ? 'Tout est prêt !' : 'All Set!', lang === 'fr' ? `
+      <h1>Tout est prêt !</h1>
+      <p>Vous pouvez maintenant vous connecter au tableau de bord myMigo avec votre adresse e-mail (<strong>${enrollment.parent_email}</strong>) et votre nouveau mot de passe.</p>
+      <p style="font-size:13px;color:#888780;margin-top:12px">Ouvrez l'application myMigo sur votre appareil pour accéder au tableau de bord parental.</p>
+    ` : `
       <h1>All Set!</h1>
-      <p>You can now log in to the Migo Parent Dashboard with your email (<strong>${enrollment.parent_email}</strong>) and your new password.</p>
-      <a href="http://localhost:3000" class="btn">Open Parent Dashboard →</a>
+      <p>You can now access the myMigo Parent Dashboard directly in the app with your email (<strong>${enrollment.parent_email}</strong>) and your new password.</p>
+      <p style="font-size:13px;color:#888780;margin-top:12px">Open the myMigo app on your device to access the parent dashboard.</p>
     `));
   } catch (err) {
     console.error('setApprovalPassword error:', err);
