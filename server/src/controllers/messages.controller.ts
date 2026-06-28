@@ -1,4 +1,4 @@
-import { Response } from 'express';
+﻿import { Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import db from '../db';
 import { AuthRequest } from '../middleware/auth';
@@ -251,38 +251,25 @@ export async function sendMessage(req: AuthRequest, res: Response) {
     const isJules = Boolean((friendRow as Record<string, unknown>).is_jules);
     if (isJules) {
       const childRecord = await db('children').where({ id: childId }).select('school_grade', 'name').first();
-      const hasGrade = childRecord?.school_grade && childRecord.school_grade.trim() !== '';
+      const hasGrade = childRecord?.school_grade && String(childRecord.school_grade).trim() !== '';
 
       if (!hasGrade) {
-        // Count messages to Jules to detect first message
         const msgCount = await db('messages')
-          .join('conversations', 'conversations.id', 'messages.conversation_id')
-          .where({
-            'conversations.child_id': childId,
-            'conversations.friend_id': friendId,
-            'messages.sender_type': 'child',
-          })
-          .count('messages.id as count')
+          .where({ conversation_id: conversation.id, sender_type: 'child' })
+          .count('id as count')
           .first() as { count: string } | undefined;
 
         const isFirstMessage = Number(msgCount?.count ?? 0) <= 1;
 
         if (isFirstMessage) {
-          // Jules asks for grade — override reply
           const gradeQuestion = lang === 'fr'
-            ? `Salut ${childRecord?.name ?? ''} ! Trop cool de te voir ici. Pour préparer tes missions de la semaine, tu peux me dire en quelle classe tu vas à la rentrée ?`
-            : `Hey ${childRecord?.name ?? ''}! So great to have you here. To set up your missions, can you tell me what grade you'll be going into in September?`;
+            ? `Salut ${String(childRecord?.name ?? '')} ! Trop cool de te voir ici. Pour préparer tes missions de la semaine, tu peux me dire en quelle classe tu vas à la rentrée ?`
+            : `Hey ${String(childRecord?.name ?? '')}! So great to have you here. To set up your missions, can you tell me what grade you'll be going into in September?`;
 
-          // Save Jules's grade question as his reply
           await db('messages').insert({
-            conversation_id: await db('conversations')
-              .where({ child_id: childId, friend_id: friendId })
-              .select('id')
-              .first()
-              .then((c: { id: string } | undefined) => c?.id),
-            sender_type: 'ai',
-            content: gradeQuestion,
-            created_at: new Date(),
+            conversation_id: conversation.id,
+            sender_type:     'ai',
+            content:         gradeQuestion,
           });
 
           res.json({ reply: gradeQuestion, delay: 2000 });

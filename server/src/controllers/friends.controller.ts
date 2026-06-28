@@ -158,6 +158,25 @@ export async function addFriendForChild(req: AuthRequest, res: Response) {
       .insert({ child_id: childId, friend_id: friendId, activated_at: new Date(), friendship_level: 1, friendship_xp: 0 })
       .onConflict(['child_id', 'friend_id']).ignore();
 
+    // Jules welcome message — ask grade immediately on add
+    const addedFriend = await db('ai_friends').where({ id: friendId }).select('is_jules').first() as { is_jules?: boolean } | undefined;
+    if (addedFriend?.is_jules) {
+      const childRecord = await db('children').where({ id: childId }).select('name', 'language').first() as { name?: string; language?: string } | undefined;
+      const lang = childRecord?.language ?? 'en';
+      let conv = await db('conversations').where({ child_id: childId, friend_id: friendId }).first();
+      if (!conv) {
+        [conv] = await db('conversations').insert({ child_id: childId, friend_id: friendId }).returning('*');
+      }
+      const gradeQuestion = lang === 'fr'
+        ? `Salut ${String(childRecord?.name ?? '')} ! Trop cool de te voir ici. Pour préparer tes missions de la semaine, tu peux me dire en quelle classe tu vas à la rentrée ?`
+        : `Hey ${String(childRecord?.name ?? '')}! So great to have you here. To set up your missions, can you tell me what grade you'll be going into in September?`;
+      await db('messages').insert({
+        conversation_id: conv.id,
+        sender_type:     'ai',
+        content:         gradeQuestion,
+      });
+    }
+
     await db('child_memories')
       .insert({
         child_id:          childId,
