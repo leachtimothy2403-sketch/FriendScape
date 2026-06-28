@@ -52,6 +52,10 @@ async function runCheckIns(): Promise<void> {
 
       const child  = toChildType(childRow);
       const friend = toFriendType(friendRow);
+
+      const currentHour = new Date().getHours();
+      if (currentHour < (friend.online_hours_start ?? 8) || currentHour >= (friend.online_hours_end ?? 21)) continue;
+
       const memoryBrief = memoryRow ? buildMemoryBrief(toMemoryType(memoryRow)) : null;
       const lang = (childRow.language as string) || 'en';
 

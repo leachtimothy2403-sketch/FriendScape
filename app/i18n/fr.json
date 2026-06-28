@@ -620,6 +620,13 @@
       "teacherBadge": "Enseignant",
       "aiBadge": "Ami IA",
       "empty": "Pas encore d'amis IA.",
+      "levelAcquaintance": "Connaissance",
+      "levelFriend": "Ami",
+      "levelGoodFriend": "Bon ami",
+      "levelBestFriend": "Meilleur ami",
+      "levelBFF": "Meilleur ami pour la vie",
+      "friendCount_one": "{{count}} ami",
+      "friendCount_other": "{{count}} amis",
       "infoTitle": "À propos des amis IA",
       "infoText": "Tous les amis de ton enfant sont des personnages IA sécurisés créés rien que pour lui. Jamais d'inconnus réels."
     },

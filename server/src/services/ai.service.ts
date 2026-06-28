@@ -124,6 +124,8 @@ export interface Mascot {
 export type FriendForAI = AIFriend & {
   age?: number;
   subject?: string;
+  online_hours_start?: number;
+  online_hours_end?: number;
 };
 
 export type ExtendedMemory = Partial<ChildMemory> & {

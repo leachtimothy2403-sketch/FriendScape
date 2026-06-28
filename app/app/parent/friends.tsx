@@ -21,10 +21,10 @@ interface Friend {
   last_active: string | null;
 }
 
-const LEVEL_LABELS = ['', 'Acquaintance', 'Friend', 'Good Friend', 'Best Friend', 'BFF'];
+const LEVEL_KEYS = ['', 'levelAcquaintance', 'levelFriend', 'levelGoodFriend', 'levelBestFriend', 'levelBFF'];
 
 function FriendRow({ item }: { item: Friend }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   return (
     <View style={s.card}>
       <View style={s.avatar}>
@@ -45,14 +45,14 @@ function FriendRow({ item }: { item: Friend }) {
         </View>
         <View style={s.levelRow}>
           <View style={s.levelBadge}>
-            <Text style={s.levelText}>Lv {item.friendship_level} · {LEVEL_LABELS[item.friendship_level] ?? 'Friend'}</Text>
+            <Text style={s.levelText}>Lv {item.friendship_level} · {t(`parent.friends.${LEVEL_KEYS[item.friendship_level] ?? 'levelFriend'}`)}</Text>
           </View>
         </View>
         <View style={s.statsRow}>
           <Text style={s.stat}>💬 {item.message_count} msgs</Text>
           {item.last_active && (
             <Text style={s.stat}>
-              🕐 {new Date(item.last_active).toLocaleDateString('en', { month: 'short', day: 'numeric' })}
+              🕐 {new Date(item.last_active).toLocaleDateString(i18n.language, { month: 'short', day: 'numeric' })}
             </Text>
           )}
         </View>
@@ -65,7 +65,7 @@ function FriendRow({ item }: { item: Friend }) {
 }
 
 export default function FriendsScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
   const [childId, setChildId] = useState<string | null>(null);
@@ -103,7 +103,7 @@ export default function FriendsScreen() {
     <SafeAreaView style={s.screen}>
       <View style={s.header}>
         <Text style={s.title}>{t('parent.friends.title')}</Text>
-        <Text style={s.subtitle}>{friends.length} friend{friends.length !== 1 ? 's' : ''}</Text>
+        <Text style={s.subtitle}>{t('parent.friends.friendCount', { count: friends.length })}</Text>
       </View>
 
       {friends.length === 0 ? (

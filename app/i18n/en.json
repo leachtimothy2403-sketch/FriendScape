@@ -604,6 +604,13 @@
       "teacherBadge": "Teacher",
       "aiBadge": "AI Friend",
       "empty": "No AI friends yet.",
+      "levelAcquaintance": "Acquaintance",
+      "levelFriend": "Friend",
+      "levelGoodFriend": "Good Friend",
+      "levelBestFriend": "Best Friend",
+      "levelBFF": "BFF",
+      "friendCount_one": "{{count}} friend",
+      "friendCount_other": "{{count}} friends",
       "infoTitle": "About AI Friends",
       "infoText": "All of your child's friends are safe AI characters created just for them. No real strangers, ever."
     },

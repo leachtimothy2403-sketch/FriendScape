@@ -24,12 +24,12 @@ const SEVERITY: Record<string, { bg: string; border: string; label: string; labe
   info:    { bg: '#EEEDFE', border: Colors.purple + '33', label: 'ℹ️ Info',    labelColor: Colors.purple },
 };
 
-function fmt(iso: string) {
-  return new Date(iso).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+function fmt(iso: string, lang: string) {
+  return new Date(iso).toLocaleDateString(lang, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 export default function AlertsScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
   const [marking, setMarking] = useState<Set<string>>(new Set());
@@ -82,7 +82,7 @@ export default function AlertsScreen() {
         </View>
         <Text style={s.message}>{item.message}</Text>
         <View style={s.cardBottom}>
-          <Text style={s.time}>{fmt(item.created_at)}</Text>
+          <Text style={s.time}>{fmt(item.created_at, i18n.language)}</Text>
           {!item.read && (
             <TouchableOpacity
               onPress={() => markRead(item.id)}

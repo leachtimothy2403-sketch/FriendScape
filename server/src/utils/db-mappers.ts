@@ -48,6 +48,8 @@ export function toFriendType(row: Record<string, unknown>): FriendForAI {
     age:              row.age    ? Number(row.age)    : undefined,
     subject:          row.subject ? String(row.subject) : undefined,
     personalityPrompt: row.personality_prompt ? String(row.personality_prompt) : undefined,
+    online_hours_start: row.online_hours_start != null ? Number(row.online_hours_start) : undefined,
+    online_hours_end:   row.online_hours_end   != null ? Number(row.online_hours_end)   : undefined,
   };
 }
 

@@ -25,12 +25,12 @@ const TYPE_COLORS: Record<string, string> = {
 
 const FILTERS = ['all', 'post', 'messages', 'badge', 'friend'] as const;
 
-function fmt(iso: string) {
-  return new Date(iso).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+function fmt(iso: string, lang: string) {
+  return new Date(iso).toLocaleDateString(lang, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 export default function ActivityScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
@@ -67,7 +67,7 @@ export default function ActivityScreen() {
       {index < visible.length - 1 && <View style={s.line} />}
       <View style={s.card}>
         <Text style={s.cardText} numberOfLines={3}>{item.summary}</Text>
-        <Text style={s.cardTime}>{fmt(item.timestamp)}</Text>
+        <Text style={s.cardTime}>{fmt(item.timestamp, i18n.language)}</Text>
       </View>
     </View>
   ), [visible.length]);

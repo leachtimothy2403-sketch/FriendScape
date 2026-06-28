@@ -37,7 +37,7 @@ const MOOD_BG: Record<string, string> = {
 };
 
 export default function MoodScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [moodHistory, setMoodHistory] = useState<MoodDay[]>([]);
   const [hasCrisisFlag, setCrisisFlag] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -103,7 +103,8 @@ export default function MoodScreen() {
                     <Text style={s.moodEmoji}>{MOOD_EMOJI[d.mood] ?? '😐'}</Text>
                   </View>
                   <Text style={s.dayLabel}>
-                    {new Date(d.date).toLocaleDateString('en', { weekday: 'narrow' })}
+                    {new Date(d.date).toLocaleDateString(i18n.language, { weekday: 'narrow' })}
+
                   </Text>
                 </View>
               ))}
@@ -130,7 +131,7 @@ export default function MoodScreen() {
                   </View>
                 </View>
                 <Text style={s.moodDate}>
-                  {new Date(d.date).toLocaleDateString('en', { month: 'short', day: 'numeric' })}
+                  {new Date(d.date).toLocaleDateString(i18n.language, { month: 'short', day: 'numeric' })}
                 </Text>
               </View>
             ))}
