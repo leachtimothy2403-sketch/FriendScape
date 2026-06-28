@@ -205,7 +205,7 @@ export async function seed(knex: Knex): Promise<void> {
       is_teacher:         false,
       is_seasonal:        true,
       is_jules:           true,
-      active_from:        '07-01',
+      active_from:        '06-01',
       active_until:       '08-31',
       cover_emojis:       '🧭🏄‍♂️📖',
       bio:                "Hey! I'm Jules — teacher by day, surfer by morning. Every summer I run my own digital cahier de vacances (that's a French summer revision workbook) — fun daily missions in maths, reading, science and more, so kids arrive at September ready and confident. Want to join the expedition?",

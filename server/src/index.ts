@@ -75,6 +75,16 @@ async function startServer() {
     await new Promise<void>((resolve, reject) => {
       const server = app.listen(PORT, () => {
         console.log(`🚀 Migo API running on http://localhost:${PORT}`);
+        // Pre-warm Jules audio cache on startup
+        setTimeout(() => {
+          void import('./services/audio.service').then(({ generateSpeech }) => {
+            const fr = "Salut ! Trop cool de te voir ici. Pour préparer tes missions de la semaine, tu peux me dire en quelle classe tu vas à la rentrée ?";
+            const en = "Hey! So great to have you here. To set up your missions, can you tell me what grade you'll be going into in September?";
+            void generateSpeech(fr, 'jules', 'fr').catch(() => {});
+            void generateSpeech(en, 'jules', 'en').catch(() => {});
+            console.log('[startup] 🧭 Pre-warming Jules audio cache...');
+          });
+        }, 8000);
         resolve();
       });
       server.on('error', (err) => {

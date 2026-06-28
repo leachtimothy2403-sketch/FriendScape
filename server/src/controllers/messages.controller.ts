@@ -268,6 +268,7 @@ export async function sendMessage(req: AuthRequest, res: Response) {
 
           await db('messages').insert({
             conversation_id: conversation.id,
+            sender_id:       friendId,
             sender_type:     'ai',
             content:         gradeQuestion,
           });

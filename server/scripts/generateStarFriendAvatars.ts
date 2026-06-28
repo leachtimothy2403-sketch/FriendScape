@@ -28,7 +28,25 @@ async function run() {
 
       if (ADULT_STYLE_NAMES.includes(row.name)) {
         console.log(`[adult] Generating portrait for ${row.name}...`);
-        url = await generateAdultFriendPortrait(row.name, row.gender, personality, language);
+        if (row.name === 'Jules') {
+          // Jules-specific prompt — cool adult male teacher, surfer
+          const { fal } = await import('@fal-ai/client');
+          const result = await fal.subscribe('fal-ai/flux/schnell', {
+            input: {
+              prompt: 'Pixar cartoon portrait of a cool friendly adult male teacher in his early thirties, tousled sun-bleached hair, warm smile, relaxed confidence, slight tan, casual summer style, children\'s app illustration style, plain warm light background, centered portrait, vibrant friendly colors, high quality',
+              negative_prompt: 'child, kid, teenager, scary, dark, realistic photo, elderly, old, text, watermark, female, woman',
+              image_size: 'square',
+              num_inference_steps: 4,
+              num_images: 1,
+            } as never,
+            pollInterval: 500,
+          });
+          const r = result as unknown as { data: { images: Array<{ url: string }> } };
+          url = r.data?.images?.[0]?.url ?? '';
+          if (!url) throw new Error('No image for Jules');
+        } else {
+          url = await generateAdultFriendPortrait(row.name, row.gender, personality, language);
+        }
       } else {
         const age: number = row.age ?? 10;
         console.log(`[child] Generating portrait for ${row.name} (age ${age})...`);

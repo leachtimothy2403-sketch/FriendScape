@@ -172,6 +172,7 @@ export async function addFriendForChild(req: AuthRequest, res: Response) {
         : `Hey ${String(childRecord?.name ?? '')}! So great to have you here. To set up your missions, can you tell me what grade you'll be going into in September?`;
       await db('messages').insert({
         conversation_id: conv.id,
+        sender_id:       friendId,
         sender_type:     'ai',
         content:         gradeQuestion,
       });

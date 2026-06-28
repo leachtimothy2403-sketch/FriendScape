@@ -141,7 +141,7 @@ export async function generateSpeech(
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       const response = await gemini.models.generateContent({
-        model: 'gemini-3.1-flash-tts-preview',
+        model: 'gemini-2.5-flash-tts',
         contents: [{ parts: [{ text: prompt }] }],
         config: {
           responseModalities: ['AUDIO'],
