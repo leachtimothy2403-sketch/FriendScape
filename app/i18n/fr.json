@@ -392,7 +392,12 @@
     "addButton": "+ Ajouter",
     "addedTag": "✓ Ajouté",
     "hearMe": "Écoute-moi",
-    "playAudio": "Écouter"
+    "playAudio": "Écouter",
+    "julesSection": "☀️ Apprentissage d'été",
+    "julesTagline": "Cahier de vacances digital 🧭",
+    "julesDesc": "Jules anime un cahier de vacances digital — des missions quotidiennes en maths, français, histoire et sciences, adaptées au niveau de votre enfant. Pour garder les acquis tout l'été.",
+    "meetJulesButton": "+ Rejoindre l'aventure !",
+    "chatJulesButton": "🧭 Continuer avec Jules →"
   },
   "games": {
     "playGame": "🎮 Jouer !",

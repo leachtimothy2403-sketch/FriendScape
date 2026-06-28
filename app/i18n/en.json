@@ -376,7 +376,12 @@
     "addButton": "+ Add",
     "addedTag": "✓ Added",
     "hearMe": "Hear me",
-    "playAudio": "Play"
+    "playAudio": "Play",
+    "julesSection": "☀️ Summer Learning",
+    "julesTagline": "Digital cahier de vacances 🧭",
+    "julesDesc": "Jules runs a digital cahier de vacances — fun daily missions in maths, reading, history and science, tailored to your child's level. Keep skills sharp all summer.",
+    "meetJulesButton": "+ Start the expedition!",
+    "chatJulesButton": "🧭 Continue with Jules →"
   },
   "games": {
     "playGame": "🎮 Play a game!",

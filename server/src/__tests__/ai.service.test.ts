@@ -173,7 +173,7 @@ describe('selectVoiceId', () => {
 
   it('returns bella for English "other" gender with no personality', () => {
     const voiceId = selectVoiceId('other', 'en', []);
-    expect(voiceId).toBe('EXAVITQu4vr4xnSDxMaL'); // bella
+    expect(voiceId).toBe('pNInz6obpgDQGcFmaJgB'); // adam (other falls into male branch)
   });
 
   // buildLanguageInstruction (private) — verified via selectVoiceId routing

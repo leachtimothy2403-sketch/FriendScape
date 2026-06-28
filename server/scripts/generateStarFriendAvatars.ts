@@ -4,7 +4,7 @@ dotenv.config();
 import db from '../src/db';
 import { generateFriendPortrait, generateAdultFriendPortrait } from '../src/services/avatar.service';
 
-const ADULT_STYLE_NAMES = ['Coach Mike', 'Capitaine Coquillage'];
+const ADULT_STYLE_NAMES = ['Coach Mike', 'Capitaine Coquillage', 'Jules'];
 
 async function run() {
   console.log('\nStar Friend Avatar Generator\n' + '='.repeat(40));

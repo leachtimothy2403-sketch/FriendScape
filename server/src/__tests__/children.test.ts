@@ -89,9 +89,9 @@ describe('POST /children/onboarding', () => {
     const chain = getChain();
     // 1. enrollment lookup → found
     chain.first
-      .mockResolvedValueOnce({ id: 'enr-1', parent_email: 'parent@example.com', status: 'approved' })
+      .mockResolvedValueOnce({ id: 'enr-1', parent_email: 'parent@example.com', status: 'approved', consent_accepted_at: new Date().toISOString() })
       // 2. parent user lookup → found
-      .mockResolvedValueOnce({ id: 'parent-1', email: 'parent@example.com' });
+      .mockResolvedValueOnce({ id: 'parent-1', email: 'parent@example.com', settings: { language: 'en' } });
 
     // 3. child insert returning
     chain.returning

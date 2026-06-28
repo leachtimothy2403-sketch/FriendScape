@@ -7,7 +7,21 @@ import { checkBadgesForChild } from './badges.controller';
 export async function listFriends(req: Request, res: Response) {
   try {
     const language = req.query.language as string | undefined;
-    const rows = await db('ai_friends').orderBy('name');
+    const today = new Date();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const todayMMDD = `${mm}-${dd}`;
+
+    const rows = await db('ai_friends')
+      .where(function () {
+        this.where('is_seasonal', false)
+          .orWhere(function () {
+            this.where('is_seasonal', true)
+              .andWhere('active_from', '<=', todayMMDD)
+              .andWhere('active_until', '>=', todayMMDD);
+          });
+      })
+      .orderBy('name');
     const friends = (rows as Record<string, unknown>[]).map(f => ({
       ...f,
       bio: language === 'fr' && f.bio_fr ? f.bio_fr : f.bio,

@@ -168,6 +168,7 @@ describe('GET /auth/enrollment-status', () => {
     getChain().first.mockResolvedValueOnce({
       status: 'approved',
       expires_at: new Date(Date.now() + 100000),
+      consent_accepted_at: new Date().toISOString(),
     });
 
     const res = await request(app)

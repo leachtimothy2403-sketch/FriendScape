@@ -23,7 +23,7 @@ const COVER_COLOR: Record<string, string> = {
   'Léa': '#FCEEFF', Tom: '#E1F5EE', 'Chloé': '#F0F8FF',
   Hugo: '#FFF0F0', Nico: '#E1F5EE', Camille: '#FFF0F5',
   Luca: '#F0F4FF', Sofia: '#FAECE7', 'Coach Sarah': '#E0FFE8',
-  'Prof Max': '#F0F0FF', Miga: '#F0EEFF',
+  'Prof Max': '#F0F0FF', Miga: '#F0EEFF', Jules: '#FEF3C7',
 };
 
 function firstEmoji(str: string | null | undefined) { return str ? ([...str][0] ?? '🌟') : '🌟'; }
@@ -274,6 +274,55 @@ function LunaCard({ luna, onAdd, isFr, alreadyAdded }: { luna: AiFriendRecord; o
 }
 
 
+// ── Jules seasonal card ────────────────────────────────────────────────────────
+function JulesCard({ jules, onAdd, isFr, alreadyAdded }: { jules: AiFriendRecord; onAdd: () => Promise<void>; isFr: boolean; alreadyAdded: boolean }) {
+  const { t } = useTranslation();
+  const [adding, setAdding] = useState(false);
+
+  async function handleMeet() {
+    if (adding) return;
+    if (alreadyAdded) {
+      router.push(`/dm/${jules.id}` as never);
+      return;
+    }
+    setAdding(true);
+    try {
+      await onAdd();
+    } finally {
+      setAdding(false);
+    }
+    router.push(`/dm/${jules.id}` as never);
+  }
+
+  return (
+    <TouchableOpacity
+      onPress={() => router.push(`/friend/${jules.id}` as never)}
+      activeOpacity={0.9}
+      style={s.julesCard}
+    >
+      <View style={s.julesAvatar}>
+        {jules.avatar_url
+          ? <Image source={{ uri: jules.avatar_url }} style={{ width: 52, height: 52, borderRadius: 26 }} />
+          : <Text style={{ fontSize: 26 }}>🧭</Text>
+        }
+      </View>
+      <View style={{ flex: 1, marginLeft: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+          <Text style={s.julesName}>{jules.name}</Text>
+          <View style={s.julesBadge}><Text style={s.julesBadgeText}>☀️ Été</Text></View>
+        </View>
+        <Text style={s.julesTagline}>{t('discover.julesTagline')}</Text>
+        <Text style={s.julesDesc}>{t('discover.julesDesc')}</Text>
+      </View>
+      <TouchableOpacity style={s.julesBtn} onPress={() => void handleMeet()} disabled={adding}>
+        {adding
+          ? <ActivityIndicator size="small" color="#fff" />
+          : <Text style={s.julesBtnText}>{alreadyAdded ? t('discover.chatJulesButton') : t('discover.meetJulesButton')}</Text>}
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+}
+
 // ── Main screen ────────────────────────────────────────────────────────────────
 export default function DiscoverScreen() {
   const { t } = useTranslation();
@@ -347,6 +396,9 @@ export default function DiscoverScreen() {
   const msLuna = allFriends.find(f => f.is_teacher && f.name === 'Ms. Luna') ?? null;
   const showLuna = !!msLuna && !!token && childAge >= 6;
 
+  const jules = allFriends.find(f => f.is_jules) ?? null;
+  const showJules = !!jules && !!token;
+
   const starFriends = allFriends.filter(
     f => f.is_star_friend && !myFriendIds.has(f.id),
   );
@@ -391,6 +443,19 @@ export default function DiscoverScreen() {
         {/* Ms. Luna card — always visible once eligible */}
         {showLuna && msLuna && (
           <LunaCard luna={msLuna} onAdd={() => addFriend(msLuna.id)} isFr={language === 'fr'} alreadyAdded={myFriendIds.has(msLuna.id)} />
+        )}
+
+        {/* Jules seasonal card */}
+        {showJules && jules && (
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>{t('discover.julesSection')}</Text>
+            <JulesCard
+              jules={jules}
+              onAdd={() => addFriend(jules.id)}
+              isFr={language === 'fr'}
+              alreadyAdded={myFriendIds.has(jules.id)}
+            />
+          </View>
         )}
 
         {/* My friends */}
@@ -539,4 +604,43 @@ const s = StyleSheet.create({
     alignItems: 'center', minWidth: 72, marginLeft: 10,
   },
   meetBtnText: { fontSize: 11, color: '#fff', fontWeight: '800' },
+
+  // Jules seasonal card
+  julesCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF8E7',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 4,
+    borderLeftWidth: 4,
+    borderLeftColor: '#F59E0B',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  julesAvatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  julesName:      { fontSize: 15, fontWeight: '800', color: '#2C2C2A', marginBottom: 2 },
+  julesBadge:     { backgroundColor: '#FEF3C7', borderRadius: 99, paddingHorizontal: 7, paddingVertical: 2 },
+  julesBadgeText: { fontSize: 10, color: '#D97706', fontWeight: '700' },
+  julesTagline:   { fontSize: 12, color: '#D97706', fontWeight: '600', marginBottom: 4 },
+  julesDesc:      { fontSize: 12, color: '#888780', lineHeight: 17 },
+  julesBtn: {
+    backgroundColor: '#F59E0B',
+    borderRadius: 99,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    alignItems: 'center',
+    minWidth: 72,
+    marginLeft: 10,
+  },
+  julesBtnText: { fontSize: 11, color: '#fff', fontWeight: '800' },
 });
