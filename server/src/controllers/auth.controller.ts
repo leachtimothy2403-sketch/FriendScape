@@ -363,11 +363,15 @@ function setPasswordFormHtml(token: string, error?: string): string {
     </form>
     <script>
       document.querySelector('form').addEventListener('submit', function(e) {
-        const cb = document.querySelector('input[name="consent"][type="checkbox"]:not([style*="display:none"])');
-        if (!cb || !cb.checked) {
+        const visibleCb = document.querySelector('label input[type="checkbox"][name="consent"]');
+        if (!visibleCb || !visibleCb.checked) {
           e.preventDefault();
           alert('Please read and accept the beta test agreement to continue.');
+          return;
         }
+        // Sync visible checkbox state to the hidden one inside the form
+        const hiddenCb = document.getElementById('consentCheck');
+        if (hiddenCb) hiddenCb.checked = true;
       });
     </script>
   `);
