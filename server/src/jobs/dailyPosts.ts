@@ -17,8 +17,21 @@ export async function runDailyPostsJob() {
 
     // ─── PASS 1: Star friend posts (shared, generated once per star friend) ───
 
+    const today = new Date();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const todayMMDD = `${mm}-${dd}`;
+
     const starFriendRows = await db('ai_friends')
       .where({ is_star_friend: true, is_teacher: false })
+      .where(function () {
+        this.where('is_seasonal', false)
+          .orWhere(function () {
+            this.where('is_seasonal', true)
+              .andWhere('active_from', '<=', todayMMDD)
+              .andWhere('active_until', '>=', todayMMDD);
+          });
+      })
       .select('ai_friends.*') as Record<string, unknown>[];
 
     for (const starFriendRow of starFriendRows) {
@@ -67,7 +80,8 @@ export async function runDailyPostsJob() {
         const avatarUrl = starFriendRow.avatar_url ? String(starFriendRow.avatar_url) : null;
 
         let imageUrl: string | null = null;
-        if (avatarUrl) {
+        const isJulesPost = Boolean(starFriendRow.is_jules);
+        if (!isJulesPost && avatarUrl) {
           try {
             imageUrl = await generatePostImage(post.text, post.friendName, friendAge, post.sceneEmojis, avatarUrl);
           } catch (err) {

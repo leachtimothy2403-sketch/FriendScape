@@ -53,6 +53,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Serve generated audio files
 app.use('/audio', express.static(path.join(__dirname, '../public/audio')));
+app.use('/avatars', express.static(path.join(__dirname, '../public/avatars')));
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'Migo API', timestamp: new Date().toISOString() });

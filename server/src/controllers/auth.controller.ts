@@ -592,8 +592,10 @@ export async function devReset(req: Request, res: Response) {
                   pollInterval: 500,
                 });
                 const r = result as unknown as { data: { images: Array<{ url: string }> } };
-                url = r.data?.images?.[0]?.url ?? '';
-                if (!url) throw new Error('No image for Jules');
+                const falUrl = r.data?.images?.[0]?.url ?? '';
+                if (!falUrl) throw new Error('No image for Jules');
+                const { downloadAndSave: dl } = await import('../services/avatar.service');
+                url = await dl(falUrl);
               } else if (ADULT_STYLE_NAMES.includes(row.name)) {
                 url = await generateAdultFriendPortrait(row.name, row.gender, personality, 'en');
               } else {

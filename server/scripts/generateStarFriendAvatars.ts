@@ -42,8 +42,10 @@ async function run() {
             pollInterval: 500,
           });
           const r = result as unknown as { data: { images: Array<{ url: string }> } };
-          url = r.data?.images?.[0]?.url ?? '';
-          if (!url) throw new Error('No image for Jules');
+          const falUrl = r.data?.images?.[0]?.url ?? '';
+          if (!falUrl) throw new Error('No image for Jules');
+          const { downloadAndSave } = await import('../src/services/avatar.service');
+          url = await downloadAndSave(falUrl);
         } else {
           url = await generateAdultFriendPortrait(row.name, row.gender, personality, language);
         }

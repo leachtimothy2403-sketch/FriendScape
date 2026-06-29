@@ -1,7 +1,37 @@
 import { fal } from '@fal-ai/client';
 import Anthropic from '@anthropic-ai/sdk';
+import fs from 'fs';
+import path from 'path';
+import https from 'https';
+import http from 'http';
+import crypto from 'crypto';
 
 fal.config({ credentials: process.env.FAL_API_KEY ?? '' });
+
+const AVATAR_DIR = path.join(__dirname, '../../public/avatars');
+const BASE_URL   = process.env.BASE_URL ?? 'http://localhost:3001';
+
+export async function downloadAndSave(falUrl: string): Promise<string> {
+  fs.mkdirSync(AVATAR_DIR, { recursive: true });
+  const hash     = crypto.createHash('md5').update(falUrl).digest('hex').slice(0, 16);
+  const filename = `avatar_${hash}.jpg`;
+  const filepath = path.join(AVATAR_DIR, filename);
+  const localUrl = `/avatars/${filename}`;
+
+  if (fs.existsSync(filepath)) return localUrl;
+
+  return new Promise((resolve, reject) => {
+    const protocol = falUrl.startsWith('https') ? https : http;
+    const file = fs.createWriteStream(filepath);
+    protocol.get(falUrl, (res) => {
+      res.pipe(file);
+      file.on('finish', () => { file.close(); resolve(localUrl); });
+    }).on('error', (err) => {
+      fs.unlink(filepath, () => {});
+      reject(err);
+    });
+  });
+}
 
 export async function generateFriendPortrait(
   name: string,
@@ -28,7 +58,7 @@ export async function generateFriendPortrait(
   const url = r.data?.images?.[0]?.url;
   if (!url) throw new Error('No image in fal friend portrait response');
   console.log(`[avatar] friend portrait URL for ${name}:`, url);
-  return url;
+  return await downloadAndSave(url);
 }
 
 export async function generateAdultFriendPortrait(
@@ -55,7 +85,7 @@ export async function generateAdultFriendPortrait(
   const url = r.data?.images?.[0]?.url;
   if (!url) throw new Error('No image in fal adult friend portrait response');
   console.log(`[avatar] adult friend portrait URL for ${name}:`, url);
-  return url;
+  return await downloadAndSave(url);
 }
 
 export async function generateLunaPortrait(): Promise<string> {
@@ -75,7 +105,7 @@ export async function generateLunaPortrait(): Promise<string> {
   const url = r.data?.images?.[0]?.url;
   if (!url) throw new Error('No image in fal Luna portrait response');
   console.log('[avatar] Luna portrait URL:', url);
-  return url;
+  return await downloadAndSave(url);
 }
 
 export async function generatePostImage(
@@ -125,7 +155,7 @@ Return ONLY the prompt, no explanation`,
   const url = r.data?.images?.[0]?.url;
   if (!url) throw new Error('No image in fal post image response');
   console.log(`[avatar] post image URL for ${friendName}:`, url);
-  return url;
+  return await downloadAndSave(url);
 }
 
 export async function cartoonifyPhoto(base64DataUri: string): Promise<string> {
@@ -176,7 +206,7 @@ export async function cartoonifyPhoto(base64DataUri: string): Promise<string> {
   const url = r.data?.images?.[0]?.url;
   if (!url) throw new Error('No image in fal response');
   console.log('[avatar] cartoon URL:', url);
-  return url;
+  return await downloadAndSave(url);
 }
 
 export async function cartoonifyScenePhoto(
@@ -229,14 +259,14 @@ Respond with only REJECTED or the description. Nothing else.`,
 
   console.log('[avatar] scene description:', description);
 
-  const prompt = `Pixar cartoon illustration of: ${description}. Vibrant colors, children's app style, warm and friendly, no people or faces, high quality illustration`;
+  const prompt = `Pixar-style cartoon illustration closely depicting: ${description}. Match the specific animals, objects and setting described. Vibrant warm colors, children's book illustration style, friendly and cute, detailed and faithful to the scene, high quality`;
 
   const result = await fal.subscribe('fal-ai/flux/schnell', {
     input: {
       prompt,
-      negative_prompt: 'person, people, face, human, realistic photo, dark, scary, text, watermark',
+      negative_prompt: 'person, people, face, human, realistic photo, dark, scary, text, watermark, generic, unrelated',
       image_size: 'square_hd',
-      num_inference_steps: 4,
+      num_inference_steps: 8,
       num_images: 1,
     } as never,
     pollInterval: 500,
@@ -245,9 +275,9 @@ Respond with only REJECTED or the description. Nothing else.`,
   const r = result as unknown as { data: { images: Array<{ url: string }> } };
   const url = r.data?.images?.[0]?.url;
   if (!url) throw new Error('No image in fal scene response');
-
-  console.log('[avatar] scene cartoon URL:', url);
-  return { cartoonUrl: url, sceneDescription: description };
+  const localUrl = await downloadAndSave(url);
+  console.log('[avatar] scene cartoon URL:', url, '→ local:', localUrl);
+  return { cartoonUrl: localUrl, sceneDescription: description };
 }
 
 const MASCOT_PROMPTS: Record<string, string> = {
@@ -276,5 +306,5 @@ export async function generateMascotAvatar(mascotId: string): Promise<string> {
   const url = r.data?.images?.[0]?.url;
   if (!url) throw new Error('No image in fal mascot response');
   console.log(`[avatar] mascot ${mascotId} URL:`, url);
-  return url;
+  return await downloadAndSave(url);
 }
