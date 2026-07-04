@@ -5,7 +5,8 @@ import {
   generatePostComment,
   buildMemoryBrief,
 } from '../services/ai.service';
-import { generatePostImage } from '../services/avatar.service';
+import { fal } from '@fal-ai/client';
+import { generatePostImage, downloadAndSave } from '../services/avatar.service';
 import { toChildType, toFriendType, toMemoryType } from '../utils/db-mappers';
 
 export async function runDailyPostsJob() {
@@ -81,7 +82,47 @@ export async function runDailyPostsJob() {
 
         let imageUrl: string | null = null;
         const isJulesPost = Boolean(starFriendRow.is_jules);
-        if (!isJulesPost && avatarUrl) {
+        if (isJulesPost) {
+          // Jules gets a fun summer learning scene — surfboard + books + beach
+          const julesScenesEN = [
+            'a colorful surfboard on a sunny beach with open books and a calculator beside it',
+            'a notebook and pencil on a beach towel with waves in the background and a surfboard nearby',
+            'a chalkboard with math equations standing in the sand near the ocean with seashells around it',
+            'a backpack full of books and a surfboard leaning against a palm tree on a tropical beach',
+            'an open book with colorful illustrations floating above calm ocean waves at sunset',
+          ];
+          const julesScenesFR = [
+            'un surf coloré sur une plage ensoleillée avec des livres ouverts et une calculatrice à côté',
+            'un cahier et un crayon sur une serviette de plage avec des vagues en arrière-plan et un surf',
+            'un tableau noir avec des équations de maths planté dans le sable près de l\'océan',
+            'un sac à dos plein de livres et un surf appuyé contre un palmier sur une plage tropicale',
+            'un livre ouvert avec des illustrations colorées flottant au-dessus de l\'océan au coucher du soleil',
+          ];
+          const scenes = post.sceneEmojis?.includes('🏄') || (starFriendRow.bio_fr as string | undefined)
+            ? julesScenesFR
+            : julesScenesEN;
+          const scene = scenes[Math.floor(Math.random() * scenes.length)];
+          try {
+            const result = await fal.subscribe('fal-ai/flux/schnell', {
+              input: {
+                prompt: `Pixar cartoon illustration of: ${scene}. Vibrant summer colors, children's book style, warm and fun, no people or faces, high quality`,
+                negative_prompt: 'person, people, face, human, realistic photo, dark, scary, text, watermark',
+                image_size: 'square_hd',
+                num_inference_steps: 8,
+                num_images: 1,
+              } as never,
+              pollInterval: 500,
+            });
+            const r = result as unknown as { data: { images: Array<{ url: string }> } };
+            const falUrl = r.data?.images?.[0]?.url;
+            if (falUrl) {
+              imageUrl = await downloadAndSave(falUrl);
+              console.log(`[posts] 🏄 Jules scene image generated`);
+            }
+          } catch (err) {
+            console.warn('[avatar] Jules post image failed:', err);
+          }
+        } else if (avatarUrl) {
           try {
             imageUrl = await generatePostImage(post.text, post.friendName, friendAge, post.sceneEmojis, avatarUrl);
           } catch (err) {

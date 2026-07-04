@@ -8,7 +8,7 @@ interface OnboardingState {
   // Data
   parentEmail: string;
   childName: string;
-  age: string;               // "5–6" | "7–8" | "9–10" | "11–12"
+  dateOfBirth: string;       // ISO date string "YYYY-MM-DD"
   gender: string;            // "girl" | "boy" | "other"
   language: string;          // language code e.g. "en"
   specialNeeds: boolean;
@@ -30,7 +30,7 @@ interface OnboardingState {
   // Actions
   initParentEmail: () => Promise<void>;
   setChildName: (v: string) => void;
-  setAge: (v: string) => void;
+  setDateOfBirth: (v: string) => void;
   setGender: (v: string) => void;
   setLanguage: (v: string) => void;
   setSpecialNeeds: (v: boolean) => void;
@@ -54,7 +54,7 @@ interface OnboardingState {
 const DEFAULTS = {
   parentEmail:         '',
   childName:           '',
-  age:                 '',
+  dateOfBirth:         '',
   gender:              '',
   language:            'en',
   specialNeeds:        false,
@@ -90,7 +90,7 @@ export const useOnboardingStore = create<OnboardingState>()(
       },
 
       setChildName:           (v) => set({ childName: v }),
-      setAge:                 (v) => set({ age: v }),
+      setDateOfBirth:         (v) => set({ dateOfBirth: v }),
       setGender:              (v) => set({ gender: v }),
       setLanguage:            (v) => set({ language: v }),
       setSpecialNeeds:        (v) => set({ specialNeeds: v }),

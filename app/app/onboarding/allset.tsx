@@ -194,7 +194,7 @@ export default function AllSetScreen() {
         const payload = {
           parentEmail:         '',
           name:                store.childName,
-          age:                 store.age,
+          dateOfBirth:         store.dateOfBirth,
           gender:              store.gender,
           language:            store.language,
           specialNeeds:        store.specialNeeds,
@@ -263,7 +263,7 @@ export default function AllSetScreen() {
     const payload = {
       parentEmail,
       name:                store.childName,
-      age:                 store.age,
+      dateOfBirth:         store.dateOfBirth,
       gender:              store.gender,
       language:            store.language,
       specialNeeds:        store.specialNeeds,

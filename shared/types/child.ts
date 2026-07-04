@@ -10,6 +10,7 @@ export interface Child {
   parentId: string;
   name: string;
   age: number;
+  dateOfBirth?: string | null;
   gender: Gender;
   language: Language;
   specialNeeds: string[];       // e.g. ['autism', 'dyslexia', 'adhd']

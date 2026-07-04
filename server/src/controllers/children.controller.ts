@@ -10,6 +10,7 @@ import {
   selectVoiceId,
 } from '../services/ai.service';
 import { toChildType } from '../utils/db-mappers';
+import { ageFromDob } from '../utils/age';
 import Anthropic from '@anthropic-ai/sdk';
 import { generateFriendPortrait } from '../services/avatar.service';
 import { assignVoiceToFriend } from '../services/audio.service';
@@ -141,7 +142,7 @@ const DEFAULT_PARENT_SETTINGS = {
 export async function createChildFromOnboarding(req: AuthRequest, res: Response) {
   try {
     const {
-      parentEmail, name, age, gender, language,
+      parentEmail, name, dateOfBirth, gender, language,
       specialNeeds, specialNeedsDetails, preReader,
       avatarTheme, mascotId, interests, freeInterest,
       avatarPack,
@@ -156,8 +157,8 @@ export async function createChildFromOnboarding(req: AuthRequest, res: Response)
 
     if (req.userId) {
       // PARENT-AUTHENTICATED PATH: JWT already verified by optionalAuth
-      if (!name || !age) {
-        res.status(400).json({ error: 'name and age are required' });
+      if (!name || !dateOfBirth) {
+        res.status(400).json({ error: 'name and dateOfBirth are required' });
         return;
       }
       const found = await db('users').where({ id: req.userId }).first();
@@ -168,8 +169,8 @@ export async function createChildFromOnboarding(req: AuthRequest, res: Response)
       parentUser = found as Record<string, unknown>;
     } else {
       // UNAUTHENTICATED PATH: enrollment-based flow (unchanged)
-      if (!name || !age || !parentEmail) {
-        res.status(400).json({ error: 'name, age, and parentEmail are required' });
+      if (!name || !dateOfBirth || !parentEmail) {
+        res.status(400).json({ error: 'name, dateOfBirth, and parentEmail are required' });
         return;
       }
 
@@ -214,7 +215,7 @@ export async function createChildFromOnboarding(req: AuthRequest, res: Response)
     }
 
     // 4. Map and create child record
-    const ageNum       = parseAgeRange(String(age));
+    const ageNum       = ageFromDob(String(dateOfBirth));
     const mappedTheme  = AVATAR_THEME_MAP[String(avatarTheme) || ''] || 'animals';
     const mappedLang   = VALID_LANGUAGES.includes(String(language)) ? language : 'en';
     const mappedGender = String(gender) === 'other' ? 'nonbinary' :
@@ -233,7 +234,7 @@ export async function createChildFromOnboarding(req: AuthRequest, res: Response)
       .insert({
         parent_id:             parentUser.id,
         name,
-        age:                   ageNum,
+        date_of_birth:         String(dateOfBirth),
         gender:                mappedGender,
         language:              mappedLang,
         special_needs:         JSON.stringify(needsArray),
@@ -785,7 +786,8 @@ export async function getMyProfile(req: AuthRequest, res: Response) {
     res.json({
       id:              child.id,
       name:            child.name,
-      age:             child.age,
+      age:             ageFromDob(child.date_of_birth as string | null | undefined, Number(child.age)),
+      dateOfBirth:     (child.date_of_birth as string | null) ?? null,
       gender:          child.gender,
       language:        child.language,
       avatarTheme:     child.avatar_theme,
@@ -851,7 +853,8 @@ export async function updateMyProfile(req: AuthRequest, res: Response) {
     res.json({
       id:          child.id,
       name:        child.name,
-      age:         child.age,
+      age:         ageFromDob(child.date_of_birth as string | null | undefined, Number(child.age)),
+      dateOfBirth: (child.date_of_birth as string | null) ?? null,
       gender:      child.gender,
       language:    child.language,
       avatarTheme: child.avatar_theme,
@@ -1015,7 +1018,7 @@ export async function regenerateFriends(req: AuthRequest, res: Response) {
 
     const child  = toChildType(childRow);
     const lang   = (childRow.language as string) || 'en';
-    const ageNum = Number(childRow.age);
+    const ageNum = ageFromDob(childRow.date_of_birth as string | null | undefined, Number(childRow.age));
 
     console.log(`[friends] 🔄 Regenerating friends for ${child.name} (attempt ${regenCount + 1})`);
     const genResult = await generatePersonalisedFriends(child, lang, 2);

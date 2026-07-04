@@ -17,7 +17,7 @@ const MODELS = {
 
 const MAX_TOKENS = {
   friendReply:          300,
-  dailyPosts:           800,
+  dailyPosts:           1600,
   moodCheck:            250,
   memoryDistill:        500,
   friendMatch:          600,
@@ -682,6 +682,8 @@ Return ONLY valid JSON array — no markdown:
 
 // ── 5. Generate daily posts ───────────────────────────────────────────────────
 
+const DAILY_POSTS_CHUNK = 3;
+
 export async function generateDailyPosts(
   friends: FriendForAI[],
   child: Child,
@@ -689,6 +691,21 @@ export async function generateDailyPosts(
   language = 'en',
   isShared = false,
 ): Promise<DailyPostsResult> {
+  // Split large friend lists into chunks to keep each response well under max_tokens
+  if (friends.length > DAILY_POSTS_CHUNK) {
+    const allPosts: DailyPost[] = [];
+    let totalInput = 0, totalOutput = 0;
+    for (let i = 0; i < friends.length; i += DAILY_POSTS_CHUNK) {
+      const chunk = friends.slice(i, i + DAILY_POSTS_CHUNK);
+      const r = await generateDailyPosts(chunk, child, memoryBrief, language, isShared);
+      if (r.error) return r;
+      allPosts.push(...r.posts);
+      totalInput  += r.inputTokens;
+      totalOutput += r.outputTokens;
+    }
+    return { posts: allPosts, inputTokens: totalInput, outputTokens: totalOutput };
+  }
+
   const today      = new Date().toLocaleDateString('en-US', { weekday: 'long' });
   const hour       = new Date().getHours();
   const timeOfDay  = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
@@ -744,6 +761,23 @@ Return ONLY valid JSON — no markdown, no explanation. Format:
         : `Generate one post for each of these friends for ${child.name}:\n${friendList}`,
     }],
   }));
+
+  // Truncation guard: stop_reason === 'max_tokens' means the response was cut mid-JSON
+  if (response.stop_reason === 'max_tokens') {
+    console.warn(`[daily posts] ⚠️ Response truncated (max_tokens hit) with ${friends.length} friend(s). Retrying in halves.`);
+    if (friends.length > 1) {
+      const half = Math.ceil(friends.length / 2);
+      const r1 = await generateDailyPosts(friends.slice(0, half), child, memoryBrief, language, isShared);
+      const r2 = await generateDailyPosts(friends.slice(half), child, memoryBrief, language, isShared);
+      return {
+        posts:        [...r1.posts, ...r2.posts],
+        error:        r1.error ?? r2.error,
+        inputTokens:  r1.inputTokens  + r2.inputTokens,
+        outputTokens: r1.outputTokens + r2.outputTokens,
+      };
+    }
+    return { posts: [], error: 'max_tokens', inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens };
+  }
 
   const parsed = parseJSON<DailyPost[]>(extractText(response), 'daily posts');
   if (!parsed) return { posts: [], error: 'Parse error', inputTokens: 0, outputTokens: 0 };

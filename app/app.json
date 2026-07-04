@@ -29,7 +29,11 @@
         "foregroundImage": "./assets/images/migo-logo.jpg",
         "backgroundColor": "#F8F7FF"
       },
-      "package": "com.migo.app"
+      "package": "com.migo.app",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -48,6 +52,18 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ab879822-9ae4-41ce-8898-b5bf0ce58945"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/ab879822-9ae4-41ce-8898-b5bf0ce58945"
     }
   }
 }

@@ -127,7 +127,14 @@ function PostsTab({
           onPress={() => onSelect(post)}
           activeOpacity={0.8}
         >
-          <Text style={s.postCellEmojis}>{post.scene_emojis ?? '📝'}</Text>
+          {post.image_url
+            ? <Image
+                source={{ uri: post.image_url }}
+                style={{ width: '100%', height: '100%', borderRadius: 10 }}
+                resizeMode="cover"
+              />
+            : <Text style={s.postCellEmojis}>{post.scene_emojis ?? '📝'}</Text>
+          }
           <View style={s.postCellBottom}>
             <Text style={s.postCellMoodEmoji}>{post.mood ? (MOOD_EMOJI[post.mood] ?? '😐') : '📝'}</Text>
             <Text style={s.postCellTime} numberOfLines={1}>{formatRelativeDate(post.created_at)}</Text>

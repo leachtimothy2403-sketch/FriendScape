@@ -12,6 +12,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 import { friends as friendsApi, childProfileApi, mascotAvatars as mascotAvatarApi } from '@/services/api';
 import { useOnboardingStore } from '@/store/onboardingStore';
+import { ageFromDob } from '@/utils/age';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface ApiFriend {
@@ -99,7 +100,7 @@ function scoreAndRank(allFriends: ApiFriend[], interests: string[], childAge?: n
 export default function FriendsScreen() {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
-  const { childName, mascotId, interests, age } =
+  const { childName, mascotId, interests, dateOfBirth } =
     useOnboardingStore();
 
   const displayName = childName.trim() || 'you';
@@ -107,10 +108,7 @@ export default function FriendsScreen() {
 
   const [mascotAvatarUrl, setMascotAvatarUrl] = useState<string | null>(null);
 
-  const childAge = (() => {
-    const m = age.match(/(\d+)/);
-    return m ? parseInt(m[1], 10) : undefined;
-  })();
+  const childAge = dateOfBirth ? ageFromDob(dateOfBirth) : undefined;
   const HPAD  = 24;
   const GAP   = 10;
   const cardW = (width - HPAD * 2 - GAP * 2) / 3;

@@ -315,6 +315,7 @@ export interface ProfilePost {
   content: string;
   mood: string | null;
   scene_emojis: string | null;
+  image_url: string | null;
   created_at: string;
   reaction_count: number;
 }

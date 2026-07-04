@@ -1,12 +1,14 @@
 import { Child, PersonalityTrait, EmotionalEntry, Milestone, AvatarConfig } from '../../../shared/types';
 import { FriendForAI, ExtendedMemory } from '../services/ai.service';
+import { ageFromDob } from './age';
 
 export function toChildType(row: Record<string, unknown>): Child {
   return {
     id:           String(row.id),
     parentId:     String(row.parent_id),
     name:         String(row.name),
-    age:          Number(row.age),
+    age:          ageFromDob(row.date_of_birth as string | null | undefined, Number(row.age)),
+    dateOfBirth:  row.date_of_birth ? String(row.date_of_birth) : null,
     gender:       (row.gender as Child['gender'])       || 'preferNotToSay',
     language:     (row.language as Child['language'])   || 'en',
     specialNeeds: (row.special_needs as string[])       || [],

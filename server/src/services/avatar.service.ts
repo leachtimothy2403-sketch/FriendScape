@@ -16,16 +16,21 @@ export async function downloadAndSave(falUrl: string): Promise<string> {
   const hash     = crypto.createHash('md5').update(falUrl).digest('hex').slice(0, 16);
   const filename = `avatar_${hash}.jpg`;
   const filepath = path.join(AVATAR_DIR, filename);
-  const localUrl = `/avatars/${filename}`;
+  const localUrl     = `/avatars/${filename}`;
+  const absoluteUrl  = `${BASE_URL}${localUrl}`;
 
-  if (fs.existsSync(filepath)) return localUrl;
+  if (fs.existsSync(filepath)) return absoluteUrl;
 
   return new Promise((resolve, reject) => {
     const protocol = falUrl.startsWith('https') ? https : http;
     const file = fs.createWriteStream(filepath);
     protocol.get(falUrl, (res) => {
       res.pipe(file);
-      file.on('finish', () => { file.close(); resolve(localUrl); });
+      file.on('finish', () => {
+        file.close();
+        console.log(`[avatar] saved locally: ${filename}`);
+        resolve(absoluteUrl);
+      });
     }).on('error', (err) => {
       fs.unlink(filepath, () => {});
       reject(err);

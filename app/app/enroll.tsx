@@ -193,7 +193,7 @@ export default function EnrollScreen() {
 
     // 4. Populate store with defaults
     store.setChildName('Timmy');
-    store.setAge('9–10');
+    store.setDateOfBirth('2017-04-15');
     store.setGender('boy');
     store.setLanguage(language);
     store.setInterests(['animals', 'reading', 'drawing']);
