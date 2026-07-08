@@ -235,6 +235,7 @@ export async function createChildFromOnboarding(req: AuthRequest, res: Response)
         parent_id:             parentUser.id,
         name,
         date_of_birth:         String(dateOfBirth),
+        age:                   ageNum,
         gender:                mappedGender,
         language:              mappedLang,
         special_needs:         JSON.stringify(needsArray),
