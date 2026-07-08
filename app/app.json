@@ -10,10 +10,10 @@
       "web"
     ],
     "orientation": "portrait",
-    "icon": "./assets/images/migo-logo.jpg",
+    "icon": "./assets/images/migo-logo-square.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/images/migo-logo.jpg",
+      "image": "./assets/images/migo-logo-square.png",
       "resizeMode": "contain",
       "backgroundColor": "#F8F7FF"
     },
@@ -29,7 +29,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/migo-logo.jpg",
+        "foregroundImage": "./assets/images/migo-logo-square.png",
         "backgroundColor": "#F8F7FF"
       },
       "package": "com.azerguia.mymigo",
@@ -50,7 +50,8 @@
           "photosPermission": "Migo uses your photo library to let you share pictures with your friends."
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true

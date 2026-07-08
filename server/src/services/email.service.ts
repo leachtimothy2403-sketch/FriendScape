@@ -37,7 +37,7 @@ transporter.verify((err) => {
   }
 });
 
-const FROM = `"Migo" <${smtpUser}>`;
+const FROM = `"Migo" <hello@mymigo.fr>`;
 
 export async function sendVerificationEmail(to: string, code: string): Promise<void> {
   await transporter.sendMail({
