@@ -7,7 +7,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import {
-  friendNetwork, myFriendsApi,
+  friendNetwork, myFriendsApi, resolveAvatarUrl,
   FriendWithStatus, FriendWithRelationship, FriendPost,
 } from '@/services/api';
 import { Colors } from '@/constants/theme';
@@ -63,7 +63,7 @@ function NetworkCard({
     >
       <View style={[s.networkAvatar, { backgroundColor: coverColor }]}>
         {f.avatar_url
-          ? <Image source={{ uri: f.avatar_url }} style={{ width: 46, height: 46, borderRadius: 23 }} />
+          ? <Image source={{ uri: resolveAvatarUrl(f.avatar_url) }} style={{ width: 46, height: 46, borderRadius: 23 }} />
           : <Text style={{ fontSize: 24 }}>{firstEmoji(f.cover_emojis)}</Text>}
       </View>
       <Text style={s.networkName} numberOfLines={1}>{f.name}</Text>
@@ -219,7 +219,7 @@ export default function FriendProfileScreen() {
         <View style={s.profileSection}>
           <View style={[s.avatarCircle, { backgroundColor: coverColor }]}>
             {friend.avatar_url
-              ? <Image source={{ uri: friend.avatar_url }} style={{ width: 70, height: 70, borderRadius: 35 }} />
+              ? <Image source={{ uri: resolveAvatarUrl(friend.avatar_url) }} style={{ width: 70, height: 70, borderRadius: 35 }} />
               : <Text style={{ fontSize: 36 }}>{mainEmoji}</Text>}
           </View>
 

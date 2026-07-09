@@ -9,17 +9,15 @@ import crypto from 'crypto';
 fal.config({ credentials: process.env.FAL_API_KEY ?? '' });
 
 const AVATAR_DIR = path.join(__dirname, '../../public/avatars');
-const BASE_URL   = process.env.BASE_URL ?? 'http://localhost:3001';
 
 export async function downloadAndSave(falUrl: string): Promise<string> {
   fs.mkdirSync(AVATAR_DIR, { recursive: true });
   const hash     = crypto.createHash('md5').update(falUrl).digest('hex').slice(0, 16);
   const filename = `avatar_${hash}.jpg`;
   const filepath = path.join(AVATAR_DIR, filename);
-  const localUrl     = `/avatars/${filename}`;
-  const absoluteUrl  = `${BASE_URL}${localUrl}`;
+  const localUrl = `${process.env.BASE_URL || 'http://localhost:3001'}/avatars/${filename}`;
 
-  if (fs.existsSync(filepath)) return absoluteUrl;
+  if (fs.existsSync(filepath)) return localUrl;
 
   return new Promise((resolve, reject) => {
     const protocol = falUrl.startsWith('https') ? https : http;
@@ -29,7 +27,7 @@ export async function downloadAndSave(falUrl: string): Promise<string> {
       file.on('finish', () => {
         file.close();
         console.log(`[avatar] saved locally: ${filename}`);
-        resolve(absoluteUrl);
+        resolve(localUrl);
       });
     }).on('error', (err) => {
       fs.unlink(filepath, () => {});

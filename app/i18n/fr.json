@@ -336,7 +336,7 @@
       "style": "Style",
       "loves": "Passions",
       "parentNote": "Parents — votre tableau de bord est prêt",
-      "parentNoteDesc": "Vous pouvez voir tout ce que fait {{name}}, gérer les amis, définir des limites de temps d'écran et recevoir des alertes de sécurité instantanées — à tout moment.",
+      "parentNoteDesc": "Vous pouvez voir tout ce que fait {{name}}, gérer les amis, définir des limites de temps d'écran et recevoir des alertes de sécurité instantanées — à tout moment. Ouvrez simplement Migo et appuyez sur « Je suis un parent » pour vous connecter.",
       "goButton": "Aller sur Migo ! 🌟"
     }
   },

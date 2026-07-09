@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import {
   friends as allFriendsApi,
   myFriendsApi, friendNetwork, childProfileApi,
-  mascotAvatars,
+  mascotAvatars, resolveAvatarUrl,
   MyChildFriend, AiFriendRecord, FriendWithRelationship,
 } from '@/services/api';
 import { useLanguageStore } from '@/store/languageStore';
@@ -116,7 +116,7 @@ function MyFriendBubble({ friend }: { friend: MyChildFriend }) {
     >
       <View style={[s.myFriendAvatar, { backgroundColor: bg }]}>
         {friend.avatar_url
-          ? <Image source={{ uri: friend.avatar_url }} style={{ width: 56, height: 56, borderRadius: 28 }} />
+          ? <Image source={{ uri: resolveAvatarUrl(friend.avatar_url) }} style={{ width: 56, height: 56, borderRadius: 28 }} />
           : <Text style={{ fontSize: 26 }}>{firstEmoji(friend.cover_emojis)}</Text>
         }
       </View>
@@ -161,7 +161,7 @@ function NetworkCard({
     >
       <View style={[s.networkAvatar, { backgroundColor: bg }]}>
         {f.avatar_url
-          ? <Image source={{ uri: f.avatar_url }} style={{ width: 52, height: 52, borderRadius: 26 }} />
+          ? <Image source={{ uri: resolveAvatarUrl(f.avatar_url) }} style={{ width: 52, height: 52, borderRadius: 26 }} />
           : <Text style={{ fontSize: 28 }}>{firstEmoji(f.cover_emojis)}</Text>
         }
       </View>
@@ -205,7 +205,7 @@ function StarCard({
     >
       <View style={[s.starAvatar, { backgroundColor: bg }]}>
         {friend.avatar_url
-          ? <Image source={{ uri: friend.avatar_url }} style={{ width: 52, height: 52, borderRadius: 26 }} />
+          ? <Image source={{ uri: resolveAvatarUrl(friend.avatar_url) }} style={{ width: 52, height: 52, borderRadius: 26 }} />
           : <Text style={{ fontSize: 32 }}>{firstEmoji(friend.cover_emojis)}</Text>
         }
       </View>
@@ -255,7 +255,7 @@ function LunaCard({ luna, onAdd, isFr, alreadyAdded }: { luna: AiFriendRecord; o
     >
       <View style={s.lunaAvatar}>
         {luna.avatar_url
-          ? <Image source={{ uri: luna.avatar_url }} style={{ width: 52, height: 52, borderRadius: 26 }} />
+          ? <Image source={{ uri: resolveAvatarUrl(luna.avatar_url) }} style={{ width: 52, height: 52, borderRadius: 26 }} />
           : <Text style={{ fontSize: 26 }}>{firstEmoji(luna.cover_emojis)}</Text>
         }
       </View>
@@ -304,7 +304,7 @@ function JulesCard({ jules, onAdd, isFr, alreadyAdded }: { jules: AiFriendRecord
       <View style={s.julesTopRow}>
         <View style={s.julesAvatar}>
           {jules.avatar_url
-            ? <Image source={{ uri: jules.avatar_url }} style={{ width: 52, height: 52, borderRadius: 26 }} />
+            ? <Image source={{ uri: resolveAvatarUrl(jules.avatar_url) }} style={{ width: 52, height: 52, borderRadius: 26 }} />
             : <Text style={{ fontSize: 26 }}>🧭</Text>
           }
         </View>

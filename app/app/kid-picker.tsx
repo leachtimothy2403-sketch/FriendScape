@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { childAuth, childSession } from '@/services/api';
+import { childAuth, childSession, resolveAvatarUrl } from '@/services/api';
 import { getChildProfiles, setActiveChildProfile, type LocalChildProfile } from '@/utils/childProfiles';
 import { Colors } from '@/constants/theme';
 
@@ -141,7 +141,7 @@ export default function KidPickerScreen() {
                 </View>
               ) : item.avatarUrl ? (
                 <Image
-                  source={{ uri: item.avatarUrl }}
+                  source={{ uri: resolveAvatarUrl(item.avatarUrl) }}
                   style={{ width: 72, height: 72, borderRadius: 36, marginBottom: 12 }}
                 />
               ) : (

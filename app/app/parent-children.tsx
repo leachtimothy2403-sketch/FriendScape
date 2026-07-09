@@ -7,7 +7,7 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
-import { children as childrenApi } from '@/services/api';
+import { children as childrenApi, resolveAvatarUrl } from '@/services/api';
 import { Colors } from '@/constants/theme';
 
 const MASCOT_EMOJI: Record<string, string> = {
@@ -153,7 +153,7 @@ export default function ParentChildrenScreen() {
             >
               {item.avatar_url ? (
                 <Image
-                  source={{ uri: item.avatar_url }}
+                  source={{ uri: resolveAvatarUrl(item.avatar_url) }}
                   style={{ width: 72, height: 72, borderRadius: 36, marginBottom: 12 }}
                 />
               ) : (

@@ -416,6 +416,7 @@ export async function createChildFromOnboarding(req: AuthRequest, res: Response)
           const [mini] = await db('ai_friends')
             .insert({
               name:               conn.name,
+              gender:             conn.gender ?? 'boy',
               bio:                conn.bio,
               cover_emojis:       conn.coverEmojis ?? '🌟',
               is_generated:       true,
@@ -433,7 +434,7 @@ export async function createChildFromOnboarding(req: AuthRequest, res: Response)
               voice_model:        lang === 'fr' ? 'eleven_multilingual_v2' : 'eleven_monolingual_v1',
             })
             .returning('*');
-          generateFriendPortrait(conn.name, ageNum, 'other', [], lang)
+          generateFriendPortrait(conn.name, ageNum, conn.gender ?? 'boy', [], lang)
             .then(url => db('ai_friends').where({ id: mini.id }).update({ avatar_url: url }))
             .catch(err => console.warn('[avatar] friend portrait failed (mini):', err));
           await db('ai_friend_network')

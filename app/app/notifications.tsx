@@ -1,12 +1,12 @@
 import {
   View, Text, SafeAreaView, FlatList, TouchableOpacity,
-  ActivityIndicator, StyleSheet,
+  ActivityIndicator, StyleSheet, Image,
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
-import { childNotifications, type NotificationItem } from '@/services/api';
+import { childNotifications, resolveAvatarUrl, type NotificationItem } from '@/services/api';
 import { useNotificationStore } from '@/store/notificationStore';
 import { Colors } from '@/constants/theme';
 
@@ -100,7 +100,9 @@ export default function NotificationsScreen() {
               activeOpacity={0.7}
             >
               <View style={s.emojiCircle}>
-                <Text style={s.emoji}>{firstEmoji(item.friendEmoji)}</Text>
+                {item.friendAvatarUrl
+                  ? <Image source={{ uri: resolveAvatarUrl(item.friendAvatarUrl) }} style={{ width: 46, height: 46, borderRadius: 23 }} />
+                  : <Text style={s.emoji}>{firstEmoji(item.friendEmoji)}</Text>}
               </View>
               <View style={s.body}>
                 <View style={s.nameRow}>

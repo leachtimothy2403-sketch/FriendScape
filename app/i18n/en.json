@@ -320,7 +320,7 @@
       "style": "Style",
       "loves": "Loves",
       "parentNote": "Parents — your dashboard is ready",
-      "parentNoteDesc": "You can see everything {{name}} does, manage friends, set screen time limits, and get instant safety alerts — anytime.",
+      "parentNoteDesc": "You can see everything {{name}} does, manage friends, set screen time limits, and get instant safety alerts — anytime. Just open Migo and tap \"I'm a parent\" to log in.",
       "goButton": "Go to Migo! 🌟"
     }
   },

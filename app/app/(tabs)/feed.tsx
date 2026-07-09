@@ -9,7 +9,7 @@ import { router, usePathname, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Audio } from 'expo-av';
 import { useTranslation } from 'react-i18next';
-import { childAuth, childPosts, childSession, childProfileApi, childMessages, childNotifications, FriendWithStats, mascotAvatars as mascotAvatarApi, audioApi } from '@/services/api';
+import { childAuth, childPosts, childSession, childProfileApi, childMessages, childNotifications, FriendWithStats, mascotAvatars as mascotAvatarApi, audioApi, resolveAvatarUrl } from '@/services/api';
 import { useNotificationStore } from '@/store/notificationStore';
 import MigoLogo from '@/components/MigoLogo';
 import EmojiAvatar from '@/components/EmojiAvatar';
@@ -239,14 +239,14 @@ export default function FeedScreen() {
             } catch {}
           }
           if (storedAvatarUrl) {
-            setChildAvatarUrl(storedAvatarUrl);
+            setChildAvatarUrl(resolveAvatarUrl(storedAvatarUrl) ?? null);
           } else {
             try {
               const profileRes = await childProfileApi.getProfile(token);
               const url = profileRes.data.avatarUrl;
               if (url && !cancelled) {
                 await AsyncStorage.setItem('childAvatarUrl', url);
-                setChildAvatarUrl(url);
+                setChildAvatarUrl(resolveAvatarUrl(url) ?? null);
               }
             } catch {}
           }
@@ -350,7 +350,7 @@ export default function FeedScreen() {
         const url = profileRes.data.avatarUrl;
         if (url) {
           await AsyncStorage.setItem('childAvatarUrl', url);
-          setChildAvatarUrl(url);
+          setChildAvatarUrl(resolveAvatarUrl(url) ?? null);
         }
       } catch {}
     }, 10000);
@@ -776,7 +776,7 @@ export default function FeedScreen() {
                         <View style={s.lunaStoryRingOuter}>
                           <View style={s.storyRingInner}>
                             {lunaFriend.avatar_url
-                              ? <Image source={{ uri: lunaFriend.avatar_url }} style={{ width: 52, height: 52, borderRadius: 26 }} />
+                              ? <Image source={{ uri: resolveAvatarUrl(lunaFriend.avatar_url) }} style={{ width: 52, height: 52, borderRadius: 26 }} />
                               : <Text style={{ fontSize: 28 }}>{firstEmoji(lunaFriend.cover_emojis)}</Text>
                             }
                           </View>
@@ -793,7 +793,7 @@ export default function FeedScreen() {
                         <View style={s.storyRingOuter}>
                           <View style={s.storyRingInner}>
                             {f.avatar_url
-                              ? <Image source={{ uri: f.avatar_url }} style={{ width: 52, height: 52, borderRadius: 26 }} />
+                              ? <Image source={{ uri: resolveAvatarUrl(f.avatar_url) }} style={{ width: 52, height: 52, borderRadius: 26 }} />
                               : <Text style={{ fontSize: 28 }}>{firstEmoji(f.emojis)}</Text>
                             }
                           </View>
@@ -1035,7 +1035,7 @@ function PostCard({
   const friendBg   = isOwn ? '#E1F5EE' : (FRIEND_BG[name]   ?? '#EEEDFE');
   const friendTint = isOwn ? '#E1F5EE' : (FRIEND_TINT[name] ?? '#F0EFFF');
   const emoji          = isOwn ? avatarEmoji : firstEmoji(post.friend_cover_emojis);
-  const friendAvatarUrl = !isOwn ? (post.friend_avatar_url ?? null) : null;
+  const friendAvatarUrl = !isOwn ? (resolveAvatarUrl(post.friend_avatar_url) ?? null) : null;
   const sceneChars = post.scene_emojis ? [...post.scene_emojis] : [];
 
   return (

@@ -8,7 +8,7 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
-import { children as childrenApi, childAuth, childSession, mascotAvatars as mascotAvatarApi } from '@/services/api';
+import { children as childrenApi, childAuth, childSession, mascotAvatars as mascotAvatarApi, resolveAvatarUrl } from '@/services/api';
 import { addChildProfile } from '@/utils/childProfiles';
 import EmojiAvatar from '@/components/EmojiAvatar';
 import { useOnboardingStore } from '@/store/onboardingStore';
@@ -36,8 +36,6 @@ const PACK_NAME: Record<string, string> = {
   'fantasy-world': 'Fantasy World',
   'toon-town':     'Toon Town',
 };
-
-const PARENT_DASHBOARD = 'http://localhost:3000';
 
 const EN_LOADING_FACTS = [
   "Setting up your Migo world...",
@@ -112,6 +110,7 @@ export default function AllSetScreen() {
   const [errorMsg, setErrorMsg]           = useState('');
   const [assignedFriends, setAssignedFriends] = useState<AssignedFriend[]>([]);
   const [mascotAvatarUrl, setMascotAvatarUrl] = useState<string | null>(null);
+  const [childAvatarUrl, setChildAvatarUrl]   = useState<string | null>(null);
   const [factIndex, setFactIndex] = useState(0);
   const isFr = (store.language || language) === 'fr';
 
@@ -227,7 +226,10 @@ export default function AllSetScreen() {
           }));
           await AsyncStorage.setItem('avatarBackground', store.avatarBackground || '#EEEDFE');
           await AsyncStorage.setItem('childEmoji', childEmoji);
-          if (data.avatarUrl) await AsyncStorage.setItem('childAvatarUrl', data.avatarUrl);
+          if (data.avatarUrl) {
+            await AsyncStorage.setItem('childAvatarUrl', data.avatarUrl);
+            setChildAvatarUrl(data.avatarUrl);
+          }
           await addChildProfile({ childId: data.childId, name: data.name, mascotId: data.mascotId, avatarUrl: data.avatarUrl ?? undefined });
           await AsyncStorage.removeItem('authToken');
           try { await childSession.start(tokenRes.data.token); } catch { /* non-fatal */ }
@@ -300,7 +302,10 @@ export default function AllSetScreen() {
       }));
       await AsyncStorage.setItem('avatarBackground', store.avatarBackground || '#EEEDFE');
       await AsyncStorage.setItem('childEmoji', childEmoji);
-      if (data.avatarUrl) await AsyncStorage.setItem('childAvatarUrl', data.avatarUrl);
+      if (data.avatarUrl) {
+        await AsyncStorage.setItem('childAvatarUrl', data.avatarUrl);
+        setChildAvatarUrl(data.avatarUrl);
+      }
       await addChildProfile({ childId: data.childId, name: data.name, mascotId: data.mascotId, avatarUrl: data.avatarUrl ?? undefined });
       try { await childSession.start(tokenRes.data.token); } catch { /* non-fatal */ }
       try {
@@ -406,7 +411,9 @@ export default function AllSetScreen() {
                 shadowOpacity: 0.3, shadowRadius: 12, elevation: 8,
               }}
             >
-              <EmojiAvatar emoji={childEmoji} background={store.avatarBackground || '#EEEDFE'} size={96} />
+              {childAvatarUrl
+                ? <Image source={{ uri: resolveAvatarUrl(childAvatarUrl) }} style={{ width: 96, height: 96, borderRadius: 48 }} />
+                : <EmojiAvatar emoji={childEmoji} background={store.avatarBackground || '#EEEDFE'} size={96} />}
             </View>
           </Animated.View>
         </View>
@@ -514,8 +521,7 @@ export default function AllSetScreen() {
             👨‍👩‍👧 {t('onboarding.allset.parentNote')}
           </Text>
           <Text style={{ fontSize: 13, color: '#888780', lineHeight: 20 }}>
-            {t('onboarding.allset.parentNoteDesc', { name: childName })}{' '}
-            <Text style={{ color: '#7F77DD', fontWeight: '600' }}>{PARENT_DASHBOARD}</Text>
+            {t('onboarding.allset.parentNoteDesc', { name: childName })}
           </Text>
         </View>
 

@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { Colors, Mascots } from '@/constants/theme';
 import { useLanguageStore } from '@/store/languageStore';
 import {
-  childProfileApi, childSession,
+  childProfileApi, childSession, resolveAvatarUrl,
   ChildProfile, MemoryItem, FriendWithStats, ProfilePost, ModerationResult,
 } from '@/services/api';
 import MigoLogo from '@/components/MigoLogo';
@@ -300,7 +300,7 @@ export default function ProfileScreen() {
           setMemories(memoriesRes.data.memories);
           if (storedEmoji) setChildEmoji(storedEmoji);
           if (storedBg) setAvatarBackground(storedBg);
-          if (storedAvatarUrl) setChildAvatarUrl(storedAvatarUrl);
+          if (storedAvatarUrl) setChildAvatarUrl(resolveAvatarUrl(storedAvatarUrl) ?? null);
         }
       } catch (e) {
         console.error('[profile] load failed:', e);

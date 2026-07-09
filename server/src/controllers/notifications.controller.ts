@@ -8,6 +8,7 @@ interface NotificationRow {
   friendId: string | null;
   friendName: string;
   friendEmoji: string;
+  friendAvatarUrl: string | null;
   preview: string;
   createdAt: string;
   read: boolean;
@@ -39,6 +40,7 @@ export async function getNotifications(req: AuthRequest, res: Response) {
           'af.id as friend_id',
           'af.name as friend_name',
           'af.cover_emojis as friend_emoji',
+          'af.avatar_url as friend_avatar_url',
         )
         .orderBy('m.created_at', 'desc')
         .limit(20),
@@ -58,6 +60,7 @@ export async function getNotifications(req: AuthRequest, res: Response) {
           'af.id as friend_id',
           'af.name as friend_name',
           'af.cover_emojis as friend_emoji',
+          'af.avatar_url as friend_avatar_url',
         )
         .orderBy('pc.created_at', 'desc')
         .limit(20),
@@ -89,6 +92,7 @@ export async function getNotifications(req: AuthRequest, res: Response) {
         friendId: r.friend_id as string,
         friendName: r.friend_name as string,
         friendEmoji: r.friend_emoji as string,
+        friendAvatarUrl: (r.friend_avatar_url as string | null) ?? null,
         preview: r.content as string,
         createdAt: r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
         read: Boolean(r.read),
@@ -99,6 +103,7 @@ export async function getNotifications(req: AuthRequest, res: Response) {
         friendId: r.friend_id as string,
         friendName: r.friend_name as string,
         friendEmoji: r.friend_emoji as string,
+        friendAvatarUrl: (r.friend_avatar_url as string | null) ?? null,
         preview: r.content as string,
         createdAt: r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
         read: false,
@@ -113,6 +118,7 @@ export async function getNotifications(req: AuthRequest, res: Response) {
           friendId: null,
           friendName: badgeName as string,
           friendEmoji: r.badge_icon as string,
+          friendAvatarUrl: null,
           preview: badgeDesc as string,
           createdAt: r.earned_at instanceof Date ? r.earned_at.toISOString() : String(r.earned_at),
           read: Boolean(r.seen),

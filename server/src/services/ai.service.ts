@@ -610,6 +610,7 @@ export interface NetworkConnectionRaw {
   friendName?: string;
   // new
   name?: string;
+  gender?: 'boy' | 'girl';
   bio?: string;
   coverEmojis?: string;
   // both
@@ -660,6 +661,7 @@ Return ONLY valid JSON array — no markdown:
   {
     "type": "new",
     "name": "character name",
+    "gender": "boy|girl",
     "bio": "1-2 sentence bio, warm and specific",
     "coverEmojis": "3 emojis",
     "relationshipType": "classmate|neighbour|close_friend|teammate",

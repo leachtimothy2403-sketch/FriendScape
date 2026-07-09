@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { router, useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/theme';
-import api from '@/services/api';
+import api, { resolveAvatarUrl } from '@/services/api';
 
 interface Friend {
   id: string;
@@ -29,7 +29,7 @@ function FriendRow({ item }: { item: Friend }) {
     <View style={s.card}>
       <View style={s.avatar}>
         {item.avatar_url ? (
-          <Image source={{ uri: item.avatar_url }} style={s.avatarImg} />
+          <Image source={{ uri: resolveAvatarUrl(item.avatar_url) }} style={s.avatarImg} />
         ) : (
           <Text style={s.avatarEmoji}>{(item.cover_emojis ?? '🤖').charAt(0)}</Text>
         )}

@@ -19,6 +19,7 @@ import { useNotificationStore } from '@/store/notificationStore';
 import { sendWebNotification } from '@/utils/webNotifications';
 import { dedupeDictatedText } from '@/utils/dedupeDictatedText';
 import { getDisplayName } from '@/utils/displayName';
+import { resolveAvatarUrl } from '@/services/api';
 
 interface ChatMessage {
   id: string;
@@ -183,7 +184,7 @@ export default function DMScreen() {
         const name      = String(friend.name ?? 'Friend');
         const emoji     = [...(String(friend.cover_emojis || '🌟'))][0] ?? '🌟';
         const teacher   = Boolean(friend.is_teacher);
-        const avatarUrl = friend.avatar_url ? String(friend.avatar_url) : null;
+        const avatarUrl = resolveAvatarUrl(friend.avatar_url as string | null | undefined) ?? null;
 
         if (!cancelled) {
           setFriendName(getDisplayName(name, language === 'fr'));

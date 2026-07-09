@@ -4,6 +4,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.1.15:3001';
 console.log('API_URL:', API_URL);
 
+export function resolveAvatarUrl(url: string | null | undefined): string | undefined {
+  if (!url) return undefined;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${API_URL}${url}`;
+}
+
 const api = axios.create({
   baseURL: API_URL,
   timeout: 30000,
@@ -373,6 +379,7 @@ export interface NotificationItem {
   friendId: string | null;
   friendName: string;
   friendEmoji: string;
+  friendAvatarUrl: string | null;
   preview: string;
   createdAt: string;
   read: boolean;
