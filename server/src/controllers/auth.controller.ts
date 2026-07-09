@@ -356,13 +356,13 @@ function setPasswordFormHtml(token: string, error?: string, lang = 'en'): string
           <li>Votre enfant utilisera myMigo sous votre supervision sur votre appareil</li>
           <li>Les conversations de votre enfant sont traitées par Claude (Anthropic) — jamais vendues ni utilisées pour entraîner des modèles IA</li>
           <li>Les photos et enregistrements vocaux sont traités en temps réel et jamais stockés par myMigo</li>
-          <li>Vous pouvez demander la suppression de toutes les données de votre enfant à tout moment en écrivant à ${process.env.FEEDBACK_EMAIL || 'privacy@mymigo.fr'}</li>
+          <li>Vous pouvez demander la suppression de toutes les données de votre enfant à tout moment en écrivant à hello@mymigo.fr</li>
           <li>Il s'agit d'un bêta fermé — ne partagez pas l'accès avec d'autres personnes</li>
           ` : `
           <li>Your child will use myMigo under your supervision on your device</li>
           <li>Your child's conversations are processed by Claude (Anthropic) — never sold or used to train AI models</li>
           <li>Photos and voice recordings are processed in real-time and never stored by myMigo</li>
-          <li>You can request deletion of all your child's data at any time by emailing ${process.env.FEEDBACK_EMAIL || 'privacy@mymigo.fr'}</li>
+          <li>You can request deletion of all your child's data at any time by emailing hello@mymigo.fr</li>
           <li>This is a closed beta — please do not share access with others</li>
           `}
         </ul>
