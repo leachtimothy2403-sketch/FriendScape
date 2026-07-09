@@ -158,11 +158,12 @@ export async function addFriendForChild(req: AuthRequest, res: Response) {
       .insert({ child_id: childId, friend_id: friendId, activated_at: new Date(), friendship_level: 1, friendship_xp: 0 })
       .onConflict(['child_id', 'friend_id']).ignore();
 
+    const childRecord = await db('children').where({ id: childId }).select('name', 'language').first() as { name?: string; language?: string } | undefined;
+    const lang = childRecord?.language === 'fr' ? 'fr' : 'en';
+
     // Jules welcome message — ask grade immediately on add
     const addedFriend = await db('ai_friends').where({ id: friendId }).select('is_jules').first() as { is_jules?: boolean } | undefined;
     if (addedFriend?.is_jules) {
-      const childRecord = await db('children').where({ id: childId }).select('name', 'language').first() as { name?: string; language?: string } | undefined;
-      const lang = childRecord?.language ?? 'en';
       let conv = await db('conversations').where({ child_id: childId, friend_id: friendId }).first();
       if (!conv) {
         [conv] = await db('conversations').insert({ child_id: childId, friend_id: friendId }).returning('*');
@@ -184,7 +185,11 @@ export async function addFriendForChild(req: AuthRequest, res: Response) {
         friend_id:         friendId,
         facts:             JSON.stringify([]),
         emotional_history: JSON.stringify([]),
-        milestones:        JSON.stringify([`Added ${String(friend.name)} as a friend`]),
+        milestones:        JSON.stringify([
+          lang === 'fr'
+            ? `${String(friend.name)} ajouté comme ami`
+            : `Added ${String(friend.name)} as a friend`,
+        ]),
         last_updated:      new Date(),
       })
       .onConflict(['child_id', 'friend_id']).ignore();

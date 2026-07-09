@@ -508,6 +508,11 @@
     "title": "Mon Profil",
     "onMigoSince": "Sur Migo depuis {{date}}",
     "mascotFriend": "Ami(e) de {{mascot}}",
+    "relativeDate": {
+      "today": "Aujourd'hui",
+      "yesterday": "Hier",
+      "daysAgo": "il y a {{count}} jours"
+    },
     "statsPosts": "Posts",
     "statsFriends": "Amis",
     "bioPlaceholder": "Appuie pour ajouter une bio...",

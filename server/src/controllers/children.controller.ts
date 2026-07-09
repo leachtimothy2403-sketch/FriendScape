@@ -624,38 +624,54 @@ export async function getMyFriends(req: AuthRequest, res: Response) {
 }
 
 // ─── GET /children/me/xp ──────────────────────────────────────────────────────
-const XP_LEVELS: [number, string][] = [
-  [0,    'Just Getting Started'],
-  [100,  'Making Friends'],
-  [300,  'Social Butterfly'],
-  [600,  'Social Star'],
-  [1000, 'Super BFF'],
-  [1500, 'Legend'],
-];
+const XP_LEVELS: Record<'en' | 'fr', [number, string][]> = {
+  en: [
+    [0,    'Just Getting Started'],
+    [100,  'Making Friends'],
+    [300,  'Social Butterfly'],
+    [600,  'Social Star'],
+    [1000, 'Super BFF'],
+    [1500, 'Legend'],
+  ],
+  fr: [
+    [0,    'Ça commence'],
+    [100,  'Se fait des amis'],
+    [300,  'Papillon social'],
+    [600,  'Star sociale'],
+    [1000, 'Super BFF'],
+    [1500, 'Légende'],
+  ],
+};
 
 export async function getMyXP(req: AuthRequest, res: Response) {
   const childId = req.childId;
   if (!childId) { res.status(401).json({ error: 'Child authentication required' }); return; }
 
   try {
-    const result = await db('child_friends')
-      .where({ child_id: childId })
-      .sum('friendship_xp as total_xp')
-      .first();
+    const [result, childRow] = await Promise.all([
+      db('child_friends')
+        .where({ child_id: childId })
+        .sum('friendship_xp as total_xp')
+        .first(),
+      db('children').where({ id: childId }).select('language').first() as Promise<{ language?: string } | undefined>,
+    ]);
+
+    const lang: 'en' | 'fr' = childRow?.language === 'fr' ? 'fr' : 'en';
+    const levels = XP_LEVELS[lang];
 
     const totalXp = Math.max(0, Number((result as { total_xp: string | null })?.total_xp ?? 0));
 
     let level = 1;
-    let levelName = XP_LEVELS[0][1];
-    for (let i = XP_LEVELS.length - 1; i >= 0; i--) {
-      if (totalXp >= XP_LEVELS[i][0]) {
+    let levelName = levels[0][1];
+    for (let i = levels.length - 1; i >= 0; i--) {
+      if (totalXp >= levels[i][0]) {
         level     = i + 1;
-        levelName = XP_LEVELS[i][1];
+        levelName = levels[i][1];
         break;
       }
     }
 
-    const nextThreshold = level < XP_LEVELS.length ? XP_LEVELS[level][0] : null;
+    const nextThreshold = level < levels.length ? levels[level][0] : null;
     const xpToNext      = nextThreshold !== null ? Math.max(0, nextThreshold - totalXp) : 0;
 
     res.json({
@@ -673,18 +689,29 @@ export async function getMyXP(req: AuthRequest, res: Response) {
 
 // ─── Profile helpers ─────────────────────────────────────────────────────────
 
-const FRIENDSHIP_LEVELS: [number, string][] = [
-  [0,    'New Friends'],
-  [100,  'Good Friends'],
-  [300,  'Close Friends'],
-  [600,  'Best Friends'],
-  [1000, 'Super BFF'],
-  [1500, 'Legendary Friends'],
-];
+const FRIENDSHIP_LEVELS: Record<'en' | 'fr', [number, string][]> = {
+  en: [
+    [0,    'New Friends'],
+    [100,  'Good Friends'],
+    [300,  'Close Friends'],
+    [600,  'Best Friends'],
+    [1000, 'Super BFF'],
+    [1500, 'Legendary Friends'],
+  ],
+  fr: [
+    [0,    'Nouveaux amis'],
+    [100,  'Bons amis'],
+    [300,  'Amis proches'],
+    [600,  'Meilleurs amis'],
+    [1000, 'Super BFF'],
+    [1500, 'Amis légendaires'],
+  ],
+};
 
-function getFriendshipInfo(level: number, xp: number): { levelName: string; xpToNext: number } {
-  const levelName    = (FRIENDSHIP_LEVELS[Math.min(level - 1, FRIENDSHIP_LEVELS.length - 1)] ?? FRIENDSHIP_LEVELS[0])[1];
-  const nextThreshold = level < FRIENDSHIP_LEVELS.length ? FRIENDSHIP_LEVELS[level][0] : null;
+function getFriendshipInfo(level: number, xp: number, lang: 'en' | 'fr' = 'en'): { levelName: string; xpToNext: number } {
+  const levels = FRIENDSHIP_LEVELS[lang];
+  const levelName    = (levels[Math.min(level - 1, levels.length - 1)] ?? levels[0])[1];
+  const nextThreshold = level < levels.length ? levels[level][0] : null;
   return {
     levelName,
     xpToNext: nextThreshold !== null ? Math.max(0, nextThreshold - xp) : 0,
@@ -775,10 +802,12 @@ export async function getMyProfile(req: AuthRequest, res: Response) {
     ]);
 
     const totalXp = Math.max(0, Number((xpResult as { total_xp: string | null } | undefined)?.total_xp ?? 0));
+    const profileLang: 'en' | 'fr' = child.language === 'fr' ? 'fr' : 'en';
+    const profileLevels = XP_LEVELS[profileLang];
     let level = 1;
-    let levelName = XP_LEVELS[0][1];
-    for (let i = XP_LEVELS.length - 1; i >= 0; i--) {
-      if (totalXp >= XP_LEVELS[i][0]) { level = i + 1; levelName = XP_LEVELS[i][1]; break; }
+    let levelName = profileLevels[0][1];
+    for (let i = profileLevels.length - 1; i >= 0; i--) {
+      if (totalXp >= profileLevels[i][0]) { level = i + 1; levelName = profileLevels[i][1]; break; }
     }
 
     const avatarConfig = child.avatar_config
@@ -895,6 +924,7 @@ export async function getMyMemories(req: AuthRequest, res: Response) {
 
     type Item = { id: string; type: string; text: string; date: string; icon: string };
     const items: Item[] = [];
+    const memLang: 'en' | 'fr' = (child as Record<string, unknown> | undefined)?.language === 'fr' ? 'fr' : 'en';
 
     // a. child_memories — milestones + emotional_history
     for (const mem of (memoryRows as Record<string, unknown>[])) {
@@ -914,7 +944,9 @@ export async function getMyMemories(req: AuthRequest, res: Response) {
 
     // b. badges
     for (const badge of (badgeRows as Record<string, unknown>[])) {
-      const text    = `Earned the ${badge.name as string} badge ${badge.icon as string}`;
+      const text    = memLang === 'fr'
+        ? `Badge obtenu : ${badge.name as string} ${badge.icon as string}`
+        : `Earned the ${badge.name as string} badge ${badge.icon as string}`;
       const dateStr = new Date(badge.earned_at as string).toISOString();
       items.push({ id: makeMemoryId('badge', text, dateStr), type: 'badge', text, date: dateStr, icon: '🏆' });
     }
@@ -922,7 +954,9 @@ export async function getMyMemories(req: AuthRequest, res: Response) {
     // c. friendships
     for (const f of (friendRows as Record<string, unknown>[])) {
       const dateStr    = f.activated_at ? new Date(f.activated_at as string).toISOString() : new Date().toISOString();
-      const becomeTxt  = `Became friends with ${f.name as string}`;
+      const becomeTxt  = memLang === 'fr'
+        ? `Devenu ami avec ${f.name as string}`
+        : `Became friends with ${f.name as string}`;
       items.push({ id: makeMemoryId('friendship', becomeTxt, dateStr), type: 'friendship', text: becomeTxt, date: dateStr, icon: '💜' });
       if ((f.friendship_level as number) > 1) {
         const levelTxt = `Reached Level ${f.friendship_level as number} with ${f.name as string}!`;
@@ -939,7 +973,10 @@ export async function getMyMemories(req: AuthRequest, res: Response) {
     // e. first post
     if (firstPost) {
       const postDate = new Date((firstPost as Record<string, unknown>).created_at as string).toISOString();
-      items.push({ id: makeMemoryId('milestone', 'Shared their very first post! 🎨', postDate), type: 'milestone', text: 'Shared their very first post! 🎨', date: postDate, icon: '🌟' });
+      const firstPostText = memLang === 'fr'
+        ? 'A partagé son tout premier post ! 🎨'
+        : 'Shared their very first post! 🎨';
+      items.push({ id: makeMemoryId('milestone', firstPostText, postDate), type: 'milestone', text: firstPostText, date: postDate, icon: '🌟' });
     }
 
     items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -958,7 +995,7 @@ export async function getMyPosts(req: AuthRequest, res: Response) {
   try {
     const postRows = await db('posts')
       .where({ author_id: childId, author_type: 'child' })
-      .select('id', 'content', 'mood', 'scene_emojis', 'created_at')
+      .select('id', 'content', 'mood', 'scene_emojis', 'image_url', 'created_at')
       .orderBy('created_at', 'desc') as Record<string, unknown>[];
 
     const postIds = postRows.map(p => p.id as string);
@@ -1147,7 +1184,7 @@ export async function getMyFriendsList(req: AuthRequest, res: Response) {
 
     const language = req.query.language as string | undefined;
     const friends = friendRows.map(f => {
-      const { levelName, xpToNext } = getFriendshipInfo(f.friendship_level as number, f.friendship_xp as number);
+      const { levelName, xpToNext } = getFriendshipInfo(f.friendship_level as number, f.friendship_xp as number, language === 'fr' ? 'fr' : 'en');
       const { bio_fr, ...rest } = f;
       const bio = language === 'fr' && bio_fr ? bio_fr : f.bio;
       return { ...rest, bio, level_name: levelName, xp_to_next_level: xpToNext };

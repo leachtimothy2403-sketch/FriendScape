@@ -30,13 +30,6 @@ const ANIMAL_EMOJI: Record<string, string> = {
   bear: '🐻', owl: '🦉', lion: '🦁', panda: '🐼',
 };
 
-const PACK_NAME: Record<string, string> = {
-  'sketch-crew':   'Sketch Crew',
-  'animal-gang':   'Animal Gang',
-  'fantasy-world': 'Fantasy World',
-  'toon-town':     'Toon Town',
-};
-
 const EN_LOADING_FACTS = [
   "Setting up your Migo world...",
   "Did you know? Your AI friends learn what makes you laugh!",
@@ -98,7 +91,6 @@ export default function AllSetScreen() {
   const { language } = useLanguageStore();
 
   const mascot    = MASCOT[store.mascotId]     ?? { emoji: '🧚', name: 'Miga' };
-  const packName  = PACK_NAME[store.avatarPack] ?? store.avatarPack;
   const childName = store.childName.trim() || 'you';
   const childEmoji = store.avatarStyle === 'animal'
     ? (ANIMAL_EMOJI[store.avatarTheme] ?? '🐾')
@@ -466,7 +458,6 @@ export default function AllSetScreen() {
         {/* Summary chips */}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginBottom: 28 }}>
           <Chip>{`${mascot.emoji} Guide: ${mascot.name}`}</Chip>
-          <Chip>{`🎨 ${t('onboarding.allset.style')}: ${packName}`}</Chip>
           {assignedFriends.map((f) => (
             <Chip key={f.id}>{`${[...(f.coverEmojis || '')][0] ?? '🌟'} ${f.name}`}</Chip>
           ))}

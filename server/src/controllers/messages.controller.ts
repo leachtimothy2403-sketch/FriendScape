@@ -62,9 +62,15 @@ function calculateTypingDelay(wordCount: number, isOnline: boolean, hasImage: bo
 
 // XP thresholds: index = current level, value = XP needed to reach next level
 const LEVEL_UP_AT: Record<number, number> = { 1: 100, 2: 300, 3: 600, 4: 1000, 5: 1500 };
-const LEVEL_NAMES: Record<number, string> = {
-  1: 'New Friends', 2: 'Good Friends', 3: 'Close Friends',
-  4: 'Best Friends', 5: 'Super BFFs', 6: 'Forever Friends',
+const LEVEL_NAMES: Record<'en' | 'fr', Record<number, string>> = {
+  en: {
+    1: 'New Friends', 2: 'Good Friends', 3: 'Close Friends',
+    4: 'Best Friends', 5: 'Super BFFs', 6: 'Forever Friends',
+  },
+  fr: {
+    1: 'Nouveaux amis', 2: 'Bons amis', 3: 'Amis proches',
+    4: 'Meilleurs amis', 5: 'Super BFFs', 6: 'Amis pour toujours',
+  },
 };
 const MAX_LEVEL = 6;
 const XP_PER_MESSAGE = 10;
@@ -86,7 +92,8 @@ async function awardFriendshipXP(childId: string, friendId: string, child: Child
   if (!threshold || newXp < threshold || currentLevel >= MAX_LEVEL) return;
 
   const newLevel     = currentLevel + 1;
-  const newLevelName = LEVEL_NAMES[newLevel] ?? 'Legend';
+  const lang         = child.language === 'fr' ? 'fr' : 'en';
+  const newLevelName = LEVEL_NAMES[lang][newLevel] ?? (lang === 'fr' ? 'Légende' : 'Legend');
 
   await db('child_friends')
     .where({ child_id: childId, friend_id: friendId })

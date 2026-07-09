@@ -61,16 +61,16 @@ function getMoodBg(mood: string | null): string {
   return mood ? (MOOD_BG[mood] ?? '#F8F7FF') : '#F8F7FF';
 }
 
-function formatRelativeDate(dateStr: string): string {
+function formatRelativeDate(dateStr: string, t: (k: string, o?: Record<string, unknown>) => string, lang: string): string {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
-  if (diff === 0) return 'Today';
-  if (diff === 1) return 'Yesterday';
-  if (diff < 7)  return `${diff} days ago`;
-  return new Date(dateStr).toLocaleDateString('en', { day: 'numeric', month: 'long', year: 'numeric' });
+  if (diff === 0) return t('profile.relativeDate.today');
+  if (diff === 1) return t('profile.relativeDate.yesterday');
+  if (diff < 7)  return t('profile.relativeDate.daysAgo', { count: diff });
+  return new Date(dateStr).toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-function formatMemberSince(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en', { month: 'long', year: 'numeric' });
+function formatMemberSince(dateStr: string, lang: string): string {
+  return new Date(dateStr).toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', year: 'numeric' });
 }
 
 function getInterestDisplay(key: string): { emoji: string; label: string } {
@@ -100,10 +100,11 @@ function StatCol({ value, label }: { value: number; label: string }) {
 // ── Tab: Posts ────────────────────────────────────────────────────────────────
 
 function PostsTab({
-  posts, t, onSelect,
+  posts, t, lang, onSelect,
 }: {
   posts: ProfilePost[];
-  t: (k: string) => string;
+  t: (k: string, o?: Record<string, unknown>) => string;
+  lang: string;
   onSelect: (p: ProfilePost) => void;
 }) {
   if (posts.length === 0) {
@@ -137,7 +138,7 @@ function PostsTab({
           }
           <View style={s.postCellBottom}>
             <Text style={s.postCellMoodEmoji}>{post.mood ? (MOOD_EMOJI[post.mood] ?? '😐') : '📝'}</Text>
-            <Text style={s.postCellTime} numberOfLines={1}>{formatRelativeDate(post.created_at)}</Text>
+            <Text style={s.postCellTime} numberOfLines={1}>{formatRelativeDate(post.created_at, t, lang)}</Text>
           </View>
         </TouchableOpacity>
       ))}
@@ -197,10 +198,11 @@ function FriendsTab({
 // ── Tab: Memories ─────────────────────────────────────────────────────────────
 
 function MemoriesTab({
-  memories, t,
+  memories, t, lang,
 }: {
   memories: MemoryItem[];
-  t: (k: string) => string;
+  t: (k: string, o?: Record<string, unknown>) => string;
+  lang: string;
 }) {
   if (memories.length === 0) {
     return (
@@ -224,7 +226,7 @@ function MemoriesTab({
           </View>
           <View style={s.memoryContent}>
             <Text style={s.memoryText}>{item.text}</Text>
-            <Text style={s.memoryDate}>{formatRelativeDate(item.date)}</Text>
+            <Text style={s.memoryDate}>{formatRelativeDate(item.date, t, lang)}</Text>
           </View>
         </View>
       ))}
@@ -465,7 +467,7 @@ export default function ProfileScreen() {
                 <Text style={s.mascotRowLabel}>{t('profile.mascotFriend', { mascot: mascotName })}</Text>
               </View>
               <Text style={s.memberSince}>
-                {t('profile.onMigoSince', { date: profile ? formatMemberSince(profile.stats.memberSince) : '' })}
+                {t('profile.onMigoSince', { date: profile ? formatMemberSince(profile.stats.memberSince, language) : '' })}
               </Text>
             </View>
           </View>
@@ -553,9 +555,9 @@ export default function ProfileScreen() {
         </View>
 
         {/* ── Tab content ── */}
-        {activeTab === 'posts'    && <PostsTab    posts={posts}       t={t} onSelect={setSelectedPost} />}
+        {activeTab === 'posts'    && <PostsTab    posts={posts}       t={t} lang={language} onSelect={setSelectedPost} />}
         {activeTab === 'friends'  && <FriendsTab  friends={friends}   t={t} />}
-        {activeTab === 'memories' && <MemoriesTab memories={memories} t={t} />}
+        {activeTab === 'memories' && <MemoriesTab memories={memories} t={t} lang={language} />}
 
       </ScrollView>
       </KeyboardAvoidingView>
@@ -779,7 +781,7 @@ export default function ProfileScreen() {
                 <Text style={{ fontSize: 24, marginBottom: 8 }}>{selectedPost.scene_emojis}</Text>
               )}
               <Text style={{ fontSize: 13, color: Colors.gray[400], marginBottom: 12 }}>
-                {formatRelativeDate(selectedPost.created_at)}
+                {formatRelativeDate(selectedPost.created_at, t, language)}
               </Text>
               <Text style={{ fontSize: 16, marginBottom: 20 }}>💛 {selectedPost.reaction_count}</Text>
               <TouchableOpacity onPress={() => setSelectedPost(null)} style={s.postModalCloseBtn}>

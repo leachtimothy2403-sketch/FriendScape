@@ -332,6 +332,7 @@ export async function createPhotoPost(req: AuthRequest, res: Response) {
         author_type: 'child',
         content:     postContent,
         image_url:   result.cartoonUrl,
+        media_type:  'photo',
       })
       .returning('*');
 

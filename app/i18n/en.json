@@ -492,6 +492,11 @@
     "title": "My Profile",
     "onMigoSince": "On Migo since {{date}}",
     "mascotFriend": "{{mascot}}'s friend",
+    "relativeDate": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "daysAgo": "{{count}} days ago"
+    },
     "statsPosts": "Posts",
     "statsFriends": "Friends",
     "bioPlaceholder": "Tap to add a bio...",
