@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, Image } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle,
@@ -8,7 +8,7 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
-import { children as childrenApi, childAuth, childSession, mascotAvatars as mascotAvatarApi, resolveAvatarUrl } from '@/services/api';
+import { children as childrenApi, childAuth, childSession, mascotAvatars as mascotAvatarApi, resolveAvatarUrl, friends as friendsApi } from '@/services/api';
 import { addChildProfile } from '@/utils/childProfiles';
 import EmojiAvatar from '@/components/EmojiAvatar';
 import { useOnboardingStore } from '@/store/onboardingStore';
@@ -104,7 +104,7 @@ export default function AllSetScreen() {
     ? (ANIMAL_EMOJI[store.avatarTheme] ?? '🐾')
     : (HUMAN_EMOJI[store.humanFaceStyle] ?? '👦');
 
-  type AssignedFriend = { id: string; name: string; coverEmojis: string; introMessage: string };
+  type AssignedFriend = { id: string; name: string; coverEmojis: string; introMessage: string; avatar_url?: string | null };
 
   const [status, setStatus]               = useState<Status>('loading');
   const [errorMsg, setErrorMsg]           = useState('');
@@ -180,6 +180,41 @@ export default function AllSetScreen() {
 
   const floatStyle = useAnimatedStyle(() => ({ transform: [{ translateY: floatY.value }] }));
   const celebStyle = useAnimatedStyle(() => ({ transform: [{ scale: celebScale.value }] }));
+
+  const assignedFriendsRef = useRef<AssignedFriend[]>([]);
+  useEffect(() => { assignedFriendsRef.current = assignedFriends; }, [assignedFriends]);
+
+  // Poll for friend avatars generating in the background — onboarding response
+  // returns before portrait generation finishes, so avatar_url isn't ready yet.
+  useEffect(() => {
+    if (assignedFriends.length === 0) return;
+
+    const MAX_ATTEMPTS = 6;
+    const attempts: Record<string, number> = {};
+    const gaveUp = new Set<string>();
+
+    const interval = setInterval(() => {
+      const pending = assignedFriendsRef.current.filter((f) => !f.avatar_url && !gaveUp.has(f.id));
+      if (pending.length === 0) { clearInterval(interval); return; }
+
+      pending.forEach((f) => {
+        const count = (attempts[f.id] ?? 0) + 1;
+        attempts[f.id] = count;
+        if (count > MAX_ATTEMPTS) { gaveUp.add(f.id); return; }
+
+        friendsApi.get(f.id, language)
+          .then((res) => {
+            const url = (res.data as { friend?: { avatar_url?: string | null } })?.friend?.avatar_url;
+            if (url) {
+              setAssignedFriends((prev) => prev.map((pf) => (pf.id === f.id ? { ...pf, avatar_url: url } : pf)));
+            }
+          })
+          .catch(() => {});
+      });
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [assignedFriends.length > 0]);
 
   async function createChild() {
     const isParentAdding = await AsyncStorage.getItem('parentAddingChild');
@@ -475,10 +510,13 @@ export default function AllSetScreen() {
                       alignItems: 'center', justifyContent: 'center',
                       backgroundColor: colors.bg,
                       borderWidth: 2, borderColor: colors.border,
+                      overflow: 'hidden',
                     }}>
-                      <Text style={{ fontSize: 24, textAlign: 'center' }}>
-                        {[...(f.coverEmojis || '')][0] ?? '🌟'}
-                      </Text>
+                      {f.avatar_url
+                        ? <Image source={{ uri: resolveAvatarUrl(f.avatar_url) }} style={{ width: 56, height: 56, borderRadius: 28 }} />
+                        : <Text style={{ fontSize: 24, textAlign: 'center' }}>
+                            {[...(f.coverEmojis || '')][0] ?? '🌟'}
+                          </Text>}
                     </View>
                     <View style={{ flex: 1, marginLeft: 12 }}>
                       <Text style={{ fontSize: 15, fontWeight: '700', color: '#2C2C2A', marginBottom: 8 }}>
