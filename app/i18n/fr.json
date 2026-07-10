@@ -342,6 +342,7 @@
   },
   "feed": {
     "newPost": "✏️  Partager quelque chose avec tes amis",
+    "newPostTitle": "Nouveau post",
     "aiFriend": "Ami IA",
     "starFriend": "⭐ Ami vedette",
     "you": "Toi",
@@ -409,12 +410,18 @@
     "meetSophieButton": "+ Rencontrer Sophie !",
     "chatSophieButton": "💫 Discuter avec Sophie →",
     "relationshipTypes": {
-      "close_friend": "Ami(e) proche",
-      "interesting_different": "Intéressant(e) et différent(e)",
-      "classmate": "Camarade de classe",
-      "teammate": "Coéquipier(ère)",
-      "neighbour": "Voisin(e)",
-      "online_friend": "Ami(e) en ligne"
+      "close_friend_m": "Ami proche",
+      "close_friend_f": "Amie proche",
+      "interesting_different_m": "Intéressant et différent",
+      "interesting_different_f": "Intéressante et différente",
+      "classmate_m": "Camarade de classe",
+      "classmate_f": "Camarade de classe",
+      "teammate_m": "Coéquipier",
+      "teammate_f": "Coéquipière",
+      "neighbour_m": "Voisin",
+      "neighbour_f": "Voisine",
+      "online_friend_m": "Ami en ligne",
+      "online_friend_f": "Amie en ligne"
     }
   },
   "games": {
@@ -497,7 +504,7 @@
       "joinMigo": "Rejoindre Migo",
       "firstPost": "Partager ton premier post",
       "heartToHeart": "Avoir une conversation cœur à cœur",
-      "digitalCitizenship": "Terminer une leçon de citoyenneté numérique avec {{mascot}}",
+      "digitalCitizenship": "Termine les trois niveaux du cours de sécurité sur les réseaux sociaux avec Sophie",
       "introducedFriend": "Présenter un ami"
     },
     "graduationMilestones": {
@@ -576,7 +583,10 @@
     "passwordPlaceholder": "Votre mot de passe",
     "loginButton": "Se connecter",
     "errorEmptyFields": "Veuillez saisir votre e-mail et votre mot de passe.",
-    "errorInvalid": "E-mail ou mot de passe incorrect. Veuillez réessayer."
+    "errorInvalid": "E-mail ou mot de passe incorrect. Veuillez réessayer.",
+    "forgotPassword": "Mot de passe oublié ?",
+    "errorEnterEmailFirst": "Entrez d'abord votre e-mail",
+    "resetLinkSent": "Si cet e-mail est enregistré, un lien de réinitialisation est en route."
   },
   "parentAddChild": {
     "title": "Ajouter un enfant",

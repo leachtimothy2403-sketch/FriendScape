@@ -172,7 +172,10 @@ function FriendsTab({
         return (
           <View key={f.id} style={s.friendCard}>
             <View style={s.friendAvatar}>
-              <Text style={s.friendAvatarEmoji}>{(f.cover_emojis ?? '🌟').slice(0, 2)}</Text>
+              {f.avatar_url
+                ? <Image source={{ uri: resolveAvatarUrl(f.avatar_url) }} style={{ width: 44, height: 44, borderRadius: 22 }} />
+                : <Text style={s.friendAvatarEmoji}>{(f.cover_emojis ?? '🌟').slice(0, 2)}</Text>
+              }
             </View>
             <View style={s.friendInfo}>
               <Text style={s.friendName}>{f.name}</Text>

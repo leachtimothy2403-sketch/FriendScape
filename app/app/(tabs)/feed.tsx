@@ -546,7 +546,7 @@ export default function FeedScreen() {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') return;
         const result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          mediaTypes: ['images'],
           allowsEditing: true,
           aspect: [1, 1],
           quality: 0.7,
@@ -869,7 +869,7 @@ export default function FeedScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <View style={s.modalSheet}>
-            <Text style={s.modalTitle}>New post</Text>
+            <Text style={s.modalTitle}>{t('feed.newPostTitle')}</Text>
 
             {newPostPhoto ? (
               <View style={{ marginBottom: 12 }}>

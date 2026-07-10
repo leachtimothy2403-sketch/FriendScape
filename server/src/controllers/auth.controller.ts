@@ -10,6 +10,7 @@ import {
 } from '../services/email.service';
 import { AuthRequest } from '../middleware/auth';
 import redis from '../services/redis.service';
+import { set as redisSet, get as redisGet, del as redisDel } from '../services/redis.service';
 import { generateFriendPortrait, generateAdultFriendPortrait, generateLunaPortrait } from '../services/avatar.service';
 
 export async function register(req: Request, res: Response) {
@@ -96,16 +97,42 @@ export async function forgotPassword(req: Request, res: Response) {
     const { email } = req.body;
     const user = await db('users').where({ email }).first();
     if (user) {
-      void sendPasswordResetEmail;
+      const token = crypto.randomBytes(32).toString('hex');
+      await redisSet(`pwreset:${token}`, String(user.id), 3600);
+      const apiBase = process.env.BASE_URL || 'http://localhost:3001';
+      const resetUrl = `${apiBase}/auth/reset-password-page?token=${token}`;
+      sendPasswordResetEmail(String(user.email), resetUrl).catch((e: unknown) =>
+        console.error('[auth] reset email failed:', e),
+      );
     }
     res.json({ message: 'If that email is registered, a reset link is on its way.' });
   } catch (err) {
+    console.error('[auth] forgotPassword error:', err);
     res.status(500).json({ error: 'Password reset failed' });
   }
 }
 
+// Kept for any existing JSON-API callers, but the primary flow is the HTML page pair below.
 export async function resetPassword(req: Request, res: Response) {
-  res.status(501).json({ error: 'Reset password not yet implemented' });
+  try {
+    const { token, newPassword } = req.body as { token?: string; newPassword?: string };
+    if (!token || !newPassword || newPassword.length < 8) {
+      res.status(400).json({ error: 'Token and a password of at least 8 characters are required' });
+      return;
+    }
+    const userId = await redisGet(`pwreset:${token}`);
+    if (!userId) {
+      res.status(400).json({ error: 'This reset link is invalid or has expired' });
+      return;
+    }
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await db('users').where({ id: userId }).update({ password_hash: passwordHash });
+    await redisDel(`pwreset:${token}`);
+    res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    console.error('[auth] resetPassword error:', err);
+    res.status(500).json({ error: 'Password reset failed' });
+  }
 }
 
 export async function verifyEmail(req: Request, res: Response) {
@@ -184,7 +211,7 @@ export async function approve(req: Request, res: Response) {
     const enrollment = await db('enrollments').where({ approval_token: token }).first();
 
     if (!enrollment || new Date() > new Date(enrollment.expires_at)) {
-      res.send(expiredHtml());
+      res.send(expiredHtml(undefined, (enrollment?.language as string | undefined) ?? 'en'));
       return;
     }
 
@@ -398,17 +425,41 @@ function setPasswordFormHtml(token: string, error?: string, lang = 'en'): string
   `);
 }
 
-function expiredHtml(message?: string): string {
-  return htmlShell('⏰', 'Link Expired', `
-    <h1>This link has expired</h1>
-    <p>${message ?? 'This approval link has expired. Please ask your child to open the Migo app and send a new request.'}</p>
+function resetPasswordFormHtml(token: string, error?: string, lang = 'en'): string {
+  return htmlShell('🔐', lang === 'fr' ? 'Réinitialiser le mot de passe' : 'Reset Password', `
+    <h1>${lang === 'fr' ? 'Choisissez un nouveau mot de passe' : 'Choose a new password'}</h1>
+    <p>${lang === 'fr' ? 'Entrez votre nouveau mot de passe ci-dessous.' : 'Enter your new password below.'}</p>
+    ${error ? `<p style="color:#C0392B">${error}</p>` : ''}
+    <form method="POST" action="/auth/reset-password-page">
+      <input type="hidden" name="token" value="${token}">
+      <input type="password" name="password" placeholder="${lang === 'fr' ? 'Nouveau mot de passe (8 caractères min.)' : 'New password (min 8 characters)'}" minlength="8" required style="width:100%;padding:14px;border-radius:12px;border:1px solid #E8E6FF;margin-bottom:16px;font-size:15px;box-sizing:border-box">
+      <button type="submit" class="btn" style="border:none;width:100%;cursor:pointer">${lang === 'fr' ? 'Réinitialiser le mot de passe →' : 'Reset Password →'}</button>
+    </form>
   `);
 }
 
-function declinedHtml(): string {
-  return htmlShell('👋', 'Request Declined', `
-    <h1>Request declined</h1>
-    <p>No problem — this request has been cancelled. If you change your mind, ask your child to open the Migo app and try again.</p>
+function resetSuccessHtml(lang = 'en'): string {
+  return htmlShell('✅', lang === 'fr' ? 'Mot de passe mis à jour' : 'Password Updated', `
+    <h1>${lang === 'fr' ? 'Mot de passe mis à jour !' : 'Password updated!'}</h1>
+    <p>${lang === 'fr' ? 'Vous pouvez maintenant retourner dans l\'application myMigo et vous connecter avec votre nouveau mot de passe.' : 'You can now go back to the myMigo app and log in with your new password.'}</p>
+  `);
+}
+
+function expiredHtml(message?: string, lang = 'en'): string {
+  return htmlShell('⏰', lang === 'fr' ? 'Lien expiré' : 'Link Expired', `
+    <h1>${lang === 'fr' ? 'Ce lien a expiré' : 'This link has expired'}</h1>
+    <p>${message ?? (lang === 'fr'
+      ? "Ce lien d'approbation a expiré. Demandez à votre enfant d'ouvrir l'application myMigo et d'envoyer une nouvelle demande."
+      : 'This approval link has expired. Please ask your child to open the Migo app and send a new request.')}</p>
+  `);
+}
+
+function declinedHtml(lang = 'en'): string {
+  return htmlShell('👋', lang === 'fr' ? 'Demande refusée' : 'Request Declined', `
+    <h1>${lang === 'fr' ? 'Demande refusée' : 'Request declined'}</h1>
+    <p>${lang === 'fr'
+      ? "Pas de souci — cette demande a été annulée. Si vous changez d'avis, demandez à votre enfant d'ouvrir l'application myMigo et de réessayer."
+      : 'No problem — this request has been cancelled. If you change your mind, ask your child to open the Migo app and try again.'}</p>
   `);
 }
 
@@ -427,7 +478,7 @@ export async function showSetPasswordForm(req: Request, res: Response) {
 
   if (!enrollment || new Date() > new Date(enrollment.expires_at) || enrollment.status !== 'approved') {
     console.log('[auth] ❌ set-password form rejected — invalid/expired token:', token);
-    res.send(expiredHtml());
+    res.send(expiredHtml(undefined, (enrollment?.language as string | undefined) ?? 'en'));
     return;
   }
 
@@ -445,7 +496,7 @@ export async function setApprovalPassword(req: Request, res: Response) {
 
     if (!token || !enrollment || new Date() > new Date(enrollment.expires_at) || enrollment.status !== 'approved') {
       console.log('[auth] ❌ setApprovalPassword rejected — invalid/expired token');
-      res.send(expiredHtml());
+      res.send(expiredHtml(undefined, (enrollment?.language as string | undefined) ?? 'en'));
       return;
     }
 
@@ -504,6 +555,65 @@ export async function setApprovalPassword(req: Request, res: Response) {
       <h1>Something went wrong</h1>
       <p>We couldn't set your password. Please try again or contact support.</p>
     `));
+  }
+}
+
+// ─── Reset-password flow ─────────────────────────────────────────────────────
+
+export async function showResetPasswordForm(req: Request, res: Response) {
+  const { token } = req.query as { token?: string };
+
+  if (!token) {
+    res.send(expiredHtml());
+    return;
+  }
+
+  const userId = await redisGet(`pwreset:${token}`);
+  if (!userId) {
+    res.send(expiredHtml());
+    return;
+  }
+
+  const user = await db('users').where({ id: userId }).first();
+  const lang = ((user?.settings as Record<string, unknown>)?.language as string | undefined) ?? 'en';
+  res.send(resetPasswordFormHtml(token, undefined, lang));
+}
+
+export async function submitResetPasswordForm(req: Request, res: Response) {
+  const { token, password } = req.body as { token?: string; password?: string };
+
+  try {
+    if (!token) {
+      res.send(expiredHtml());
+      return;
+    }
+
+    const userId = await redisGet(`pwreset:${token}`);
+    if (!userId) {
+      res.send(expiredHtml());
+      return;
+    }
+
+    const user = await db('users').where({ id: userId }).first();
+    const lang = ((user?.settings as Record<string, unknown>)?.language as string | undefined) ?? 'en';
+
+    if (!password || password.length < 8) {
+      res.send(resetPasswordFormHtml(
+        token,
+        lang === 'fr' ? 'Le mot de passe doit contenir au moins 8 caractères.' : 'Password must be at least 8 characters.',
+        lang,
+      ));
+      return;
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+    await db('users').where({ id: userId }).update({ password_hash: passwordHash });
+    await redisDel(`pwreset:${token}`);
+
+    res.send(resetSuccessHtml(lang));
+  } catch (err) {
+    console.error('[auth] submitResetPasswordForm error:', err);
+    res.send(expiredHtml());
   }
 }
 

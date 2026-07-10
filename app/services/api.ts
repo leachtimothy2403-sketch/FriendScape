@@ -42,6 +42,7 @@ export const auth = {
   login: (data: { email: string; password: string }) =>
     api.post<{ token: string; language: string; user: { id: string; email: string; displayName: string } }>('/auth/login', data),
   logout: () => api.post('/auth/logout'),
+  forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
   enroll: (data: { parentEmail: string; language?: string }) =>
     api.post<{ status: string; message?: string }>('/auth/enroll', data),
   enrollmentStatus: (parentEmail: string) =>

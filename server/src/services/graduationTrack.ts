@@ -19,7 +19,6 @@ export async function getGraduationProgress(childId: string): Promise<Graduation
     child,
     firstPost,
     moodAlert,
-    digitalAlert,
   ] = await Promise.all([
     db('children').where({ id: childId }).first(),
     db('posts')
@@ -29,9 +28,6 @@ export async function getGraduationProgress(childId: string): Promise<Graduation
       .first(),
     db('parent_alerts')
       .where({ child_id: childId, type: 'mood_flag' })
-      .first(),
-    db('parent_alerts')
-      .where({ child_id: childId, type: 'digital_literacy' })
       .first(),
   ]);
 
@@ -69,9 +65,9 @@ export async function getGraduationProgress(childId: string): Promise<Graduation
     },
     {
       key:         'digital_citizenship_lesson',
-      label:       'Complete a digital citizenship lesson with Miga',
-      completed:   !!digitalAlert,
-      completedAt: digitalAlert?.created_at ? new Date(digitalAlert.created_at as string).toISOString() : null,
+      label:       'Complete all three levels of the social media safety course with Sophie',
+      completed:   Number(child?.safety_class_level ?? 0) >= 3,
+      completedAt: null,
     },
     {
       key:         'introduced_friend',

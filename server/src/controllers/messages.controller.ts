@@ -26,6 +26,7 @@ import { toChildType, toFriendType, toMemoryType } from '../utils/db-mappers';
 import { findOrCreateMascotId, sendMascotDM } from '../services/migaDM';
 import { sendFeedbackEmail } from '../services/email.service';
 import { localizedFriendName } from '../utils/friend-names';
+import { detectGrade } from '../utils/grade-detection';
 import type { Child } from '../../../shared/types';
 
 async function callClaudeWithRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
@@ -137,7 +138,9 @@ async function awardFriendshipXP(childId: string, friendId: string, child: Child
   await db('parent_alerts').insert({
     child_id: childId,
     type:     'milestone',
-    message:  `${child.name} and ${displayFriendName} are now ${newLevelName}! 🎉`,
+    message:  lang === 'fr'
+      ? `${child.name} et ${displayFriendName} sont maintenant ${newLevelName} ! 🎉`
+      : `${child.name} and ${displayFriendName} are now ${newLevelName}! 🎉`,
     severity: 'info',
   }).catch((err: unknown) => console.error('[xp] Failed to save level-up alert:', err));
 }
@@ -295,23 +298,14 @@ export async function sendMessage(req: AuthRequest, res: Response) {
       const julesPersonalityPrompt = String((friendRow as Record<string, unknown>).personality_prompt ?? '');
 
       // Grade capture — extract from child's message if not yet stored
-      const GRADES = ['CP', 'CE1', 'CE2', 'CM1', 'CM2', '6ème', '6eme', '5ème', '5eme', '4ème', '4eme', '3ème', '3eme'];
-      const normalise = (s: string) => s.toLowerCase().replace(/[èé]/g, 'e');
-      const detectedGrade = GRADES.find(g => normalise(content.trim()).includes(normalise(g))) ?? null;
+      const detectedGrade = detectGrade(content.trim(), lang as 'en' | 'fr');
 
       let schoolGrade = String((await db('children').where({ id: childId }).select('school_grade_next').first() as { school_grade_next?: string } | undefined)?.school_grade_next ?? '');
 
       if (detectedGrade && !schoolGrade) {
-        const normalisedGrade = (() => {
-          const map: Record<string, string> = {
-            '6eme': '6ème', '5eme': '5ème', '4eme': '4ème', '3eme': '3ème',
-            '6ème': '6ème', '5ème': '5ème', '4ème': '4ème', '3ème': '3ème',
-          };
-          return map[detectedGrade] ?? detectedGrade.toUpperCase();
-        })();
-        await db('children').where({ id: childId }).update({ school_grade_next: normalisedGrade });
-        schoolGrade = normalisedGrade;
-        console.log(`[jules] 📚 Next year grade captured: ${normalisedGrade} for ${child.name}`);
+        await db('children').where({ id: childId }).update({ school_grade_next: detectedGrade });
+        schoolGrade = detectedGrade;
+        console.log(`[jules] 📚 Next year grade captured: ${detectedGrade} for ${child.name}`);
       }
 
       let julesReply: FriendReplyResult;
@@ -330,7 +324,7 @@ export async function sendMessage(req: AuthRequest, res: Response) {
               imageMediaType,
             ),
           ),
-          checkMood(content.trim(), child.name, child.age),
+          checkMood(content.trim(), child.name, child.age, lang as 'en' | 'fr'),
         ]);
         julesReply = resolved;
         (req as unknown as Record<string, unknown>)._mood = mood2;
@@ -349,7 +343,7 @@ export async function sendMessage(req: AuthRequest, res: Response) {
       }
 
       reply = julesReply;
-      (req as unknown as Record<string, unknown>)._mood ??= await checkMood(content.trim(), child.name, child.age).catch(() => ({
+      (req as unknown as Record<string, unknown>)._mood ??= await checkMood(content.trim(), child.name, child.age, lang as 'en' | 'fr').catch(() => ({
         mood: 'neutral' as const, intensity: 'low' as const, crisisFlag: false, crisisReason: null,
         parentAlertNeeded: false, parentAlertReason: null, suggestParentTalk: false, inputTokens: 0, outputTokens: 0,
       }));
@@ -389,7 +383,7 @@ export async function sendMessage(req: AuthRequest, res: Response) {
               imageMediaType,
             ),
           ),
-          checkMood(content.trim(), child.name, child.age),
+          checkMood(content.trim(), child.name, child.age, lang as 'en' | 'fr'),
         ]);
         sophieReply = resolved;
         (req as unknown as Record<string, unknown>)._mood = mood2;
@@ -408,7 +402,7 @@ export async function sendMessage(req: AuthRequest, res: Response) {
       }
 
       reply = sophieReply;
-      (req as unknown as Record<string, unknown>)._mood ??= await checkMood(content.trim(), child.name, child.age).catch(() => ({
+      (req as unknown as Record<string, unknown>)._mood ??= await checkMood(content.trim(), child.name, child.age, lang as 'en' | 'fr').catch(() => ({
         mood: 'neutral' as const, intensity: 'low' as const, crisisFlag: false, crisisReason: null,
         parentAlertNeeded: false, parentAlertReason: null, suggestParentTalk: false, inputTokens: 0, outputTokens: 0,
       }));
@@ -450,7 +444,7 @@ export async function sendMessage(req: AuthRequest, res: Response) {
               hasImage,
             ),
           ),
-          checkMood(content.trim(), child.name, child.age),
+          checkMood(content.trim(), child.name, child.age, lang as 'en' | 'fr'),
         ]);
         tutorReply = resolved;
         (req as unknown as Record<string, unknown>)._mood = mood2;
@@ -463,7 +457,7 @@ export async function sendMessage(req: AuthRequest, res: Response) {
             : "I'm a little busy right now — give me a moment and try again! 🌟";
           tutorReply = { text: fallbackText, inputTokens: 0, outputTokens: 0 };
           rateLimitFallback = true;
-          (req as unknown as Record<string, unknown>)._mood = await checkMood(content.trim(), child.name, child.age).catch(() => ({
+          (req as unknown as Record<string, unknown>)._mood = await checkMood(content.trim(), child.name, child.age, lang as 'en' | 'fr').catch(() => ({
             mood: 'neutral' as const, intensity: 'low' as const, crisisFlag: false, crisisReason: null,
             parentAlertNeeded: false, parentAlertReason: null, suggestParentTalk: false, inputTokens: 0, outputTokens: 0,
           }));
@@ -508,7 +502,7 @@ export async function sendMessage(req: AuthRequest, res: Response) {
         callClaudeWithRetry(() =>
           generateFriendReply(friend, child, content.trim(), memoryBrief, lang, recentMessages, friendNames, false, { triggerBadDay }),
         ),
-        checkMood(content.trim(), child.name, child.age),
+        checkMood(content.trim(), child.name, child.age, lang as 'en' | 'fr'),
       ]);
       reply = friendReply;
       (req as unknown as Record<string, unknown>)._mood = mood2;

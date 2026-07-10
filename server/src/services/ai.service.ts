@@ -7,6 +7,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Child, AIFriend, ChildMemory } from '../../../shared/types';
 import { get as redisGet, set as redisSet } from './redis.service';
+import { detectGrade, gradeOptionsList } from '../utils/grade-detection';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -804,6 +805,7 @@ export async function checkMood(
   message: string,
   childName: string,
   childAge: number,
+  language: 'en' | 'fr' = 'en',
 ): Promise<MoodResult> {
   const system = `
 You are a child safety and mood classifier for a children's app.
@@ -848,6 +850,7 @@ Return ONLY this JSON with no explanation:
 
 Keep ALL string values under 10 words. Use null for crisisReason and
 parentAlertReason unless you must include a reason — if you do, 10 words max.
+${language === 'fr' ? 'crisisReason and parentAlertReason, if present, must be written in French.' : 'crisisReason and parentAlertReason, if present, must be written in English.'}
 `.trim();
 
   const response = await callWithRetry(() => client.messages.create({
@@ -865,7 +868,7 @@ parentAlertReason unless you must include a reason — if you do, 10 words max.
       crisisFlag: false,
       crisisReason: null,
       parentAlertNeeded: true,
-      parentAlertReason: 'Mood check failed — manual review recommended',
+      parentAlertReason: language === 'fr' ? 'Échec de la vérification — révision manuelle recommandée' : 'Mood check failed — manual review recommended',
       suggestParentTalk: true,
       parseError: true,
       inputTokens: 0,
@@ -1070,6 +1073,60 @@ function defaultCurriculumContext(grade: string, subject: string): string {
   return defaults[subject]?.[grade] ?? `Programme de ${grade} en ${subject}.`;
 }
 
+function defaultCurriculumContextUS(grade: string, subject: string): string {
+  const defaults: Record<string, Record<string, string>> = {
+    math: {
+      'Kindergarten': 'Counting to 20, number recognition, basic shapes, simple addition/subtraction with objects.',
+      '1st Grade':    'Addition and subtraction within 20, place value (tens/ones), telling time to the half hour, basic fractions (halves/quarters).',
+      '2nd Grade':    'Addition/subtraction within 100, place value to hundreds, telling time to 5 minutes, money, measurement with rulers.',
+      '3rd Grade':    'Multiplication and division facts, fractions as parts of a whole, area and perimeter, elapsed time.',
+      '4th Grade':    'Multi-digit multiplication, long division, fraction equivalence and comparison, decimals to hundredths, angle measurement.',
+      '5th Grade':    'Fraction operations (add/subtract/multiply/divide), decimal operations, volume, coordinate plane basics.',
+      '6th Grade':    'Ratios and rates, dividing fractions, negative numbers, expressions and equations, statistics (mean/median/mode).',
+      '7th Grade':    'Proportional relationships, operations with rational numbers, linear equations, probability, circle area/circumference.',
+      '8th Grade':    'Linear equations and functions, systems of equations basics, Pythagorean theorem, exponents and scientific notation.',
+      '9th Grade':    'Linear and quadratic equations, functions, polynomials, systems of equations, introductory statistics (Algebra I).',
+    },
+    english: {
+      'Kindergarten': 'Letter recognition and sounds, sight words, simple sentence writing, listening comprehension.',
+      '1st Grade':    'Phonics and decoding, reading simple sentences, writing complete sentences, basic punctuation.',
+      '2nd Grade':    'Reading fluency, comprehension of short stories, writing paragraphs, spelling patterns.',
+      '3rd Grade':    'Chapter book reading, identifying main idea and details, narrative writing with structure, parts of speech.',
+      '4th Grade':    'Reading comprehension of longer texts, summarizing, persuasive and informative writing, vocabulary building.',
+      '5th Grade':    'Analyzing text structure and theme, research and citing sources, multi-paragraph essays, figurative language.',
+      '6th Grade':    'Literary analysis (plot, character, theme), argumentative writing, sentence structure, vocabulary in context.',
+      '7th Grade':    "Analyzing point of view and author's purpose, research papers, narrative and expository writing, complex grammar.",
+      '8th Grade':    'Analyzing arguments and rhetoric, literary essays, citing evidence, editing and revising for style.',
+      '9th Grade':    'Literary analysis of novels and plays, argumentative and analytical essays, research with proper citation, rhetoric.',
+    },
+    science: {
+      'Kindergarten': 'Observing weather and seasons, the five senses, living vs. non-living things, basic plant/animal needs.',
+      '1st Grade':    'Sun, moon and stars, animal and plant life cycles, materials and their properties.',
+      '2nd Grade':    'Life cycles in depth, habitats, states of matter, simple weather patterns.',
+      '3rd Grade':    'Forces and motion, life cycles and adaptation, weather and climate basics, simple circuits.',
+      '4th Grade':    "Energy (light, heat, sound), earth's structure and landforms, animal/plant adaptations, simple machines.",
+      '5th Grade':    'Matter and its properties, ecosystems and food webs, the solar system, weather systems.',
+      '6th Grade':    "Cells and organisms, energy transfer, earth's layers and plate tectonics, the scientific method.",
+      '7th Grade':    'Genetics and heredity basics, chemical reactions, ecosystems and human impact, body systems.',
+      '8th Grade':    'Physics basics (motion, forces, energy), chemistry basics (atoms, elements, reactions), earth/space science, engineering design.',
+      '9th Grade':    'Cell biology, genetics, evolution basics, and ecology (Biology), or introductory physics/chemistry depending on track.',
+    },
+    social_studies: {
+      'Kindergarten': 'Community helpers, family and traditions, maps and basic geography, following rules.',
+      '1st Grade':    'Neighborhoods and communities, past vs. present, national symbols, basic map skills.',
+      '2nd Grade':    'Communities around the world, cultural traditions, goods and services, historical figures.',
+      '3rd Grade':    'Local and state history, government basics, geography and map skills, economics basics (needs/wants).',
+      '4th Grade':    'State history in depth, US regions, Native American history, economics (goods/services/trade).',
+      '5th Grade':    'US history — colonization through the Revolution, geography of North America, basic government structure.',
+      '6th Grade':    'Ancient civilizations (Mesopotamia, Egypt, Greece, Rome), world geography, early government systems.',
+      '7th Grade':    'World history — medieval to early modern, world geography and cultures, civics basics.',
+      '8th Grade':    'US history — Constitution through Civil War and Reconstruction, civics and government structure, economics.',
+      '9th Grade':    'World history or civics/government (varies by state/school), economics, current events analysis.',
+    },
+  };
+  return defaults[subject]?.[grade] ?? `${grade} curriculum in ${subject}.`;
+}
+
 async function searchFrenchCurriculum(grade: string, subject: string): Promise<string> {
   const cacheKey = `curriculum:FR:${grade}:${subject}`;
   const cached = await redisGet(cacheKey);
@@ -1150,6 +1207,85 @@ async function searchFrenchCurriculum(grade: string, subject: string): Promise<s
   return result ?? defaultCurriculumContext(grade, subject);
 }
 
+async function searchUSCurriculum(grade: string, subject: string): Promise<string> {
+  const cacheKey = `curriculum:US:${grade}:${subject}`;
+  const cached = await redisGet(cacheKey);
+  if (cached) return cached;
+
+  let result: string | null = null;
+
+  try {
+    const userMsg = `Research the typical US Common Core / state standards curriculum for ${grade} in ${subject}. Summarize in 150 words max: key concepts expected at this level, main skills to develop, typical topics covered. In English.`;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tools: any[] = [{ type: 'web_search_20250305', name: 'web_search' }];
+    let messages: Anthropic.MessageParam[] = [{ role: 'user', content: userMsg }];
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let response = await callWithRetry(() => (client.messages.create as (...a: any[]) => Promise<Anthropic.Message>)({
+      model: MODELS.smart,
+      max_tokens: 600,
+      tools,
+      messages,
+    }));
+
+    for (let turn = 0; turn < 4 && response.stop_reason === 'tool_use'; turn++) {
+      messages = [
+        ...messages,
+        { role: 'assistant', content: response.content as Anthropic.MessageParam['content'] },
+        {
+          role: 'user',
+          content: (response.content as Anthropic.ContentBlock[])
+            .filter((b) => b.type === 'tool_use')
+            .map((b) => ({
+              type: 'tool_result' as const,
+              tool_use_id: (b as Anthropic.ToolUseBlock).id,
+              content: '',
+            })),
+        },
+      ];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      response = await callWithRetry(() => (client.messages.create as (...a: any[]) => Promise<Anthropic.Message>)({
+        model: MODELS.smart,
+        max_tokens: 600,
+        tools,
+        messages,
+      }));
+    }
+
+    const text = (response.content as Anthropic.ContentBlock[])
+      .filter((b) => b.type === 'text')
+      .map((b) => (b as Anthropic.TextBlock).text)
+      .join('\n')
+      .trim();
+    if (text) result = text;
+  } catch {
+    // Web search unavailable — fall through to Claude's own knowledge
+  }
+
+  if (!result) {
+    try {
+      const fallback = await callWithRetry(() => client.messages.create({
+        model: MODELS.fast,
+        max_tokens: 350,
+        messages: [{
+          role: 'user',
+          content: `You are an expert in the US education system. Give a concise summary (max 120 words) of the typical curriculum for ${grade} in ${subject}: key concepts expected, main skills to develop, typical topics covered. In English only.`,
+        }],
+      }));
+      result = extractText(fallback);
+    } catch {
+      result = defaultCurriculumContextUS(grade, subject);
+    }
+  }
+
+  if (result) {
+    await redisSet(cacheKey, result, 7 * 24 * 3600).catch(() => undefined);
+  }
+
+  return result ?? defaultCurriculumContextUS(grade, subject);
+}
+
 
 // ── 6b. Tutor reply metadata extraction (Haiku) ───────────────────────────────
 
@@ -1164,11 +1300,9 @@ interface TutorMeta {
 async function extractTutorMeta(
   childMessage: string,
   history: Array<{ content: string; sender_type: string }>,
+  language: 'en' | 'fr',
 ): Promise<TutorMeta> {
-  const GRADES = ['CP', 'CE1', 'CE2', 'CM1', 'CM2', '6ème', '6eme', '5ème', '5eme', '4ème', '4eme', '3ème', '3eme'];
-  const normalise = (s: string) => s.toLowerCase().replace('è', 'e').replace('é', 'e');
-  const gradeCapture =
-    GRADES.find((g) => normalise(childMessage).includes(normalise(g))) ?? null;
+  const gradeCapture = detectGrade(childMessage, language);
 
   const ctx = history.slice(-3).map((m) => `${m.sender_type}: ${m.content}`).join(' | ');
 
@@ -1178,12 +1312,12 @@ async function extractTutorMeta(
       max_tokens: 180,
       system: `Analyse this child's message to their tutor Ms. Luna and return ONLY valid JSON, no explanation:
 {
-  "detectedSubject": "maths|français|sciences|histoire|géographie|anglais|null",
+  "detectedSubject": "${language === 'fr' ? 'maths|français|sciences|histoire|géographie|anglais|null' : 'math|english|science|social_studies|null'}",
   "detectedMode": "learning|homework_help",
   "conceptsCovered": [],
   "confidenceLevel": "struggling|getting_it|got_it"
 }
-Rules: homework_help if child mentions devoirs/test/exercice/demain/prof/homework/exam. struggling if confused/frustrated. got_it if they understood and responded correctly.`,
+Rules: homework_help if child mentions ${language === 'fr' ? 'devoirs/test/exercice/demain/prof' : 'homework/test/quiz/exam/tomorrow/teacher'}. struggling if confused/frustrated. got_it if they understood and responded correctly.`,
       messages: [{ role: 'user', content: `Child message: "${childMessage}"\nContext: ${ctx}` }],
     }));
 
@@ -1192,7 +1326,7 @@ Rules: homework_help if child mentions devoirs/test/exercice/demain/prof/homewor
       return {
         ...parsed,
         detectedSubject: parsed.detectedSubject === 'null' ? null : parsed.detectedSubject,
-        gradeCapture: normaliseGradeCapture(gradeCapture),
+        gradeCapture,
       };
     }
   } catch {
@@ -1204,17 +1338,8 @@ Rules: homework_help if child mentions devoirs/test/exercice/demain/prof/homewor
     detectedMode: 'learning',
     conceptsCovered: [],
     confidenceLevel: 'getting_it',
-    gradeCapture: normaliseGradeCapture(gradeCapture),
+    gradeCapture,
   };
-}
-
-function normaliseGradeCapture(raw: string | null): string | null {
-  if (!raw) return null;
-  const map: Record<string, string> = {
-    '6eme': '6ème', '5eme': '5ème', '4eme': '4ème', '3eme': '3ème',
-    '6ème': '6ème', '5ème': '5ème', '4ème': '4ème', '3ème': '3ème',
-  };
-  return map[raw] ?? raw.toUpperCase();
 }
 
 
@@ -1237,7 +1362,9 @@ export async function generateTutorReply(
 
   // Skip curriculum fetch in photo mode — saves tokens and latency
   const curriculumContext = (!isPhotoMode && grade)
-    ? await searchFrenchCurriculum(grade, subject).catch(() => defaultCurriculumContext(grade, subject))
+    ? (language === 'fr'
+        ? await searchFrenchCurriculum(grade, subject).catch(() => defaultCurriculumContext(grade, subject))
+        : await searchUSCurriculum(grade, subject).catch(() => defaultCurriculumContextUS(grade, subject)))
     : null;
 
   const dyslexia  = child.specialNeeds.includes('dyslexia');
@@ -1266,7 +1393,7 @@ You are Ms. Luna, a warm and patient teacher friend on Migo for ${child.name} (a
 
 ${isPhotoMode
     ? `PHOTO MODE: The child has sent you an image. Look at it carefully and help them understand what they see, step by step. Guide them with questions rather than giving direct answers. Be warm, encouraging, and focus entirely on what's in the photo.`
-    : (grade && curriculumContext ? `CURRICULUM CONTEXT (Grade ${grade}, France):\n${curriculumContext}` : 'Grade not yet known — ask at first interaction.')}
+    : (grade && curriculumContext ? `CURRICULUM CONTEXT (Grade ${grade}, ${language === 'fr' ? 'France' : 'US'}):\n${curriculumContext}` : 'Grade not yet known — ask at first interaction.')}
 
 ${disabilityAdaptations ? `DISABILITY ADAPTATIONS:\n${disabilityAdaptations}` : ''}
 
@@ -1379,8 +1506,8 @@ ${isFirstInteraction ? `
 FIRST INTERACTION SPECIAL INSTRUCTION:
 This is the very first time ${child.name} is talking to you.
 Greet them warmly and ask what grade they are in using these exact options:
-CP, CE1, CE2, CM1, CM2, 6ème, 5ème, 4ème, 3ème
-Say: "En quelle classe es-tu ? CP, CE1, CE2, CM1, CM2, 6ème, 5ème, 4ème ou 3ème ?"
+${gradeOptionsList(language)}
+Say: ${language === 'fr' ? `"En quelle classe es-tu ? ${gradeOptionsList('fr')} ?"` : `"What grade are you in? ${gradeOptionsList('en')}?"`}
 Do nothing else until you have the grade.` : ''}`.trim();
 
   // Build messages array
@@ -1420,7 +1547,7 @@ Do nothing else until you have the grade.` : ''}`.trim();
       system,
       messages,
     })),
-    extractTutorMeta(message, conversationHistory),
+    extractTutorMeta(message, conversationHistory, language),
   ]);
 
   return {
@@ -1792,7 +1919,7 @@ Return ONLY valid JSON — no explanation:
 
 Message must be warm, personal, and reference specific behaviour without quoting exact messages.
 Max 3 sentences.
-${language === 'fr' ? 'Respond entirely in French. The message field must be in French.' : 'Respond in English.'}
+${language === 'fr' ? 'Respond entirely in French. Both the message field AND the parent_note field must be written in French.' : 'Respond in English. Both the message field and the parent_note field must be in English.'}
 `.trim();
 
   const response = await callWithRetry(() => client.messages.create({

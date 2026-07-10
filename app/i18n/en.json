@@ -326,6 +326,7 @@
   },
   "feed": {
     "newPost": "✏️  Share something with your friends",
+    "newPostTitle": "New post",
     "aiFriend": "AI friend",
     "starFriend": "⭐ Star friend",
     "you": "You",
@@ -393,12 +394,18 @@
     "meetSophieButton": "+ Meet Sophie!",
     "chatSophieButton": "💫 Chat with Sophie →",
     "relationshipTypes": {
-      "close_friend": "Close friend",
-      "interesting_different": "Interesting & different",
-      "classmate": "Classmate",
-      "teammate": "Teammate",
-      "neighbour": "Neighbour",
-      "online_friend": "Online friend"
+      "close_friend_m": "Close friend",
+      "close_friend_f": "Close friend",
+      "interesting_different_m": "Interesting & different",
+      "interesting_different_f": "Interesting & different",
+      "classmate_m": "Classmate",
+      "classmate_f": "Classmate",
+      "teammate_m": "Teammate",
+      "teammate_f": "Teammate",
+      "neighbour_m": "Neighbour",
+      "neighbour_f": "Neighbour",
+      "online_friend_m": "Online friend",
+      "online_friend_f": "Online friend"
     }
   },
   "games": {
@@ -481,7 +488,7 @@
       "joinMigo": "Join Migo",
       "firstPost": "Share your first post",
       "heartToHeart": "Have a heart-to-heart conversation",
-      "digitalCitizenship": "Complete a digital citizenship lesson with {{mascot}}",
+      "digitalCitizenship": "Complete all three levels of the social media safety course with Sophie",
       "introducedFriend": "Introduce a friend"
     },
     "graduationMilestones": {
@@ -560,7 +567,10 @@
     "passwordPlaceholder": "Your password",
     "loginButton": "Log In",
     "errorEmptyFields": "Please enter your email and password.",
-    "errorInvalid": "Incorrect email or password. Please try again."
+    "errorInvalid": "Incorrect email or password. Please try again.",
+    "forgotPassword": "Forgot password?",
+    "errorEnterEmailFirst": "Enter your email first",
+    "resetLinkSent": "If that email is registered, a reset link is on its way."
   },
   "parentAddChild": {
     "title": "Add a Child",

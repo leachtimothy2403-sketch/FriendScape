@@ -19,6 +19,24 @@ export default function ParentLoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
+  const [resetSent, setResetSent] = useState(false);
+
+  async function handleForgotPassword() {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setError(t('parentLogin.errorEnterEmailFirst'));
+      return;
+    }
+    setError('');
+    setResetSent(false);
+    try {
+      await auth.forgotPassword(trimmedEmail);
+      setResetSent(true);
+    } catch {
+      // forgotPassword always returns success regardless — this catch is just network-failure safety
+      setResetSent(true);
+    }
+  }
 
   async function handleLogin() {
     const trimmedEmail = email.trim();
@@ -123,6 +141,12 @@ export default function ParentLoginScreen() {
             </Text>
           ) : null}
 
+          {resetSent ? (
+            <Text style={{ fontSize: 13, color: '#7F77DD', marginBottom: 16, lineHeight: 18 }}>
+              {t('parentLogin.resetLinkSent')}
+            </Text>
+          ) : null}
+
           <TouchableOpacity
             onPress={() => void handleLogin()}
             disabled={loading}
@@ -139,6 +163,14 @@ export default function ParentLoginScreen() {
               ? <ActivityIndicator color="#fff" />
               : <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>{t('parentLogin.loginButton')}</Text>
             }
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => void handleForgotPassword()}
+            style={{ marginTop: 14, alignItems: 'center' }}
+            activeOpacity={0.7}
+          >
+            <Text style={{ fontSize: 13, color: '#7F77DD', fontWeight: '600' }}>{t('parentLogin.forgotPassword')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

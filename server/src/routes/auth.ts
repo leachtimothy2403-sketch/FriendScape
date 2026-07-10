@@ -15,6 +15,8 @@ import {
   simulateApprove,
   showSetPasswordForm,
   setApprovalPassword,
+  showResetPasswordForm,
+  submitResetPasswordForm,
   devReset,
 } from '../controllers/auth.controller';
 import { requireAuth } from '../middleware/auth';
@@ -27,6 +29,8 @@ router.post('/logout', requireAuth, logout);
 router.post('/refresh', refreshToken);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
+router.get('/reset-password-page', showResetPasswordForm);
+router.post('/reset-password-page', submitResetPasswordForm);
 router.post('/verify-email', verifyEmail);
 
 router.post('/child-login', childLogin);

@@ -33,10 +33,11 @@ const RELATIONSHIP_TYPES = [
   'close_friend', 'interesting_different', 'classmate', 'teammate', 'neighbour', 'online_friend',
 ] as const;
 
-function relationshipTypeLabel(t: ReturnType<typeof useTranslation>['t'], type: string | null | undefined): string {
+function relationshipTypeLabel(t: ReturnType<typeof useTranslation>['t'], type: string | null | undefined, gender?: string | null): string {
   if (!type) return '';
   if ((RELATIONSHIP_TYPES as readonly string[]).includes(type)) {
-    return t(`discover.relationshipTypes.${type}`);
+    const suffix = gender === 'girl' || gender === 'female' ? '_f' : '_m';
+    return t(`discover.relationshipTypes.${type}${suffix}`);
   }
   return type.replace(/_/g, ' ');
 }
@@ -179,7 +180,7 @@ function NetworkCard({
         }
       </View>
       <Text style={s.networkName} numberOfLines={1}>{f.name}</Text>
-      <Text style={s.networkRel} numberOfLines={1}>{relationshipTypeLabel(t, f.relationship_type ?? f.network_relationship_type)}</Text>
+      <Text style={s.networkRel} numberOfLines={1}>{relationshipTypeLabel(t, f.relationship_type ?? f.network_relationship_type, f.gender)}</Text>
       {added ? (
         <View style={s.addedTag}><Text style={s.addedText}>{t('discover.addedTag')}</Text></View>
       ) : (
