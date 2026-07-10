@@ -52,6 +52,12 @@ export interface TutorReply extends AITokenUsage {
   gradeCapture?: string;
 }
 
+export interface SophieReply extends AITokenUsage {
+  text: string;
+  classCompleted?: boolean;
+  quizPassed?: boolean;
+}
+
 export interface DailyPost {
   friendId: string;
   friendName: string;
@@ -1427,6 +1433,190 @@ Do nothing else until you have the grade.` : ''}`.trim();
     inputTokens:      response.usage.input_tokens,
     outputTokens:     response.usage.output_tokens,
   };
+}
+
+
+// ── 6d. Generate Sophie reply (online safety class) ──────────────────────────
+
+const SOPHIE_TOPICS: Record<1 | 2 | 3, { en: string[]; fr: string[] }> = {
+  1: {
+    en: [
+      'Personal info stays private — your full name, address, school, and phone number should only be shared if a parent says it\'s okay',
+      'Only "friend" or chat with people you actually know in real life',
+      'If anything online makes you feel weird, scared, or confused, tell a trusted grown-up right away — no matter what',
+      'Not everything online is true — check with a grown-up before believing or sharing something',
+      'Be kind online the same way you\'re kind in person',
+    ],
+    fr: [
+      'Les infos personnelles restent privées — ton nom complet, ton adresse, ton école et ton numéro de téléphone ne se partagent que si un parent dit que c\'est ok',
+      'On n\'ajoute et ne discute qu\'avec des gens qu\'on connaît vraiment dans la vraie vie',
+      'Si quelque chose en ligne te fait sentir bizarre, effrayé(e) ou confus(e), dis-le tout de suite à un adulte de confiance — peu importe quoi',
+      'Tout n\'est pas vrai en ligne — vérifie avec un adulte avant de croire ou partager quelque chose',
+      'Sois gentil(le) en ligne comme tu l\'es en vrai',
+    ],
+  },
+  2: {
+    en: [
+      'What\'s okay vs. not okay to show in a photo or post — yourself, your house, your school, or where you are right now',
+      'People online aren\'t always who they say they are',
+      'You\'re always allowed to say no, block, or walk away — and telling an adult is never tattling',
+      'Think before you share or repost — is it a fact or just someone\'s opinion?',
+      'Digital kindness — not joining in when someone is being excluded or talked about behind their back',
+    ],
+    fr: [
+      'Ce qu\'on peut montrer ou pas dans une photo ou un post — toi-même, ta maison, ton école, ou où tu es en ce moment',
+      'Les gens en ligne ne sont pas toujours qui ils prétendent être',
+      'Tu as toujours le droit de dire non, de bloquer, ou de partir — et le dire à un adulte n\'est jamais rapporter',
+      'Réfléchis avant de partager ou reposter — est-ce un fait ou juste l\'opinion de quelqu\'un ?',
+      'La gentillesse numérique — ne pas participer quand quelqu\'un est exclu(e) ou critiqué(e) dans son dos',
+    ],
+  },
+  3: {
+    en: [
+      'Digital footprint — things you post can resurface, spread further than you meant, and be hard to fully delete',
+      'Red flags — someone pushing for secrecy, private chats, photos, or wanting to meet up in person',
+      'Cyberbullying — recognizing it, and knowing what to do whether it\'s happening to you or someone you know',
+      'Healthy balance — noticing if a screen is crowding out sleep, friends, or things you actually enjoy, rather than counting hours',
+      'Apps and feeds are designed to keep you scrolling — noticing that design is part of being a smart user',
+    ],
+    fr: [
+      'L\'empreinte numérique — ce que tu postes peut ressurgir, se répandre plus que prévu, et être difficile à supprimer complètement',
+      'Les signaux d\'alerte — quelqu\'un qui insiste pour garder un secret, discuter en privé, avoir des photos, ou vouloir se rencontrer en vrai',
+      'Le cyberharcèlement — le reconnaître, et savoir quoi faire, que ça t\'arrive à toi ou à quelqu\'un que tu connais',
+      'L\'équilibre — remarquer si un écran prend la place du sommeil, des amis, ou de choses que tu aimes vraiment, plutôt que compter les heures',
+      'Les applications sont conçues pour te faire défiler sans arrêt — le remarquer, c\'est déjà être un utilisateur ou une utilisatrice averti(e)',
+    ],
+  },
+};
+
+export async function generateSophieReply(
+  child: Child,
+  message: string,
+  memoryBrief: string | null,
+  language: 'en' | 'fr' = 'en',
+  conversationHistory: Array<{ content: string; sender_type: string }> = [],
+  mode: 'class' | 'quiz' | 'chat',
+  level: 1 | 2 | 3,
+  imageBase64?: string,
+  imageMediaType?: string,
+): Promise<SophieReply> {
+  const dyslexia  = child.specialNeeds.includes('dyslexia');
+  const adhd      = child.specialNeeds.includes('adhd');
+  const physical  = child.specialNeeds.includes('physical') || child.specialNeeds.includes('motorNeeds');
+  const learning  = child.specialNeeds.includes('learning');
+
+  const disabilityAdaptations = [
+    dyslexia ? `- Child has dyslexia: Never ask them to spell things out. Short sentences. No time pressure.` : '',
+    adhd     ? `- Child has ADHD: Keep exchanges short and high-energy. Gamify. Never long explanations.` : '',
+    physical ? `- Child has physical disability: Be patient with response times. Voice-first approach.` : '',
+    learning ? `- Child has learning differences: Extra patience. Smallest possible steps. Celebrate every tiny win.` : '',
+    child.preReader ? `- Child cannot read yet: Very simple words, very short sentences, heavy emoji use.` : '',
+  ].filter(Boolean).join('\n');
+
+  const lang = language === 'fr' ? 'French' : 'English';
+  const languageInstruction = language === 'fr'
+    ? 'Tu dois toujours répondre en français uniquement.'
+    : 'You must always respond in English only.';
+
+  const topics = SOPHIE_TOPICS[level][language === 'fr' ? 'fr' : 'en'];
+  const topicList = topics.map((t, i) => `${i + 1}. ${t}`).join('\n');
+
+  const modeInstructions = mode === 'class'
+    ? `This is a full class session. Work through these ${topics.length} topics naturally across the conversation — don't dump them all at once, bring them up one at a time as the conversation flows, check the child genuinely understands each one (ask a quick "what would you do if..." style question), and only move to the next topic once they've engaged with the current one. You don't need a perfect answer, just real engagement and a correct instinct. Once all ${topics.length} topics have been touched on and the child has shown they get it, wrap up warmly and congratulate them — something like "you're officially a smart & safe surfer!" — that closing moment matters.`
+    : mode === 'quiz'
+    ? `This child already completed this level before, but it's been a while, so this is a quick refresher check-in, not a full class. Ask 2-3 short scenario questions covering different topics from the list below (pick a few, not all ${topics.length}) — e.g. "someone you don't know online asks to be your friend, what do you do?" — and see if their instincts are still sharp. If they get something wrong, gently correct it, don't just move on. Once they've answered a few correctly, warmly confirm they're still sharp and wrap up.`
+    : `This child has already completed this level and it's still fresh (within the last year) — just be a normal warm, fun friend to chat with. Don't bring up the safety topics unless the child brings up something relevant themselves.`;
+
+  const system = `${languageInstruction}
+
+You are Sophie, ${child.name}'s big-sister-style friend on myMigo. You're a cool, warm ${language === 'fr' ? 'jeune adulte' : 'young adult'} (early twenties) — serious about keeping ${child.name} safe online, but never preachy, never a lecture. You talk like a real big sister: fun, direct, honest, a little playful, genuinely cares. You're not a teacher and this isn't school.
+
+${child.name} is ${child.age} years old.
+
+${mode !== 'chat' ? `TOPICS FOR THIS LEVEL:\n${topicList}\n\n` : ''}${modeInstructions}
+
+${disabilityAdaptations ? `DISABILITY ADAPTATIONS:\n${disabilityAdaptations}\n` : ''}
+${memoryBrief ? `WHAT YOU REMEMBER ABOUT ${child.name.toUpperCase()}:\n${memoryBrief}\n` : ''}
+
+RULES:
+- Keep responses SHORT — max 3 sentences plus maybe one question. This is a chat, not a lecture.
+- Never use scary or graphic language, even for level 3 topics — stay warm and matter-of-fact.
+- Never say "lesson" or "class" or "quiz" out loud — keep the framing as a normal conversation between friends.
+- If ${child.name} discloses something that sounds like a real, current safety concern (not hypothetical), drop the class framing immediately, take it seriously, and gently suggest they tell a parent — do not just continue the curriculum.
+- Respond in ${lang} always.
+- Plain text only — no markdown, no asterisks, no headers. Use emojis for warmth instead.`.trim();
+
+  const historyMessages: Anthropic.MessageParam[] = conversationHistory.map((msg) => ({
+    role: msg.sender_type === 'child' ? 'user' as const : 'assistant' as const,
+    content: msg.content,
+  }));
+
+  let lastContent: Anthropic.MessageParam['content'];
+  if (imageBase64 && imageMediaType) {
+    lastContent = [
+      { type: 'image', source: { type: 'base64', media_type: imageMediaType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp', data: imageBase64 } },
+      { type: 'text', text: message || (language === 'fr' ? 'Regarde ça !' : 'Look at this!') },
+    ];
+  } else {
+    lastContent = message || (language === 'fr' ? 'Salut !' : 'Hey!');
+  }
+
+  const messages: Anthropic.MessageParam[] = [...historyMessages, { role: 'user', content: lastContent }];
+
+  const [response, meta] = await Promise.all([
+    callWithRetry(() => client.messages.create({
+      model: MODELS.smart,
+      max_tokens: MAX_TOKENS.tutorReply,
+      system,
+      messages,
+    })),
+    mode === 'chat'
+      ? Promise.resolve({ classCompleted: false, quizPassed: false })
+      : extractSophieMeta(message, conversationHistory, mode, topics),
+  ]);
+
+  return {
+    text: extractText(response),
+    classCompleted: meta.classCompleted,
+    quizPassed: meta.quizPassed,
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+  };
+}
+
+async function extractSophieMeta(
+  childMessage: string,
+  history: Array<{ content: string; sender_type: string }>,
+  mode: 'class' | 'quiz',
+  topics: string[],
+): Promise<{ classCompleted: boolean; quizPassed: boolean }> {
+  const ctx = history.slice(-8).map((m) => `${m.sender_type}: ${m.content}`).join(' | ');
+
+  try {
+    const res = await callWithRetry(() => client.messages.create({
+      model: MODELS.fast,
+      max_tokens: 120,
+      system: `Analyse this conversation between a child and their friend Sophie, who is ${mode === 'class' ? 'walking through a set of online-safety topics' : 'doing a quick refresher check on topics the child already learned'}.
+Topics: ${topics.map((t, i) => `${i + 1}. ${t}`).join(' | ')}
+
+Return ONLY valid JSON, no explanation:
+{
+  "topicsEngaged": <number of topics from the list the child has now genuinely engaged with and shown correct instinct on, across the whole conversation>,
+  "readyToComplete": <true if the child has engaged with ALL topics in the list with correct instincts, false otherwise>
+}`,
+      messages: [{ role: 'user', content: `Latest child message: "${childMessage}"\nRecent conversation: ${ctx}` }],
+    }));
+
+    const parsed = parseJSON<{ topicsEngaged: number; readyToComplete: boolean }>(extractText(res), 'sophie meta');
+    if (parsed) {
+      return mode === 'class'
+        ? { classCompleted: Boolean(parsed.readyToComplete), quizPassed: false }
+        : { classCompleted: false, quizPassed: Boolean(parsed.readyToComplete) };
+    }
+  } catch {
+    // silent
+  }
+  return { classCompleted: false, quizPassed: false };
 }
 
 

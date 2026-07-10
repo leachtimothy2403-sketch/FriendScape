@@ -26,6 +26,7 @@ const STAR_FRIEND_VOICES: Record<string, string> = {
   'juliette':             'Kore',
   'capitaine-coquillage': 'Orus',
   'jules':                'Orus',
+  'sophie':               'Zephyr',
   'luna':                 'Schedar',
   'miga':                 'Puck',
 };
@@ -118,6 +119,7 @@ export async function generateSpeech(
   const isTeacher = id.includes('luna');
   const isMascot  = id.includes('miga');
   const isJules   = id.includes('jules');
+  const isSophie  = id.includes('sophie');
 
   const systemInstruction = isTeacher
     ? 'You are a warm, gentle teacher named Ms. Luna speaking kindly and encouragingly to a young child.'
@@ -125,6 +127,8 @@ export async function generateSpeech(
     ? 'You are Miga, an energetic and playful dragon mascot. Speak with childlike excitement and wonder.'
     : isJules
     ? 'You are Jules, a cool laid-back male teacher in his thirties who surfs. Speak with a warm, calm, confident adult male voice. You are enthusiastic but not excitable — think cool older brother energy, never childlike.'
+    : isSophie
+    ? 'You are Sophie, a warm, cool young woman in her early twenties — like a big sister. Speak with a warm, confident, friendly adult female voice. Casual and real, never childlike, never stiff or robotic.'
     : `You are an energetic, friendly 9-year-old child. Speak with a bright, high-pitched, youthful tone. Use natural pacing and innocent excitement. Never sound like an adult.`;
 
   const audioTags = isTeacher
@@ -133,6 +137,8 @@ export async function generateSpeech(
     ? '[excited] [high-pitched] '
     : isJules
     ? '[warm] [confident] [relaxed] '
+    : isSophie
+    ? '[warm] [confident] [casual] '
     : '[excited] [high-pitched] ';
 
   const prompt = `${systemInstruction}\n\n${audioTags}${text}`;
@@ -237,6 +243,7 @@ export async function generateSpeechStream(
   const isTeacher = id.includes('luna');
   const isMascot  = id.includes('miga');
   const isJules   = id.includes('jules');
+  const isSophie  = id.includes('sophie');
 
   const systemInstruction = isTeacher
     ? 'You are a warm, gentle teacher named Ms. Luna speaking kindly and encouragingly to a young child.'
@@ -244,6 +251,8 @@ export async function generateSpeechStream(
     ? 'You are Miga, an energetic and playful dragon mascot. Speak with childlike excitement and wonder.'
     : isJules
     ? 'You are Jules, a cool laid-back male teacher in his thirties who surfs. Speak with a warm, calm, confident adult male voice. You are enthusiastic but not excitable — think cool older brother energy, never childlike.'
+    : isSophie
+    ? 'You are Sophie, a warm, cool young woman in her early twenties — like a big sister. Speak with a warm, confident, friendly adult female voice. Casual and real, never childlike, never stiff or robotic.'
     : 'You are an energetic, friendly 9-year-old child. Speak with a bright, high-pitched, youthful tone. Use natural pacing and innocent excitement. Never sound like an adult.';
 
   const audioTags = isTeacher
@@ -252,6 +261,8 @@ export async function generateSpeechStream(
     ? '[excited] [high-pitched] '
     : isJules
     ? '[warm] [confident] [relaxed] '
+    : isSophie
+    ? '[warm] [confident] [casual] '
     : '[excited] [high-pitched] ';
 
   const prompt = `${systemInstruction}\n\n${audioTags}${text}`;

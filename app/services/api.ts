@@ -231,6 +231,7 @@ export interface AiFriendRecord {
   is_star_friend: boolean;
   is_teacher: boolean;
   is_jules?: boolean;
+  is_sophie?: boolean;
   is_seasonal?: boolean;
   age: number | null;
   gender: string;

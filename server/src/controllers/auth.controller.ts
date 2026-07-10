@@ -572,7 +572,7 @@ export async function devReset(req: Request, res: Response) {
 
         // Regenerate star friend avatars (reseed wipes them since seed data has no avatar_url)
         try {
-          const ADULT_STYLE_NAMES = ['Coach Mike', 'Capitaine Coquillage', 'Jules'];
+          const ADULT_STYLE_NAMES = ['Coach Mike', 'Capitaine Coquillage', 'Jules', 'Sophie'];
           const starRows = await db('ai_friends').where({ is_star_friend: true }).whereNull('avatar_url');
           console.log(`[dev] 🎨 Regenerating ${starRows.length} star friend avatar(s)...`);
           for (const row of starRows) {

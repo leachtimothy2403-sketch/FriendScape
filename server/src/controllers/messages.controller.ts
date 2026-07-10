@@ -7,6 +7,7 @@ import {
   generateFriendReply,
   generateJulesReply,
   generateTutorReply,
+  generateSophieReply,
   generateRPSMove,
   generateTicTacToeMove,
   generateStoryContribution,
@@ -15,6 +16,7 @@ import {
   checkMood,
   buildMemoryBrief,
   type TutorReply,
+  type SophieReply,
   type FriendReplyResult,
   type Mascot as AIMascot,
   type MascotName,
@@ -354,7 +356,79 @@ export async function sendMessage(req: AuthRequest, res: Response) {
 
     }  // end if (isJules)
 
-    if (!isJules && isTeacher) {
+    const isSophie = Boolean((friendRow as Record<string, unknown>).is_sophie);
+    if (!isJules && isSophie) {
+      const currentLevel: 1 | 2 | 3 = child.age <= 7 ? 1 : child.age <= 9 ? 2 : 3;
+      const childProgressRow = await db('children')
+        .where({ id: childId })
+        .select('safety_class_level', 'safety_class_completed_at')
+        .first();
+      const completedLevel = Number(childProgressRow?.safety_class_level ?? 0);
+      const completedAt = childProgressRow?.safety_class_completed_at
+        ? new Date(childProgressRow.safety_class_completed_at as string)
+        : null;
+      const oneYearMs = 365 * 24 * 60 * 60 * 1000;
+      const isStale = completedAt ? (Date.now() - completedAt.getTime() > oneYearMs) : false;
+
+      const sophieMode: 'class' | 'quiz' | 'chat' =
+        completedLevel < currentLevel ? 'class' : (isStale ? 'quiz' : 'chat');
+
+      let sophieReply: SophieReply;
+      try {
+        const [resolved, mood2] = await Promise.all([
+          callClaudeWithRetry(() =>
+            generateSophieReply(
+              child,
+              content.trim(),
+              memoryBrief,
+              lang as 'en' | 'fr',
+              recentMessages,
+              sophieMode,
+              currentLevel,
+              imageBase64,
+              imageMediaType,
+            ),
+          ),
+          checkMood(content.trim(), child.name, child.age),
+        ]);
+        sophieReply = resolved;
+        (req as unknown as Record<string, unknown>)._mood = mood2;
+      } catch (err: unknown) {
+        const status = (err as Record<string, unknown>)?.status;
+        if (status === 429) {
+          sophieReply = {
+            text: lang === 'fr'
+              ? "Je suis un peu prise là — reviens dans un moment ! 💫"
+              : "I'm a bit tied up right now — come back in a moment! 💫",
+            inputTokens: 0, outputTokens: 0,
+          };
+        } else {
+          throw err;
+        }
+      }
+
+      reply = sophieReply;
+      (req as unknown as Record<string, unknown>)._mood ??= await checkMood(content.trim(), child.name, child.age).catch(() => ({
+        mood: 'neutral' as const, intensity: 'low' as const, crisisFlag: false, crisisReason: null,
+        parentAlertNeeded: false, parentAlertReason: null, suggestParentTalk: false, inputTokens: 0, outputTokens: 0,
+      }));
+
+      if (sophieMode === 'class' && sophieReply.classCompleted) {
+        await db('children').where({ id: childId }).update({
+          safety_class_level: currentLevel,
+          safety_class_completed_at: new Date(),
+        });
+        checkBadgesForChild(childId, 'safety_class_level').catch((e: unknown) =>
+          console.error('[sophie] badge check failed:', e),
+        );
+      } else if (sophieMode === 'quiz' && sophieReply.quizPassed) {
+        await db('children').where({ id: childId }).update({
+          safety_class_completed_at: new Date(),
+        });
+      }
+    }
+
+    if (!isJules && !isSophie && isTeacher) {
       const tutorLang = (lang === 'fr' ? 'fr' : 'en') as 'en' | 'fr';
       const isFirstInteraction = !child.schoolGrade;
 
@@ -422,7 +496,7 @@ export async function sendMessage(req: AuthRequest, res: Response) {
         console.log(`[luna] 📸 Image received, processed by Claude, not stored`);
       }
 
-    } else if (!isJules) {
+    } else if (!isJules && !isSophie) {
       const aiMsgCountRow = await db('messages')
         .where({ conversation_id: conversation.id, sender_type: 'ai' })
         .count('* as count')

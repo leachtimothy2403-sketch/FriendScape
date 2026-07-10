@@ -24,6 +24,7 @@ const COVER_COLOR: Record<string, string> = {
   Hugo: '#FFF0F0', Nico: '#E1F5EE', Camille: '#FFF0F5',
   Luca: '#F0F4FF', Sofia: '#FAECE7', 'Coach Sarah': '#E0FFE8',
   'Prof Max': '#F0F0FF', Miga: '#F0EEFF', Jules: '#FEF3C7',
+  Sophie: '#FDF2F8',
 };
 
 function firstEmoji(str: string | null | undefined) { return str ? ([...str][0] ?? '🌟') : '🌟'; }
@@ -339,6 +340,54 @@ function JulesCard({ jules, onAdd, isFr, alreadyAdded }: { jules: AiFriendRecord
   );
 }
 
+// ── Sophie discovery card ────────────────────────────────────────────────────
+function SophieCard({ sophie, onAdd, isFr, alreadyAdded }: { sophie: AiFriendRecord; onAdd: () => Promise<void>; isFr: boolean; alreadyAdded: boolean }) {
+  const { t } = useTranslation();
+  const [adding, setAdding] = useState(false);
+
+  async function handleMeet() {
+    if (adding) return;
+    if (alreadyAdded) {
+      router.push(`/dm/${sophie.id}` as never);
+      return;
+    }
+    setAdding(true);
+    try {
+      await onAdd();
+    } finally {
+      setAdding(false);
+    }
+    router.push(`/dm/${sophie.id}` as never);
+  }
+
+  return (
+    <TouchableOpacity
+      onPress={() => router.push(`/friend/${sophie.id}` as never)}
+      activeOpacity={0.9}
+      style={s.sophieCard}
+    >
+      <View style={s.sophieTopRow}>
+        <View style={s.sophieAvatar}>
+          {sophie.avatar_url
+            ? <Image source={{ uri: resolveAvatarUrl(sophie.avatar_url) }} style={{ width: 52, height: 52, borderRadius: 26 }} />
+            : <Text style={{ fontSize: 26 }}>🛡️</Text>
+          }
+        </View>
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <Text style={s.sophieName}>{sophie.name}</Text>
+          <Text style={s.sophieTagline}>{t('discover.sophieTagline')}</Text>
+        </View>
+        <TouchableOpacity style={s.sophieBtn} onPress={() => void handleMeet()} disabled={adding}>
+          {adding
+            ? <ActivityIndicator size="small" color="#fff" />
+            : <Text style={s.sophieBtnText}>{alreadyAdded ? t('discover.chatSophieButton') : t('discover.meetSophieButton')}</Text>}
+        </TouchableOpacity>
+      </View>
+      <Text style={s.sophieDesc}>{t('discover.sophieDesc')}</Text>
+    </TouchableOpacity>
+  );
+}
+
 // ── Main screen ────────────────────────────────────────────────────────────────
 export default function DiscoverScreen() {
   const { t } = useTranslation();
@@ -415,8 +464,11 @@ export default function DiscoverScreen() {
   const jules = allFriends.find(f => f.is_jules) ?? null;
   const showJules = !!jules && !!token;
 
+  const sophie = allFriends.find(f => f.is_sophie) ?? null;
+  const showSophie = !!sophie && !!token;
+
   const starFriends = allFriends.filter(
-    f => f.is_star_friend && !myFriendIds.has(f.id),
+    f => f.is_star_friend && !f.is_jules && !f.is_sophie && !myFriendIds.has(f.id),
   );
 
   const displayedFriends = search
@@ -470,6 +522,19 @@ export default function DiscoverScreen() {
               onAdd={() => addFriend(jules.id)}
               isFr={language === 'fr'}
               alreadyAdded={myFriendIds.has(jules.id)}
+            />
+          </View>
+        )}
+
+        {/* Sophie card */}
+        {showSophie && sophie && (
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>{t('discover.sophieSection')}</Text>
+            <SophieCard
+              sophie={sophie}
+              onAdd={() => addFriend(sophie.id)}
+              isFr={language === 'fr'}
+              alreadyAdded={myFriendIds.has(sophie.id)}
             />
           </View>
         )}
@@ -661,4 +726,43 @@ const s = StyleSheet.create({
     marginLeft: 10,
   },
   julesBtnText: { fontSize: 11, color: '#fff', fontWeight: '800' },
+
+  // Sophie card
+  sophieCard: {
+    backgroundColor: '#FDF2F8',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 4,
+    borderLeftWidth: 4,
+    borderLeftColor: '#DB2777',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  sophieTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sophieAvatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#FCE7F3',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sophieName:    { fontSize: 15, fontWeight: '800', color: '#2C2C2A' },
+  sophieTagline: { fontSize: 12, color: '#DB2777', fontWeight: '600' },
+  sophieDesc:    { fontSize: 13, color: '#666', lineHeight: 19 },
+  sophieBtn: {
+    backgroundColor: '#DB2777',
+    borderRadius: 99,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    alignItems: 'center',
+    marginLeft: 10,
+  },
+  sophieBtnText: { fontSize: 11, color: '#fff', fontWeight: '800' },
 });

@@ -17,6 +17,7 @@ async function fetchAllProgress(childId: string): Promise<Record<string, number>
     totalMessages,
     totalPosts,
     totalReactions,
+    safetyClassRow,
   ] = await Promise.all([
     // first_post / total_posts
     db('posts').where({ child_id: childId, author_type: 'child' }).count('id as count').first(),
@@ -64,6 +65,9 @@ async function fetchAllProgress(childId: string): Promise<Record<string, number>
 
     // total_reactions
     db('post_reactions').where({ child_id: childId }).count('id as count').first(),
+
+    // safety_class_level
+    db('children').where({ id: childId }).select('safety_class_level').first(),
   ]);
 
   const n = (v: unknown) => Number((v as { count?: string })?.count ?? 0);
@@ -78,6 +82,7 @@ async function fetchAllProgress(childId: string): Promise<Record<string, number>
     total_messages:        n(totalMessages),
     total_posts:           n(totalPosts),
     total_reactions:       n(totalReactions),
+    safety_class_level:    Number((safetyClassRow as { safety_class_level?: number } | undefined)?.safety_class_level ?? 0),
     graduation:            0,  // resolved via /children/me/graduation
   };
 }
