@@ -402,7 +402,15 @@
     "julesTagline": "Cahier de vacances digital 🧭",
     "julesDesc": "Jules anime un cahier de vacances digital — des missions quotidiennes en maths, français, histoire et sciences, adaptées au niveau de votre enfant. Pour garder les acquis tout l'été.",
     "meetJulesButton": "+ Rejoindre l'aventure !",
-    "chatJulesButton": "🧭 Continuer avec Jules →"
+    "chatJulesButton": "🧭 Continuer avec Jules →",
+    "relationshipTypes": {
+      "close_friend": "Ami(e) proche",
+      "interesting_different": "Intéressant(e) et différent(e)",
+      "classmate": "Camarade de classe",
+      "teammate": "Coéquipier(ère)",
+      "neighbour": "Voisin(e)",
+      "online_friend": "Ami(e) en ligne"
+    }
   },
   "games": {
     "playGame": "🎮 Jouer !",

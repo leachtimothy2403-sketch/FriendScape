@@ -386,7 +386,15 @@
     "julesTagline": "Digital cahier de vacances 🧭",
     "julesDesc": "Jules runs a digital cahier de vacances — fun daily missions in maths, reading, history and science, tailored to your child's level. Keep skills sharp all summer.",
     "meetJulesButton": "+ Start the expedition!",
-    "chatJulesButton": "🧭 Continue with Jules →"
+    "chatJulesButton": "🧭 Continue with Jules →",
+    "relationshipTypes": {
+      "close_friend": "Close friend",
+      "interesting_different": "Interesting & different",
+      "classmate": "Classmate",
+      "teammate": "Teammate",
+      "neighbour": "Neighbour",
+      "online_friend": "Online friend"
+    }
   },
   "games": {
     "playGame": "🎮 Play a game!",

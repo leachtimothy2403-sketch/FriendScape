@@ -14,6 +14,7 @@ import { ageFromDob } from '../utils/age';
 import Anthropic from '@anthropic-ai/sdk';
 import { generateFriendPortrait } from '../services/avatar.service';
 import { assignVoiceToFriend } from '../services/audio.service';
+import { localizedFriendName } from '../utils/friend-names';
 
 // ─── Authed CRUD ──────────────────────────────────────────────────────────────
 
@@ -358,7 +359,7 @@ export async function createChildFromOnboarding(req: AuthRequest, res: Response)
         friend_id:         newFriend.id,
         facts:             JSON.stringify([]),
         emotional_history: JSON.stringify([]),
-        milestones:        JSON.stringify(['Joined Migo!']),
+        milestones:        JSON.stringify([]),
         last_updated:      new Date(),
       }).onConflict(['child_id', 'friend_id']).ignore();
 
@@ -911,7 +912,7 @@ export async function getMyMemories(req: AuthRequest, res: Response) {
       db('child_badges')
         .join('badge_definitions', 'badge_definitions.id', 'child_badges.badge_id')
         .where({ 'child_badges.child_id': childId })
-        .select('badge_definitions.name', 'badge_definitions.icon', 'child_badges.earned_at'),
+        .select('badge_definitions.name', 'badge_definitions.name_fr', 'badge_definitions.icon', 'child_badges.earned_at'),
       db('child_friends')
         .join('ai_friends', 'ai_friends.id', 'child_friends.friend_id')
         .where({ 'child_friends.child_id': childId })
@@ -944,9 +945,10 @@ export async function getMyMemories(req: AuthRequest, res: Response) {
 
     // b. badges
     for (const badge of (badgeRows as Record<string, unknown>[])) {
+      const badgeName = memLang === 'fr' ? String(badge.name_fr ?? badge.name) : String(badge.name);
       const text    = memLang === 'fr'
-        ? `Badge obtenu : ${badge.name as string} ${badge.icon as string}`
-        : `Earned the ${badge.name as string} badge ${badge.icon as string}`;
+        ? `Badge obtenu : ${badgeName} ${badge.icon as string}`
+        : `Earned the ${badgeName} badge ${badge.icon as string}`;
       const dateStr = new Date(badge.earned_at as string).toISOString();
       items.push({ id: makeMemoryId('badge', text, dateStr), type: 'badge', text, date: dateStr, icon: '🏆' });
     }
@@ -954,12 +956,13 @@ export async function getMyMemories(req: AuthRequest, res: Response) {
     // c. friendships
     for (const f of (friendRows as Record<string, unknown>[])) {
       const dateStr    = f.activated_at ? new Date(f.activated_at as string).toISOString() : new Date().toISOString();
+      const friendName = localizedFriendName(f.name as string, memLang);
       const becomeTxt  = memLang === 'fr'
-        ? `Devenu ami avec ${f.name as string}`
-        : `Became friends with ${f.name as string}`;
+        ? `Devenu ami avec ${friendName}`
+        : `Became friends with ${friendName}`;
       items.push({ id: makeMemoryId('friendship', becomeTxt, dateStr), type: 'friendship', text: becomeTxt, date: dateStr, icon: '💜' });
       if ((f.friendship_level as number) > 1) {
-        const levelTxt = `Reached Level ${f.friendship_level as number} with ${f.name as string}!`;
+        const levelTxt = `Reached Level ${f.friendship_level as number} with ${friendName}!`;
         items.push({ id: makeMemoryId('friendship', levelTxt, dateStr), type: 'friendship', text: levelTxt, date: dateStr, icon: '💜' });
       }
     }
@@ -967,7 +970,8 @@ export async function getMyMemories(req: AuthRequest, res: Response) {
     // d. joined Migo
     if (child) {
       const joinedDate = new Date((child as Record<string, unknown>).created_at as string).toISOString();
-      items.push({ id: makeMemoryId('milestone', 'Joined Migo! 🌟', joinedDate), type: 'milestone', text: 'Joined Migo! 🌟', date: joinedDate, icon: '🌟' });
+      const joinedText = memLang === 'fr' ? 'A rejoint Migo ! 🌟' : 'Joined Migo! 🌟';
+      items.push({ id: makeMemoryId('milestone', joinedText, joinedDate), type: 'milestone', text: joinedText, date: joinedDate, icon: '🌟' });
     }
 
     // e. first post
@@ -1109,7 +1113,7 @@ export async function regenerateFriends(req: AuthRequest, res: Response) {
         friend_id:         newFriend.id,
         facts:             JSON.stringify([]),
         emotional_history: JSON.stringify([]),
-        milestones:        JSON.stringify(['Joined Migo!']),
+        milestones:        JSON.stringify([]),
         last_updated:      new Date(),
       }).onConflict(['child_id', 'friend_id']).ignore();
 

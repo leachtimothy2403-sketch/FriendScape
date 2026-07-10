@@ -28,6 +28,18 @@ const COVER_COLOR: Record<string, string> = {
 
 function firstEmoji(str: string | null | undefined) { return str ? ([...str][0] ?? '🌟') : '🌟'; }
 
+const RELATIONSHIP_TYPES = [
+  'close_friend', 'interesting_different', 'classmate', 'teammate', 'neighbour', 'online_friend',
+] as const;
+
+function relationshipTypeLabel(t: ReturnType<typeof useTranslation>['t'], type: string | null | undefined): string {
+  if (!type) return '';
+  if ((RELATIONSHIP_TYPES as readonly string[]).includes(type)) {
+    return t(`discover.relationshipTypes.${type}`);
+  }
+  return type.replace(/_/g, ' ');
+}
+
 const MASCOT_NAMES: Record<string, string> = {
   miga: 'Miga', pixel: 'Pixel', finn: 'Finn', sage: 'Sage',
 };
@@ -166,7 +178,7 @@ function NetworkCard({
         }
       </View>
       <Text style={s.networkName} numberOfLines={1}>{f.name}</Text>
-      <Text style={s.networkRel} numberOfLines={1}>{(f.relationship_type ?? f.network_relationship_type ?? '').replace(/_/g, ' ')}</Text>
+      <Text style={s.networkRel} numberOfLines={1}>{relationshipTypeLabel(t, f.relationship_type ?? f.network_relationship_type)}</Text>
       {added ? (
         <View style={s.addedTag}><Text style={s.addedText}>{t('discover.addedTag')}</Text></View>
       ) : (

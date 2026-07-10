@@ -288,7 +288,7 @@ export default function ProfileScreen() {
         const [profileRes, postsRes, friendsRes, memoriesRes, storedEmoji, storedBg, storedAvatarUrl] = await Promise.all([
           childProfileApi.getProfile(tok),
           childProfileApi.getPosts(tok),
-          childProfileApi.getFriendsList(tok),
+          childProfileApi.getFriendsList(tok, language),
           childProfileApi.getMemories(tok),
           AsyncStorage.getItem('childEmoji'),
           AsyncStorage.getItem('avatarBackground'),
@@ -388,6 +388,7 @@ export default function ProfileScreen() {
   const mascotId   = profile?.mascotId ?? 'luna';
   const mascotName = mascotId.charAt(0).toUpperCase() + mascotId.slice(1);
   const mascotEmoji = Mascots[mascotId]?.emoji ?? '🦉';
+  const isFeminine = profile?.gender === 'girl' || profile?.gender === 'female';
 
   if (loading) {
     return (
@@ -464,7 +465,7 @@ export default function ProfileScreen() {
               </View>
               <View style={s.mascotRow}>
                 <Text style={{ fontSize: 14 }}>{mascotEmoji}</Text>
-                <Text style={s.mascotRowLabel}>{t('profile.mascotFriend', { mascot: mascotName })}</Text>
+                <Text style={s.mascotRowLabel}>{t(isFeminine ? 'friendProfile.friendOfF' : 'friendProfile.friendOfM', { name: mascotName })}</Text>
               </View>
               <Text style={s.memberSince}>
                 {t('profile.onMigoSince', { date: profile ? formatMemberSince(profile.stats.memberSince, language) : '' })}

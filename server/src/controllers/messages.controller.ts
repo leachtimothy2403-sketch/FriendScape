@@ -23,6 +23,7 @@ import {
 import { toChildType, toFriendType, toMemoryType } from '../utils/db-mappers';
 import { findOrCreateMascotId, sendMascotDM } from '../services/migaDM';
 import { sendFeedbackEmail } from '../services/email.service';
+import { localizedFriendName } from '../utils/friend-names';
 import type { Child } from '../../../shared/types';
 
 async function callClaudeWithRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
@@ -94,19 +95,20 @@ async function awardFriendshipXP(childId: string, friendId: string, child: Child
   const newLevel     = currentLevel + 1;
   const lang         = child.language === 'fr' ? 'fr' : 'en';
   const newLevelName = LEVEL_NAMES[lang][newLevel] ?? (lang === 'fr' ? 'Légende' : 'Legend');
+  const displayFriendName = localizedFriendName(friendName, lang);
 
   await db('child_friends')
     .where({ child_id: childId, friend_id: friendId })
     .update({ friendship_level: newLevel });
 
-  console.log(`[xp] 🎉 Level up! ${child.name} + ${friendName} → Level ${newLevel} (${newLevelName})`);
+  console.log(`[xp] 🎉 Level up! ${child.name} + ${displayFriendName} → Level ${newLevel} (${newLevelName})`);
 
   // Add milestone to child_memories
-  const milestoneText = `Reached Level ${newLevel} friendship with ${friendName}!`;
+  const milestoneText = `Reached Level ${newLevel} friendship with ${displayFriendName}!`;
   const newMilestone = {
     id:          uuidv4(),
     title:       milestoneText,
-    description: `${child.name} and ${friendName} are now ${newLevelName}`,
+    description: `${child.name} and ${displayFriendName} are now ${newLevelName}`,
     achievedAt:  new Date().toISOString(),
     badgeId:     null,
   };
@@ -133,7 +135,7 @@ async function awardFriendshipXP(childId: string, friendId: string, child: Child
   await db('parent_alerts').insert({
     child_id: childId,
     type:     'milestone',
-    message:  `${child.name} and ${friendName} are now ${newLevelName}! 🎉`,
+    message:  `${child.name} and ${displayFriendName} are now ${newLevelName}! 🎉`,
     severity: 'info',
   }).catch((err: unknown) => console.error('[xp] Failed to save level-up alert:', err));
 }

@@ -117,8 +117,17 @@ export async function generatePostImage(
   friendAge: number,
   sceneEmojis: string,
   friendAvatarUrl: string,
+  isAdult: boolean = false,
 ): Promise<string> {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+  const characterDescription = isAdult
+    ? `an adult named ${friendName}`
+    : `a ${friendAge}-year-old child named ${friendName}`;
+
+  const exampleLine = isAdult
+    ? `A cheerful young adult with tousled hair building a birdhouse in a sunny garden, wooden planks and hammer nearby, Pixar cartoon style, children's illustration, vibrant colors, safe for kids`
+    : `A cheerful 10-year-old boy with brown hair building a birdhouse in a sunny garden, wooden planks and hammer nearby, Pixar cartoon style, children's illustration, vibrant colors, safe for kids`;
 
   const promptRes = await client.messages.create({
     model: 'claude-haiku-4-5-20251001',
@@ -126,15 +135,15 @@ export async function generatePostImage(
     messages: [{
       role: 'user',
       content: `You generate image prompts for a children's social app.
-A ${friendAge}-year-old child named ${friendName} posted: "${postText}"
+${characterDescription} posted: "${postText}"
 Scene emojis hint: ${sceneEmojis}
 
 Write a single image generation prompt (max 50 words) that:
-1. Describes ${friendName} as a cartoon child character in the scene
+1. Describes ${friendName} as a cartoon ${isAdult ? 'adult' : 'child'} character in the scene
 2. Includes the specific activity/setting from the post
 3. Ends with: "Pixar cartoon style, children's illustration, vibrant colors, safe for kids"
 
-Example: "A cheerful 10-year-old boy with brown hair building a birdhouse in a sunny garden, wooden planks and hammer nearby, Pixar cartoon style, children's illustration, vibrant colors, safe for kids"
+Example: "${exampleLine}"
 
 Return ONLY the prompt, no explanation`,
     }],

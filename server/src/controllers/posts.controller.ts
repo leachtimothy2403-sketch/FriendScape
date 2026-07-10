@@ -93,13 +93,15 @@ export async function generateDailyPosts(req: AuthRequest, res: Response) {
       const friendRow = (friendRows as Record<string, unknown>[]).find(
         (f) => String(f.name ?? '').toLowerCase() === post.friendName.toLowerCase(),
       );
-      const friendAge = (friendRow?.age as number) ?? 10;
+      const rawAge = friendRow?.age as number | null | undefined;
+      const isAdultFriend = rawAge === null || rawAge === undefined ? true : rawAge >= 18;
+      const friendAge = rawAge ?? 10;
       const avatarUrl = friendRow?.avatar_url ? String(friendRow.avatar_url) : null;
 
       let imageUrl: string | null = null;
       if (avatarUrl) {
         try {
-          imageUrl = await generatePostImage(post.text, post.friendName, friendAge, post.sceneEmojis, avatarUrl);
+          imageUrl = await generatePostImage(post.text, post.friendName, friendAge, post.sceneEmojis, avatarUrl, isAdultFriend);
         } catch (err) {
           console.warn('[avatar] post image failed:', err);
         }

@@ -438,7 +438,7 @@ export default function FeedScreen() {
       await childPosts.generateDaily(token).catch(() => {});
       const [postsRes, friendsRes] = await Promise.all([
         childPosts.feed(token),
-        childProfileApi.getFriendsList(token).catch(() => null),
+        childProfileApi.getFriendsList(token, language).catch(() => null),
       ]);
       const loaded = postsRes.data.posts as FeedPost[];
       console.log('[feed] posts loaded:', loaded.length);

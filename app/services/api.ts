@@ -340,8 +340,8 @@ export const childProfileApi = {
     api.get<{ memories: MemoryItem[] }>('/children/me/memories', withToken(token)),
   getPosts: (token: string) =>
     api.get<{ posts: ProfilePost[] }>('/children/me/posts', withToken(token)),
-  getFriendsList: (token: string) =>
-    api.get<{ friends: FriendWithStats[] }>('/children/me/friends-list', withToken(token)),
+  getFriendsList: (token: string, language?: string) =>
+    api.get<{ friends: FriendWithStats[] }>('/children/me/friends-list', { ...withToken(token), params: { language } }),
   validateInterest: (token: string, text: string) =>
     api.post<ModerationResult>('/children/me/interests/validate', { text }, withToken(token)),
   regenerateFriends: (token: string) =>
