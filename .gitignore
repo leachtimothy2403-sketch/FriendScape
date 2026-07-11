@@ -16,3 +16,7 @@ out/
 # OS
 .DS_Store
 Thumbs.db
+
+# Generated audio/avatar cache — regenerable, shouldn't churn the repo
+server/public/audio/
+server/public/avatars/
