@@ -28,6 +28,16 @@ import { sendFeedbackEmail } from '../services/email.service';
 import { localizedFriendName } from '../utils/friend-names';
 import { detectGrade } from '../utils/grade-detection';
 import type { Child } from '../../../shared/types';
+import { generateSpeech } from '../services/audio.service';
+
+// Mirrors nameToCharacterId() in app/components/AudioPlayer.tsx byte-for-byte — must stay
+// identical so the cache key computed here matches what the client requests later.
+function nameToCharacterId(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\./g, '')
+    .replace(/\s+(.)/g, (_, c: string) => c.toUpperCase());
+}
 
 async function callClaudeWithRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
   for (let i = 0; i < maxRetries; i++) {
@@ -525,12 +535,22 @@ export async function sendMessage(req: AuthRequest, res: Response) {
     setTimeout(() => {
       void (async () => {
         try {
-          await db('messages').insert({
+          const insertedRows = await db('messages').insert({
             conversation_id: conversation.id,
             sender_id:       friendId,
             sender_type:     'ai',
             content:         reply.text,
-          });
+          }).returning('id');
+
+          const insertedMessageId = typeof insertedRows[0] === 'object'
+            ? (insertedRows[0] as { id: number | string }).id
+            : insertedRows[0];
+
+          const characterId   = nameToCharacterId(friend.name);
+          const audioCacheKey = `${characterId.toLowerCase()}_${lang}_msg_${insertedMessageId}`;
+          generateSpeech(reply.text, characterId, lang as 'en' | 'fr', audioCacheKey).catch((err: unknown) =>
+            console.error('[voice] Proactive pre-generation failed:', err),
+          );
 
           awardFriendshipXP(childId, friendId, child, friend.name).catch((err: unknown) =>
             console.error('[xp] Award failed:', err),
