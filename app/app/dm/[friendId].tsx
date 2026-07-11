@@ -10,7 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { useTranslation } from 'react-i18next';
-import { childMessages, childFriends, childAuth, gameApi, audioApi } from '@/services/api';
+import { childMessages, childFriends, childAuth, gameApi, sophieApi, audioApi } from '@/services/api';
 import { Audio } from 'expo-av';
 import { useLanguageStore } from '@/store/languageStore';
 import { Colors } from '@/constants/theme';
@@ -91,6 +91,8 @@ export default function DMScreen() {
   const [retryContent, setRetryContent]       = useState<{ text: string; imageB64?: string; imageType?: string } | null>(null);
   const [isTeacher, setIsTeacher]             = useState(false);
   const [isJules, setIsJules]                 = useState(false);
+  const [isSophie, setIsSophie]               = useState(false);
+  const [quizLoading, setQuizLoading]         = useState(false);
   const [selectedImage, setSelectedImage]     = useState<{ base64: string; uri: string } | null>(null);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showGradeChips, setShowGradeChips]   = useState(false);
@@ -192,6 +194,7 @@ export default function DMScreen() {
           setFriendBg(FRIEND_BG[name] ?? '#EEEDFE');
           setIsTeacher(teacher);
           setIsJules(Boolean((friend as Record<string, unknown>).is_jules));
+          setIsSophie(Boolean((friend as Record<string, unknown>).is_sophie));
           setFriendAvatarUrl(avatarUrl);
 
           const loadedMsgs = (msgRes.data.messages as ChatMessage[]).reverse();
@@ -363,6 +366,21 @@ export default function DMScreen() {
       showToast('Could not start game — try again');
     } finally {
       setGameLoading(false);
+    }
+  }
+
+  async function startSophieQuiz() {
+    const token = tokenRef.current;
+    if (!token || quizLoading) return;
+    setQuizLoading(true);
+    try {
+      const res = await sophieApi.startQuiz(token, friendId);
+      setMessages((prev) => [res.data.message as ChatMessage, ...prev]);
+    } catch (err) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      showToast(message ?? 'Could not start quiz — try again');
+    } finally {
+      setQuizLoading(false);
     }
   }
 
@@ -741,6 +759,18 @@ export default function DMScreen() {
                 onPress={() => void handleVoiceMemo()}
               >
                 <Text style={{ fontSize: 18 }}>{isRecording ? '⏹️' : '🎤'}</Text>
+              </TouchableOpacity>
+            </>
+          ) : isSophie ? (
+            <>
+              <TouchableOpacity
+                style={[s.voiceBtn, isRecording && { backgroundColor: '#FF4B4B' }]}
+                onPress={() => void handleVoiceMemo()}
+              >
+                <Text style={{ fontSize: 18 }}>{isRecording ? '⏹️' : '🎤'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.gameBtn} onPress={() => void startSophieQuiz()} disabled={quizLoading}>
+                <Text style={{ fontSize: 16 }}>{quizLoading ? '⏳' : '🧠'}</Text>
               </TouchableOpacity>
             </>
           ) : (

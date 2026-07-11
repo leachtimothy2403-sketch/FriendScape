@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getConversations, getMessages, sendMessage, getLatestMessage, startGame, makeGameMove, getUnreadMessages, mascotMessage } from '../controllers/messages.controller';
+import { getConversations, getMessages, sendMessage, getLatestMessage, startGame, makeGameMove, startSophieQuiz, getUnreadMessages, mascotMessage } from '../controllers/messages.controller';
 import { requireAuth } from '../middleware/auth';
 
 const router = Router();
@@ -15,6 +15,7 @@ router.post('/mascot', mascotMessage);
 // Game routes (must be before /:friendId catch-all)
 router.post('/:friendId/game/start', startGame);
 router.post('/:friendId/game/move',  makeGameMove);
+router.post('/:friendId/sophie-quiz', startSophieQuiz);
 
 // Child-session endpoints — childId is read from the JWT, not the URL
 router.get('/unread', getUnreadMessages);

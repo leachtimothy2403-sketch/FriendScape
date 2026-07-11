@@ -41,6 +41,8 @@ scheduleGradePromotion();
 const app  = express();
 const PORT = process.env.PORT || 3001;
 
+app.set('trust proxy', 'loopback');
+
 const allowedOrigins = [
   process.env.FRONTEND_URL         || 'http://localhost:8081',
   process.env.PARENT_DASHBOARD_URL || 'http://localhost:3000',

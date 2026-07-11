@@ -818,6 +818,86 @@ export async function makeGameMove(req: AuthRequest, res: Response) {
   }
 }
 
+// ─── POST /api/messages/:friendId/sophie-quiz ────────────────────────────────
+// Voluntary, on-demand version of Sophie's quiz mode — same generation logic as
+// the automatic annual-reactivation quiz, just triggerable anytime by the child.
+// Low-stakes: passing refreshes safety_class_completed_at same as the automatic
+// path; failing has no negative effect, they can just try again later.
+export async function startSophieQuiz(req: AuthRequest, res: Response) {
+  const childId = req.childId;
+  if (!childId) { res.status(401).json({ error: 'Child authentication required' }); return; }
+
+  const { friendId } = req.params;
+
+  try {
+    const [childRow, friendRow] = await Promise.all([
+      db('children').where({ id: childId }).first(),
+      db('ai_friends').where({ id: friendId }).first(),
+    ]);
+    if (!childRow || !friendRow) { res.status(404).json({ error: 'Not found' }); return; }
+    if (!Boolean((friendRow as Record<string, unknown>).is_sophie)) {
+      res.status(400).json({ error: 'Not Sophie' });
+      return;
+    }
+
+    const child = toChildType(childRow);
+    const lang  = (childRow.language as string) || 'en';
+    const currentLevel: 1 | 2 | 3 = child.age <= 7 ? 1 : child.age <= 9 ? 2 : 3;
+    const completedLevel = Number(childRow.safety_class_level ?? 0);
+
+    if (completedLevel < currentLevel) {
+      res.status(400).json({
+        error: 'Class not completed yet',
+        message: lang === 'fr'
+          ? "On n'a pas encore fini la leçon ! Termine-la d'abord et je te ferai un quiz après 😊"
+          : "We haven't finished the lesson yet! Finish that first and I'll quiz you after 😊",
+      });
+      return;
+    }
+
+    let conversation = await db('conversations').where({ child_id: childId, friend_id: friendId }).first();
+    if (!conversation) {
+      [conversation] = await db('conversations').insert({ child_id: childId, friend_id: friendId }).returning('*');
+    }
+
+    const sophieReply = await generateSophieReply(
+      child,
+      '',
+      null,
+      lang as 'en' | 'fr',
+      [],
+      'quiz',
+      currentLevel,
+    );
+
+    const insertedRows = await db('messages').insert({
+      conversation_id: String(conversation.id),
+      sender_id:       friendId,
+      sender_type:     'ai',
+      content:         sophieReply.text,
+    }).returning('*');
+    const message = insertedRows[0];
+
+    await db('conversations').where({ id: String(conversation.id) }).update({ updated_at: new Date() });
+
+    if (sophieReply.quizPassed) {
+      await db('children').where({ id: childId }).update({ safety_class_completed_at: new Date() });
+    }
+
+    const insertedMessageId = (message as Record<string, unknown>).id;
+    const characterId       = nameToCharacterId(friendRow.name as string);
+    const audioCacheKey     = `${characterId.toLowerCase()}_${lang}_msg_${insertedMessageId}`;
+    generateSpeech(sophieReply.text, characterId, lang as 'en' | 'fr', audioCacheKey).catch((err: unknown) =>
+      console.error('[voice] Proactive pre-generation failed:', err),
+    );
+
+    res.json({ message, quizPassed: !!sophieReply.quizPassed });
+  } catch (err) {
+    console.error('[sophie-quiz] error:', err);
+    res.status(500).json({ error: 'Failed to start quiz' });
+  }
+}
+
 // ─── GET /api/messages/unread ─────────────────────────────────────────────────
 // Returns AI messages received since `since` (ISO query param) across all
 // conversations for this child, used for feed-screen notification polling.

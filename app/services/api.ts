@@ -434,6 +434,15 @@ export const gameApi = {
     ),
 };
 
+export const sophieApi = {
+  startQuiz: (token: string, friendId: string) =>
+    api.post<{ message: unknown; quizPassed: boolean }>(
+      `/messages/${friendId}/sophie-quiz`,
+      {},
+      withToken(token),
+    ),
+};
+
 export const childBadges = {
   list: (token: string) =>
     api.get<{ badges: BadgeDefinition[] }>('/badges', withToken(token)),
