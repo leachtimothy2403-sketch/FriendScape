@@ -5,7 +5,6 @@ import Animated, {
   withRepeat, withSequence, withTiming,
 } from 'react-native-reanimated';
 import { Audio } from 'expo-av';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguageStore } from '@/store/languageStore';
 import api from '@/services/api';
 
@@ -58,15 +57,11 @@ function SoundWave({ color }: { color: string }) {
 export default function AudioPlayer({ text, characterId, messageId, size = 'sm' }: Props) {
   const { language } = useLanguageStore();
   const [state, setState] = useState<PlayerState>('idle');
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
 
   const dim = size === 'sm' ? 32 : 40;
 
   async function handlePress() {
-    console.log('[audio] handlePress fired, state:', state);
-    console.log('[audio] characterId:', characterId, 'text length:', text.length);
-
     if (state === 'playing') {
       await soundRef.current?.stopAsync();
       setState('idle');
@@ -75,44 +70,33 @@ export default function AudioPlayer({ text, characterId, messageId, size = 'sm' 
 
     if (state === 'loading') return;
 
-    let url = audioUrl;
-
-    if (!url) {
-      setState('loading');
-      try {
-        const token = await AsyncStorage.getItem('childToken');
-        const normalised = nameToCharacterId(characterId);
-        console.log('[audio] calling /audio/generate with characterId:', normalised);
-        const res = await api.post<{ audioUrl: string }>(
-          '/audio/generate',
-          { text, characterId: normalised, language, messageId },
-          token ? { headers: { Authorization: `Bearer ${token}` } } : undefined,
-        );
-        url = res.data.audioUrl.startsWith('http')
-          ? res.data.audioUrl
-          : `${api.defaults.baseURL ?? ''}${res.data.audioUrl}`;
-        console.log('[audio] got audioUrl:', url);
-        setAudioUrl(url);
-      } catch (err) {
-        console.error('[audio] error:', err);
-        setState('idle');
-        return;
-      }
-    }
-
-    setState('playing');
+    setState('loading');
     try {
+      const normalised = nameToCharacterId(characterId);
+      const base = api.defaults.baseURL ?? '';
+      const params = new URLSearchParams({
+        text,
+        characterId: normalised,
+        language,
+        ...(messageId ? { messageId } : {}),
+      });
+      const streamUrl = `${base}/audio/stream?${params.toString()}`;
+
       await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
       await soundRef.current?.unloadAsync();
-      const { sound } = await Audio.Sound.createAsync({ uri: url! });
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: streamUrl },
+        { shouldPlay: true },
+      );
       soundRef.current = sound;
+      setState('playing');
       sound.setOnPlaybackStatusUpdate((status) => {
         if (status.isLoaded && status.didJustFinish) {
           setState('idle');
         }
       });
-      await sound.playAsync();
-    } catch {
+    } catch (err) {
+      console.error('[audio] stream error:', err);
       setState('idle');
     }
   }
