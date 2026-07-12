@@ -238,6 +238,7 @@ export async function createPost(req: AuthRequest, res: Response) {
 
     checkBadgesForChild(childId, 'first_post').catch(console.error);
     checkBadgesForChild(childId, 'total_posts').catch(console.error);
+    checkBadgesForChild(childId, 'consecutive_posts').catch(console.error);
 
     // Schedule friend comments (non-blocking — response already sent)
     const postId      = String((post as Record<string, unknown>).id);
@@ -342,6 +343,7 @@ export async function createPhotoPost(req: AuthRequest, res: Response) {
 
     checkBadgesForChild(childId, 'first_post').catch(console.error);
     checkBadgesForChild(childId, 'total_posts').catch(console.error);
+    checkBadgesForChild(childId, 'consecutive_posts').catch(console.error);
 
     const postId     = String((post as Record<string, unknown>).id);
     const childIdStr = childId;

@@ -13,6 +13,7 @@
     "migrate:make": "npx knex --knexfile src/db/knexfile.ts migrate:make",
     "seed": "npx knex --knexfile src/db/knexfile.ts seed:run",
     "db:check": "ts-node -r dotenv/config scripts/check-db.ts",
+    "beta:metrics": "ts-node -r dotenv/config scripts/betaMetrics.ts",
     "generate:audio": "ts-node -r dotenv/config scripts/generateMigaAudio.ts",
     "demo:generate": "ts-node -r dotenv/config scripts/generateDemoFriends.ts",
     "avatars:star-friends": "ts-node scripts/generateStarFriendAvatars.ts",

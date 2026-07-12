@@ -266,6 +266,8 @@ export async function sendMessage(req: AuthRequest, res: Response) {
     const lang = (childRow.language as string) || 'en';
     const isTeacher = Boolean(friendRow.is_teacher);
 
+    if (isTeacher) checkBadgesForChild(childId, 'tutor_sessions').catch(console.error);
+
     console.log(`[messages] 🤖 Calling Claude — ${friend.name} replies to ${child.name}: "${content.trim().slice(0, 40)}" (lang=${lang}${isTeacher ? ', teacher' : ''})`);
 
     let reply: FriendReplyResult = { text: '', inputTokens: 0, outputTokens: 0 };

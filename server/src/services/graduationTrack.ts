@@ -70,6 +70,10 @@ export async function getGraduationProgress(childId: string): Promise<Graduation
       completedAt: null,
     },
     {
+      // Intentionally always false during closed beta — there is no
+      // child-to-child introduction feature yet. Do not "fix" this without
+      // building the actual introduction flow first (see project notes).
+      // Post-beta plan: QR-code handoff of an AI friend between two Migo users.
       key:         'introduced_friend',
       label:       'Introduce a friend',
       completed:   false,
