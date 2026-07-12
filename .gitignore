@@ -17,6 +17,9 @@ out/
 .DS_Store
 Thumbs.db
 
-# Generated audio/avatar cache — regenerable, shouldn't churn the repo
+# Generated audio/avatar cache ï¿½ regenerable, shouldn't churn the repo
 server/public/audio/
 server/public/avatars/
+
+# Internal compliance working docs â€” catalogs live security gaps, keep out of git history
+DPIA_myMigo.md
