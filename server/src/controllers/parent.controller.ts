@@ -195,6 +195,8 @@ export async function getTimeline(req: AuthRequest, res: Response) {
     const child = await db('children').where({ id: childId, parent_id: req.userId }).first();
     if (!child) { res.status(404).json({ error: 'Child not found' }); return; }
 
+    const lang = (child.language as string) === 'fr' ? 'fr' : 'en';
+
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
     const [recentPosts, messageDays, recentBadges, newFriends] = await Promise.all([
@@ -222,7 +224,7 @@ export async function getTimeline(req: AuthRequest, res: Response) {
         .join('badge_definitions', 'badge_definitions.id', 'child_badges.badge_id')
         .where('child_badges.child_id', childId)
         .where('child_badges.earned_at', '>=', since)
-        .select('badge_definitions.name', 'badge_definitions.icon', 'child_badges.earned_at')
+        .select('badge_definitions.name', 'badge_definitions.name_fr', 'badge_definitions.icon', 'child_badges.earned_at')
         .orderBy('child_badges.earned_at', 'desc'),
 
       db('child_friends')
@@ -239,17 +241,33 @@ export async function getTimeline(req: AuthRequest, res: Response) {
 
     for (const p of recentPosts as Array<{ content: string; mood: string; created_at: string }>) {
       const c = String(p.content ?? '');
-      events.push({ type: 'post', timestamp: p.created_at, icon: '📝', summary: `Posted: "${c.slice(0, 80)}${c.length > 80 ? '…' : ''}"` });
+      const truncated = `${c.slice(0, 80)}${c.length > 80 ? '…' : ''}`;
+      events.push({
+        type: 'post', timestamp: p.created_at, icon: '📝',
+        summary: lang === 'fr' ? `A publié : « ${truncated} »` : `Posted: "${truncated}"`,
+      });
     }
     for (const d of messageDays as Array<{ count: string | number; ts: string }>) {
       const n = Number(d.count);
-      events.push({ type: 'messages', timestamp: d.ts, icon: '💬', summary: `Sent ${n} message${n !== 1 ? 's' : ''}` });
+      events.push({
+        type: 'messages', timestamp: d.ts, icon: '💬',
+        summary: lang === 'fr'
+          ? `A envoyé ${n} message${n !== 1 ? 's' : ''}`
+          : `Sent ${n} message${n !== 1 ? 's' : ''}`,
+      });
     }
-    for (const b of recentBadges as Array<{ name: string; icon: string; earned_at: string }>) {
-      events.push({ type: 'badge', timestamp: b.earned_at, icon: b.icon, summary: `Earned badge: ${b.icon} ${b.name}` });
+    for (const b of recentBadges as Array<{ name: string; name_fr?: string; icon: string; earned_at: string }>) {
+      const badgeName = lang === 'fr' ? (b.name_fr ?? b.name) : b.name;
+      events.push({
+        type: 'badge', timestamp: b.earned_at, icon: b.icon,
+        summary: lang === 'fr' ? `A obtenu le badge : ${b.icon} ${badgeName}` : `Earned badge: ${b.icon} ${badgeName}`,
+      });
     }
     for (const f of newFriends as Array<{ name: string; created_at: string }>) {
-      events.push({ type: 'friend', timestamp: f.created_at, icon: '👥', summary: `Made a new friend: ${f.name}` });
+      events.push({
+        type: 'friend', timestamp: f.created_at, icon: '👥',
+        summary: lang === 'fr' ? `Nouvel ami : ${f.name}` : `Made a new friend: ${f.name}`,
+      });
     }
 
     events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -366,8 +384,12 @@ export async function getParentBadges(req: AuthRequest, res: Response) {
     const child = await db('children').where({ id: childId, parent_id: req.userId }).first();
     if (!child) { res.status(404).json({ error: 'Child not found' }); return; }
 
+    const lang = (child.language as string) === 'fr' ? 'fr' : 'en';
+
     const [allBadges, childBadgeRows] = await Promise.all([
-      db('badge_definitions').select('id', 'name', 'description', 'icon', 'category', 'xp_required').orderBy('category').orderBy('name'),
+      db('badge_definitions')
+        .select('id', 'name', 'name_fr', 'description', 'description_fr', 'icon', 'category', 'xp_required')
+        .orderBy('category').orderBy('name'),
       db('child_badges').where({ child_id: childId }).select('badge_id', 'earned_at'),
     ]);
 
@@ -376,11 +398,17 @@ export async function getParentBadges(req: AuthRequest, res: Response) {
       earnedMap[b.badge_id] = b.earned_at;
     }
 
-    const earned = (allBadges as Array<Record<string, unknown>>)
+    const localized = (allBadges as Array<Record<string, unknown>>).map((b) => ({
+      ...b,
+      name:        lang === 'fr' ? (b.name_fr ?? b.name) : b.name,
+      description: lang === 'fr' ? (b.description_fr ?? b.description) : b.description,
+    })) as Array<Record<string, unknown>>;
+
+    const earned = localized
       .filter((b) => earnedMap[b.id as string])
       .map((b)  => ({ ...b, earned_at: earnedMap[b.id as string] }));
 
-    const locked = (allBadges as Array<Record<string, unknown>>).filter((b) => !earnedMap[b.id as string]);
+    const locked = localized.filter((b) => !earnedMap[b.id as string]);
 
     res.json({ earned, locked, totalXp: earned.reduce((s, b) => s + Number((b as Record<string, unknown>).xp_required ?? 10), 0) });
   } catch (err) {

@@ -19,7 +19,7 @@ interface Badge {
   earned_at?: string;
 }
 
-function BadgeItem({ badge, earned, t }: { badge: Badge; earned: boolean; t: (key: string) => string }) {
+function BadgeItem({ badge, earned, t, locale }: { badge: Badge; earned: boolean; t: (key: string) => string; locale: string }) {
   return (
     <View style={[s.badgeCard, !earned && s.badgeCardLocked]}>
       <Text style={[s.badgeIcon, !earned && { opacity: 0.4 }]}>{badge.icon}</Text>
@@ -30,7 +30,7 @@ function BadgeItem({ badge, earned, t }: { badge: Badge; earned: boolean; t: (ke
           <View style={s.earnedRow}>
             <View style={s.greenDot} />
             <Text style={s.earnedText}>
-              {new Date(badge.earned_at).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}
+              {new Date(badge.earned_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </Text>
           </View>
         ) : null}
@@ -43,7 +43,7 @@ function BadgeItem({ badge, earned, t }: { badge: Badge; earned: boolean; t: (ke
 }
 
 export default function BadgesScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [earned, setEarned] = useState<Badge[]>([]);
   const [locked, setLocked] = useState<Badge[]>([]);
   const [totalXp, setTotalXp] = useState(0);
@@ -122,7 +122,7 @@ export default function BadgesScreen() {
         {earned.length > 0 && (
           <View style={s.section}>
             <Text style={s.sectionTitle}>{t('parent.badges.earnedSection')} ({earned.length})</Text>
-            {earned.map((b) => <BadgeItem key={b.id} badge={b} earned t={t} />)}
+            {earned.map((b) => <BadgeItem key={b.id} badge={b} earned t={t} locale={i18n.language} />)}
           </View>
         )}
 
@@ -130,7 +130,7 @@ export default function BadgesScreen() {
         {locked.length > 0 && (
           <View style={s.section}>
             <Text style={s.sectionTitle}>{t('parent.badges.lockedSection')} ({locked.length})</Text>
-            {locked.map((b) => <BadgeItem key={b.id} badge={b} earned={false} t={t} />)}
+            {locked.map((b) => <BadgeItem key={b.id} badge={b} earned={false} t={t} locale={i18n.language} />)}
           </View>
         )}
       </ScrollView>

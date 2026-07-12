@@ -75,8 +75,8 @@ export default function ParentChildrenScreen() {
     <SafeAreaView className="flex-1 bg-bg">
       <StatusBar style="dark" />
 
-      <View style={{ paddingTop: 32, paddingBottom: 12, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View>
+      <View style={{ paddingTop: 32, paddingBottom: 12, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <View style={{ flex: 1, paddingRight: 12 }}>
           <Text style={{ fontSize: 26, fontWeight: '800', color: '#2C2C2A' }}>
             {t('parentChildren.title')}
           </Text>
@@ -84,7 +84,7 @@ export default function ParentChildrenScreen() {
             {t('parentChildren.subtitle')}
           </Text>
         </View>
-        <TouchableOpacity onPress={() => void handleLogOut()} activeOpacity={0.7}>
+        <TouchableOpacity onPress={() => void handleLogOut()} activeOpacity={0.7} style={{ paddingTop: 6 }}>
           <Text style={{ fontSize: 13, color: '#888780' }}>{t('parentChildren.logOut')}</Text>
         </TouchableOpacity>
       </View>
