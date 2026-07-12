@@ -586,7 +586,17 @@
     "errorInvalid": "E-mail ou mot de passe incorrect. Veuillez réessayer.",
     "forgotPassword": "Mot de passe oublié ?",
     "errorEnterEmailFirst": "Entrez d'abord votre e-mail",
-    "resetLinkSent": "Si cet e-mail est enregistré, un lien de réinitialisation est en route."
+    "resetLinkSent": "Si cet e-mail est enregistré, un lien de réinitialisation est en route.",
+    "otpTitle": "Entrez votre code",
+    "otpSubtitle": "Nous avons envoyé un code à 6 chiffres à {{email}}. Il expire dans 10 minutes.",
+    "otpLabel": "Code à 6 chiffres",
+    "otpButton": "Vérifier et se connecter",
+    "otpVerifying": "Vérification…",
+    "otpResend": "Renvoyer le code",
+    "otpResent": "Un nouveau code est en route.",
+    "otpBack": "Retour à la connexion",
+    "otpErrorInvalid": "Code incorrect. Veuillez réessayer.",
+    "otpErrorGeneric": "Une erreur est survenue. Veuillez réessayer."
   },
   "parentAddChild": {
     "title": "Ajouter un enfant",

@@ -26,7 +26,13 @@ api.interceptors.response.use(
 );
 
 export const auth = {
-  login: (email: string, password: string) => api.post('/auth/login', { email, password }),
+  login: (email: string, password: string) =>
+    api.post<{ requiresOtp: true; otpToken: string }>('/auth/login', { email, password }),
+  verifyOtp: (otpToken: string, code: string) =>
+    api.post<{ token: string; language: string; user: { id: string; email: string; displayName: string } }>(
+      '/auth/verify-otp', { otpToken, code },
+    ),
+  resendOtp: (otpToken: string) => api.post('/auth/resend-otp', { otpToken }),
   logout: () => api.post('/auth/logout'),
 };
 

@@ -40,7 +40,12 @@ export const auth = {
   register: (data: { email: string; displayName: string; password: string }) =>
     api.post('/auth/register', data),
   login: (data: { email: string; password: string }) =>
-    api.post<{ token: string; language: string; user: { id: string; email: string; displayName: string } }>('/auth/login', data),
+    api.post<{ requiresOtp: true; otpToken: string }>('/auth/login', data),
+  verifyOtp: (data: { otpToken: string; code: string }) =>
+    api.post<{ token: string; language: string; user: { id: string; email: string; displayName: string } }>(
+      '/auth/verify-otp', data,
+    ),
+  resendOtp: (otpToken: string) => api.post('/auth/resend-otp', { otpToken }),
   logout: () => api.post('/auth/logout'),
   forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
   enroll: (data: { parentEmail: string; language?: string }) =>

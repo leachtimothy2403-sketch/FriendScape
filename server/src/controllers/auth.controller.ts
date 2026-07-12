@@ -7,6 +7,7 @@ import {
   sendVerificationEmail,
   sendPasswordResetEmail,
   sendApprovalEmail,
+  sendLoginOtpEmail,
 } from '../services/email.service';
 import { AuthRequest } from '../middleware/auth';
 import redis from '../services/redis.service';
@@ -67,6 +68,61 @@ export async function login(req: Request, res: Response) {
       return;
     }
 
+    // Password verified — hold the actual login behind a one-time email code (mandatory 2FA).
+    const code = crypto.randomInt(100000, 1000000).toString();
+    const otpToken = crypto.randomBytes(24).toString('hex');
+    await redisSet(
+      `login-otp:${otpToken}`,
+      JSON.stringify({ userId: user.id, code, attempts: 0 }),
+      600, // 10 minutes
+    );
+    sendLoginOtpEmail(String(user.email), code).catch((e: unknown) =>
+      console.error('[auth] login OTP email failed:', e),
+    );
+
+    res.json({ requiresOtp: true, otpToken });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'Login failed' });
+  }
+}
+
+export async function verifyLoginOtp(req: Request, res: Response) {
+  try {
+    const { otpToken, code } = req.body as { otpToken?: string; code?: string };
+    if (!otpToken || !code) {
+      res.status(400).json({ error: 'otpToken and code are required' });
+      return;
+    }
+
+    const raw = await redisGet(`login-otp:${otpToken}`);
+    if (!raw) {
+      res.status(400).json({ error: 'This code has expired. Please log in again.' });
+      return;
+    }
+
+    const data = JSON.parse(raw) as { userId: string; code: string; attempts: number };
+
+    if (data.code !== code) {
+      data.attempts += 1;
+      if (data.attempts >= 5) {
+        await redisDel(`login-otp:${otpToken}`);
+        res.status(400).json({ error: 'Too many incorrect attempts. Please log in again.' });
+        return;
+      }
+      await redisSet(`login-otp:${otpToken}`, JSON.stringify(data), 600);
+      res.status(401).json({ error: 'Incorrect code. Please try again.' });
+      return;
+    }
+
+    await redisDel(`login-otp:${otpToken}`);
+
+    const user = await db('users').where({ id: data.userId }).first();
+    if (!user) {
+      res.status(404).json({ error: 'Account not found' });
+      return;
+    }
+
     const token = jwt.sign(
       { userId: user.id, email: user.email, type: 'parent' },
       process.env.JWT_SECRET!,
@@ -79,8 +135,40 @@ export async function login(req: Request, res: Response) {
       user: { id: user.id, email: user.email, displayName: user.display_name },
     });
   } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).json({ error: 'Login failed' });
+    console.error('[auth] verifyLoginOtp error:', err);
+    res.status(500).json({ error: 'Verification failed' });
+  }
+}
+
+export async function resendLoginOtp(req: Request, res: Response) {
+  try {
+    const { otpToken } = req.body as { otpToken?: string };
+    if (!otpToken) {
+      res.status(400).json({ error: 'otpToken is required' });
+      return;
+    }
+
+    const raw = await redisGet(`login-otp:${otpToken}`);
+    if (!raw) {
+      res.status(400).json({ error: 'This login session has expired. Please log in again.' });
+      return;
+    }
+
+    const data = JSON.parse(raw) as { userId: string; code: string; attempts: number };
+    const user = await db('users').where({ id: data.userId }).first();
+    if (!user) {
+      res.status(404).json({ error: 'Account not found' });
+      return;
+    }
+
+    await redisSet(`login-otp:${otpToken}`, JSON.stringify(data), 600);
+    sendLoginOtpEmail(String(user.email), data.code).catch((e: unknown) =>
+      console.error('[auth] resend OTP email failed:', e),
+    );
+    res.json({ message: 'Code resent' });
+  } catch (err) {
+    console.error('[auth] resendLoginOtp error:', err);
+    res.status(500).json({ error: 'Failed to resend code' });
   }
 }
 

@@ -7,13 +7,20 @@ jest.mock('../services/email.service', () => ({
   sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
   sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
   sendApprovalEmail: jest.fn().mockResolvedValue(undefined),
+  sendLoginOtpEmail: jest.fn().mockResolvedValue(undefined),
 }));
-jest.mock('../services/redis.service', () => ({
-  default: { status: 'not_ready', flushdb: jest.fn().mockResolvedValue('OK') },
-  get: jest.fn().mockResolvedValue(null),
-  set: jest.fn().mockResolvedValue(undefined),
-  connectRedis: jest.fn().mockResolvedValue(undefined),
-}));
+jest.mock('../services/redis.service', () => {
+  // Simple in-memory stand-in so login -> verify-otp can round-trip a real value
+  // within a test, instead of always resolving to null.
+  const store = new Map<string, string>();
+  return {
+    default: { status: 'not_ready', flushdb: jest.fn().mockResolvedValue('OK') },
+    get: jest.fn(async (key: string) => (store.has(key) ? store.get(key)! : null)),
+    set: jest.fn(async (key: string, value: string) => { store.set(key, value); }),
+    del: jest.fn(async (key: string) => { store.delete(key); }),
+    connectRedis: jest.fn().mockResolvedValue(undefined),
+  };
+});
 
 import authRoutes from '../routes/auth';
 
@@ -84,7 +91,7 @@ describe('POST /auth/enroll', () => {
 // ── POST /auth/login ─────────────────────────────────────────────────────────
 
 describe('POST /auth/login', () => {
-  it('returns token and user for valid credentials', async () => {
+  it('returns requiresOtp + otpToken for valid credentials, and emails a code (2FA)', async () => {
     const hash = await bcrypt.hash('correct-password', 1);
     getChain().first.mockResolvedValueOnce({
       id: 'user-1', email: 'user@example.com', display_name: 'Test User',
@@ -96,11 +103,15 @@ describe('POST /auth/login', () => {
       .send({ email: 'user@example.com', password: 'correct-password' });
 
     expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('token');
-    expect(res.body.user).toMatchObject({ email: 'user@example.com' });
+    expect(res.body.requiresOtp).toBe(true);
+    expect(typeof res.body.otpToken).toBe('string');
+    expect(res.body).not.toHaveProperty('token'); // real token withheld until OTP is verified
+
+    const emailMock = jest.requireMock('../services/email.service').sendLoginOtpEmail as jest.Mock;
+    expect(emailMock).toHaveBeenCalledWith('user@example.com', expect.any(String));
   });
 
-  it('returns 401 for wrong password', async () => {
+  it('returns 401 for wrong password (no OTP issued)', async () => {
     const hash = await bcrypt.hash('correct-password', 1);
     getChain().first.mockResolvedValueOnce({
       id: 'user-1', email: 'user@example.com', password_hash: hash,
@@ -122,6 +133,68 @@ describe('POST /auth/login', () => {
       .send({ email: 'nobody@example.com', password: 'any' });
 
     expect(res.status).toBe(401);
+  });
+});
+
+// ── POST /auth/verify-otp ────────────────────────────────────────────────────
+
+describe('POST /auth/verify-otp', () => {
+  async function loginAndCaptureCode(email: string) {
+    const hash = await bcrypt.hash('correct-password', 1);
+    getChain().first.mockResolvedValueOnce({
+      id: 'user-otp', email, display_name: 'OTP Test User', password_hash: hash,
+    });
+
+    const loginRes = await request(app)
+      .post('/auth/login')
+      .send({ email, password: 'correct-password' });
+
+    const otpToken = loginRes.body.otpToken as string;
+    const emailMock = jest.requireMock('../services/email.service').sendLoginOtpEmail as jest.Mock;
+    const lastCall = emailMock.mock.calls[emailMock.mock.calls.length - 1] as [string, string];
+    const code = lastCall[1];
+    return { otpToken, code };
+  }
+
+  it('issues a real token when the code is correct', async () => {
+    const { otpToken, code } = await loginAndCaptureCode('verify-ok@example.com');
+
+    // verify-otp re-fetches the user by id to build the final response
+    getChain().first.mockResolvedValueOnce({
+      id: 'user-otp', email: 'verify-ok@example.com', display_name: 'OTP Test User', settings: {},
+    });
+
+    const res = await request(app)
+      .post('/auth/verify-otp')
+      .send({ otpToken, code });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('token');
+    expect(res.body.user).toMatchObject({ email: 'verify-ok@example.com' });
+  });
+
+  it('rejects an incorrect code without issuing a token', async () => {
+    const { otpToken } = await loginAndCaptureCode('verify-bad@example.com');
+
+    const res = await request(app)
+      .post('/auth/verify-otp')
+      .send({ otpToken, code: '000000' });
+
+    expect(res.status).toBe(401);
+    expect(res.body).not.toHaveProperty('token');
+  });
+
+  it('rejects a missing or expired otpToken', async () => {
+    const res = await request(app)
+      .post('/auth/verify-otp')
+      .send({ otpToken: 'this-token-does-not-exist', code: '123456' });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('requires both otpToken and code', async () => {
+    const res = await request(app).post('/auth/verify-otp').send({});
+    expect(res.status).toBe(400);
   });
 });
 

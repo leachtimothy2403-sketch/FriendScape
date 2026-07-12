@@ -570,7 +570,17 @@
     "errorInvalid": "Incorrect email or password. Please try again.",
     "forgotPassword": "Forgot password?",
     "errorEnterEmailFirst": "Enter your email first",
-    "resetLinkSent": "If that email is registered, a reset link is on its way."
+    "resetLinkSent": "If that email is registered, a reset link is on its way.",
+    "otpTitle": "Enter your code",
+    "otpSubtitle": "We sent a 6-digit code to {{email}}. It expires in 10 minutes.",
+    "otpLabel": "6-digit code",
+    "otpButton": "Verify & Sign In",
+    "otpVerifying": "Verifying…",
+    "otpResend": "Resend code",
+    "otpResent": "A new code is on its way.",
+    "otpBack": "Back to login",
+    "otpErrorInvalid": "Incorrect code. Please try again.",
+    "otpErrorGeneric": "Something went wrong. Please try again."
   },
   "parentAddChild": {
     "title": "Add a Child",

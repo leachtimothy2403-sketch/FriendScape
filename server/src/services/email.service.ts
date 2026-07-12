@@ -56,6 +56,22 @@ export async function sendVerificationEmail(to: string, code: string): Promise<v
   });
 }
 
+export async function sendLoginOtpEmail(to: string, code: string): Promise<void> {
+  await transporter.sendMail({
+    from: FROM,
+    to,
+    subject: 'Your Migo login code',
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
+        <h1 style="color:#7F77DD">Confirm it's you</h1>
+        <p>Enter this code to finish logging in to Migo:</p>
+        <div style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#7F77DD;padding:16px;background:#F8F7FF;border-radius:8px;text-align:center">${code}</div>
+        <p style="color:#9E9E9E;font-size:14px">This code expires in 10 minutes. If you didn't try to log in, you can safely ignore this email.</p>
+      </div>
+    `,
+  });
+}
+
 export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
   await transporter.sendMail({
     from: FROM,

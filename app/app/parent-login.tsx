@@ -20,6 +20,13 @@ export default function ParentLoginScreen() {
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
   const [resetSent, setResetSent] = useState(false);
+  const [otpToken, setOtpToken] = useState('');
+  const [code, setCode]         = useState('');
+  const [resent, setResent]     = useState(false);
+
+  function serverError(err: unknown): string | undefined {
+    return (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+  }
 
   async function handleForgotPassword() {
     const trimmedEmail = email.trim();
@@ -48,6 +55,20 @@ export default function ParentLoginScreen() {
     setLoading(true);
     try {
       const res = await auth.login({ email: trimmedEmail, password });
+      setOtpToken((res.data as { otpToken: string }).otpToken);
+    } catch (err: unknown) {
+      setError(serverError(err) ?? t('parentLogin.errorInvalid'));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleVerifyOtp() {
+    if (code.length !== 6) return;
+    setError('');
+    setLoading(true);
+    try {
+      const res = await auth.verifyOtp({ otpToken, code });
       const token = (res.data as { token: string }).token;
       await AsyncStorage.setItem('authToken', token);
       const lang = (res.data as Record<string, unknown>).language as string | undefined;
@@ -56,11 +77,121 @@ export default function ParentLoginScreen() {
       }
       router.replace('/parent-children' as never);
     } catch (err: unknown) {
-      const serverMsg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setError(serverMsg ?? t('parentLogin.errorInvalid'));
+      setError(serverError(err) ?? t('parentLogin.otpErrorGeneric'));
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleResendOtp() {
+    setError('');
+    setResent(false);
+    try {
+      await auth.resendOtp(otpToken);
+      setResent(true);
+    } catch (err: unknown) {
+      setError(serverError(err) ?? t('parentLogin.otpErrorGeneric'));
+    }
+  }
+
+  if (otpToken) {
+    return (
+      <SafeAreaView className="flex-1 bg-bg">
+        <StatusBar style="dark" />
+        <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 28, paddingBottom: 40 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={{ alignItems: 'center', marginBottom: 40 }}>
+              <MigoLogo size="lg" showTagline />
+            </View>
+
+            <Text style={{ fontSize: 24, fontWeight: '800', color: '#2C2C2A', marginBottom: 6 }}>
+              {t('parentLogin.otpTitle')}
+            </Text>
+            <Text style={{ fontSize: 14, color: '#888780', marginBottom: 28, lineHeight: 20 }}>
+              {t('parentLogin.otpSubtitle', { email })}
+            </Text>
+
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#2C2C2A', marginBottom: 6 }}>
+              {t('parentLogin.otpLabel')}
+            </Text>
+            <TextInput
+              style={{
+                borderWidth: 1.5,
+                borderColor: '#E8E6FF',
+                borderRadius: 14,
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                fontSize: 22,
+                letterSpacing: 8,
+                textAlign: 'center',
+                color: '#2C2C2A',
+                backgroundColor: '#fff',
+                marginBottom: error ? 12 : 24,
+              }}
+              value={code}
+              onChangeText={v => { setCode(v.replace(/\D/g, '').slice(0, 6)); setError(''); }}
+              placeholder="000000"
+              placeholderTextColor={Colors.gray[400]}
+              keyboardType="number-pad"
+              maxLength={6}
+              editable={!loading}
+              autoFocus
+              onSubmitEditing={() => void handleVerifyOtp()}
+              returnKeyType="go"
+            />
+
+            {error ? (
+              <Text style={{ fontSize: 13, color: '#E53E3E', marginBottom: 16, lineHeight: 18 }}>
+                {error}
+              </Text>
+            ) : null}
+
+            {resent ? (
+              <Text style={{ fontSize: 13, color: '#7F77DD', marginBottom: 16, lineHeight: 18 }}>
+                {t('parentLogin.otpResent')}
+              </Text>
+            ) : null}
+
+            <TouchableOpacity
+              onPress={() => void handleVerifyOtp()}
+              disabled={loading || code.length !== 6}
+              activeOpacity={0.85}
+              style={{
+                backgroundColor: '#7F77DD',
+                borderRadius: 14,
+                paddingVertical: 16,
+                alignItems: 'center',
+                opacity: loading || code.length !== 6 ? 0.7 : 1,
+              }}
+            >
+              {loading
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>{t('parentLogin.otpButton')}</Text>
+              }
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => void handleResendOtp()}
+              style={{ marginTop: 14, alignItems: 'center' }}
+              activeOpacity={0.7}
+            >
+              <Text style={{ fontSize: 13, color: '#7F77DD', fontWeight: '600' }}>{t('parentLogin.otpResend')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => { setOtpToken(''); setCode(''); setError(''); }}
+              style={{ marginTop: 20, alignItems: 'center' }}
+              activeOpacity={0.7}
+            >
+              <Text style={{ fontSize: 14, color: '#888780' }}>{t('parentLogin.otpBack')}</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    );
   }
 
   return (
