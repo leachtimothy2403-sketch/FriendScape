@@ -32,6 +32,35 @@ const MAX_TOKENS = {
   storyContrib:         180,
 } as const;
 
+// Names of the fixed, recognizable characters in the app (star friends + the
+// teacher character). Any freely-generated friend — a child's own personalised
+// friend, or a throwaway "friend of a friend" mini-character — must never use
+// one of these, or it'll collide with an actual known character. Keep this in
+// sync with the star-friend/teacher rows in db/seeds/01_ai_friends.ts.
+const RESERVED_FRIEND_NAMES = [
+  'Zara', 'Coach Mike', 'Daniel', 'Anne-Sophie', 'Juliette',
+  'Capitaine Coquillage', 'Jules', 'Sophie', 'Ms. Luna', 'Ms Luna',
+];
+
+// A much larger, more varied name pool than a handful of inline examples —
+// LLMs strongly gravitate toward whatever few examples are literally shown in
+// a prompt, so a short list (however "illustrative" it's meant to be) acts as
+// a de facto ceiling on real diversity. Give it enough options that leaning on
+// the same 3-4 names repeatedly stops being the path of least resistance.
+const NAME_POOL_FR = {
+  girl: ['Léa', 'Manon', 'Chloé', 'Camille', 'Inès', 'Louise', 'Alice', 'Jade', 'Rose', 'Anna', 'Lina', 'Nina', 'Zoé', 'Margaux', 'Eva', 'Agathe', 'Suzanne', 'Victoire', 'Capucine', 'Romane'],
+  boy:  ['Antoine', 'Théo', 'Lucas', 'Hugo', 'Nathan', 'Gabriel', 'Raphaël', 'Arthur', 'Louis', 'Ethan', 'Adam', 'Noah', 'Sacha', 'Baptiste', 'Victor', 'Marius', 'Léon', 'Basile', 'Tom', 'Nolan'],
+};
+const NAME_POOL_EN = {
+  girl: ['Clara', 'Iris', 'Maya', 'Ruby', 'Nora', 'Ella', 'Ivy', 'Freya', 'Hazel', 'Willow', 'Grace', 'Zoe', 'Isla', 'June', 'Poppy', 'Amara', 'Lucy', 'Faye', 'Elena', 'Mabel'],
+  boy:  ['Oliver', 'Sam', 'Leo', 'Milo', 'Felix', 'Owen', 'Elliot', 'Finn', 'Jasper', 'Theo', 'Miles', 'Rowan', 'Asher', 'Casey', 'Dylan', 'Wyatt', 'Kai', 'Micah', 'Toby', 'Reid'],
+};
+
+function namePoolExamples(language: string): string {
+  const pool = language === 'fr' ? NAME_POOL_FR : NAME_POOL_EN;
+  return `girls: ${pool.girl.join(', ')} | boys: ${pool.boy.join(', ')}`;
+}
+
 
 // ── Public types ─────────────────────────────────────────────────────────────
 
@@ -441,11 +470,6 @@ export async function generatePersonalisedFriends(
   language: string = 'en',
   count: number = 2,
 ): Promise<GeneratedFriendsResult> {
-  const BANNED_NAMES = [
-    'Mia', 'Jake', 'Zara', 'Coach Mike', 'Ms Luna', 'Léa', 'Tom',
-    'Chloé', 'Hugo', 'Nico', 'Camille', 'Luca', 'Sofia', 'Coach Sarah', 'Prof Max',
-  ];
-
   const system = `${buildLanguageInstruction(language)}
 
 You are creating personalised AI friends for a child on Migo, a safe social app for kids.
@@ -463,10 +487,11 @@ Pre-reader: ${child.preReader || false}
 
 FRIEND GENERATION RULES:
 
-1. NAMES: Use realistic first names appropriate for the child's language/region.
-   For French children: French names (Antoine, Léa, Manon, Théo, etc)
-   For English children: English names (Clara, Oliver, Iris, Sam, etc)
-   NEVER use these existing Migo friend names: ${BANNED_NAMES.join(', ')}
+1. NAMES: Use a realistic first name appropriate for the child's language/region.
+   Pick freely from a wide range — don't default to the same 1-2 names every time.
+   Some options for inspiration (${language === 'fr' ? 'French' : 'English'}): ${namePoolExamples(language)}
+   You are not limited to this list — any realistic name for the region works.
+   NEVER use these existing Migo friend names: ${RESERVED_FRIEND_NAMES.join(', ')}
 
 2. PERSONALITY MATCHING:
    - A quiet/shy child needs warm patient friends who don't overwhelm
@@ -656,6 +681,12 @@ Create 2-3 network connections for ${friend.name}. For each connection:
 - Prefer connecting to the child's existing friends where it makes natural sense
 - You may also create 1 new mini-character who exists only in this friend's network
 - Make the relationships feel organic and specific to ${friend.name}'s interests
+
+If you create a new mini-character:
+- NEVER use these existing Migo friend names: ${RESERVED_FRIEND_NAMES.join(', ')}
+- Pick a realistic name freely — don't default to the same 1-2 names every time.
+  Some options for inspiration (${language === 'fr' ? 'French' : 'English'}): ${namePoolExamples(language)}
+  You are not limited to this list — any realistic name for the region works.
 
 Return ONLY valid JSON array — no markdown:
 [

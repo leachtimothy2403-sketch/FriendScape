@@ -141,7 +141,10 @@ Scene emojis hint: ${sceneEmojis}
 Write a single image generation prompt (max 50 words) that:
 1. Describes ${friendName} as a cartoon ${isAdult ? 'adult' : 'child'} character in the scene
 2. Includes the specific activity/setting from the post
-3. Ends with: "Pixar cartoon style, children's illustration, vibrant colors, safe for kids"
+3. Never depicts a phone, computer, tablet, TV, screen, book page, sign, or any other object with
+   readable text/writing on it — image models render fake garbled text, so describe the physical
+   activity itself instead (e.g. "surfing" not "texting a friend about surfing")
+4. Ends with: "Pixar cartoon style, children's illustration, vibrant colors, safe for kids"
 
 Example: "${exampleLine}"
 
@@ -149,25 +152,52 @@ Return ONLY the prompt, no explanation`,
     }],
   });
 
-  const scenePrompt = promptRes.content[0].type === 'text'
+  const rawScenePrompt = promptRes.content[0].type === 'text'
     ? promptRes.content[0].text.trim()
     : `${friendName} in a fun scene, Pixar cartoon style, children's illustration, vibrant colors`;
 
-  const result = await fal.subscribe('fal-ai/flux/schnell', {
-    input: {
-      prompt: scenePrompt,
-      image_size: 'square_hd',
-      num_inference_steps: 4,
-      num_images: 1,
-    },
-    pollInterval: 500,
-  });
+  // Deterministic reinforcement — don't rely solely on Claude Haiku having kept the age
+  // descriptor in its 50-word prompt. fal's flux/schnell skews adult-looking without an
+  // explicit, unambiguous age cue in the final string sent to it.
+  const ageReinforcement = isAdult ? 'young adult' : `young ${friendAge}-year-old child`;
+  const scenePrompt = `${rawScenePrompt}, ${friendName} depicted as a ${ageReinforcement}`;
 
-  const r = result as unknown as { data: { images: Array<{ url: string }> } };
-  const url = r.data?.images?.[0]?.url;
-  if (!url) throw new Error('No image in fal post image response');
-  console.log(`[avatar] post image URL for ${friendName}:`, url);
-  return await downloadAndSave(url);
+  const MAX_ATTEMPTS = 3;
+  let lastErr: unknown;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const result = await fal.subscribe('fal-ai/flux/schnell', {
+        input: {
+          prompt: scenePrompt,
+          negative_prompt: `text, words, letters, writing, screen, phone, computer, tablet, television, UI, app interface, screenshot, watermark, blurry, distorted, realistic photo, ${isAdult ? 'child, kid, teenager, young adult' : 'adult, grown-up, mature, elderly'}`,
+          image_size: 'square_hd',
+          num_inference_steps: 4,
+          num_images: 1,
+        } as never,
+        pollInterval: 500,
+      });
+
+      const r = result as unknown as {
+        data: { images: Array<{ url: string }>; has_nsfw_concepts?: boolean[] };
+      };
+      const url = r.data?.images?.[0]?.url;
+      if (!url) throw new Error('No image in fal post image response');
+      if (r.data?.has_nsfw_concepts?.[0]) {
+        // fal returns a real URL even when the image was content-flagged (typically a blacked-out
+        // placeholder) — treat that the same as a failed generation rather than saving a black image.
+        // Likely a false positive (child-depicting prompts get extra-cautious filtering) — worth a retry.
+        throw new Error('fal flagged the generated post image as NSFW — retrying');
+      }
+      console.log(`[avatar] post image URL for ${friendName} (attempt ${attempt}):`, url);
+      return await downloadAndSave(url);
+    } catch (err) {
+      lastErr = err;
+      console.warn(`[avatar] post image attempt ${attempt}/${MAX_ATTEMPTS} failed for ${friendName}:`, err);
+    }
+  }
+
+  throw lastErr instanceof Error ? lastErr : new Error('Post image generation failed after retries');
 }
 
 export async function cartoonifyPhoto(base64DataUri: string): Promise<string> {

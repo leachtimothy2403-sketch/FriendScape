@@ -78,7 +78,9 @@ export async function runDailyPostsJob() {
 
         const post = result.posts[0];
         const rawAge = starFriendRow.age as number | null;
-        const isAdultFriend = rawAge === null || rawAge >= 18;
+        // A missing age means "child" (matches the regular per-child pass below) —
+        // treating null as adult here was drawing star friends with no age set as grown adults.
+        const isAdultFriend = rawAge !== null && rawAge !== undefined && rawAge >= 18;
         const friendAge = rawAge ?? 10;
         const avatarUrl = starFriendRow.avatar_url ? String(starFriendRow.avatar_url) : null;
 

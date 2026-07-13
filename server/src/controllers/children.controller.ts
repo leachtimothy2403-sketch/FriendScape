@@ -417,6 +417,7 @@ export async function createChildFromOnboarding(req: AuthRequest, res: Response)
           const [mini] = await db('ai_friends')
             .insert({
               name:               conn.name,
+              age:                ageNum,
               gender:             conn.gender ?? 'boy',
               bio:                conn.bio,
               cover_emojis:       conn.coverEmojis ?? '🌟',
