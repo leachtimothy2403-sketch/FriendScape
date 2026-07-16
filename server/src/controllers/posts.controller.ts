@@ -326,7 +326,12 @@ export async function createPhotoPost(req: AuthRequest, res: Response) {
       return;
     }
 
-    const postContent = content?.trim() || result.sceneDescription;
+    // Leave the caption blank when the child didn't type one — result.sceneDescription
+    // exists for the image-generation prompt, not as a fallback caption for the post itself.
+    const postContent = content?.trim() || '';
+    // Friends' auto-comments still need something to react to even with no caption,
+    // so keep the scene description for that internal use without displaying it.
+    const commentContext = postContent || result.sceneDescription;
 
     const [post] = await db('posts')
       .insert({
@@ -375,7 +380,7 @@ export async function createPhotoPost(req: AuthRequest, res: Response) {
           await new Promise((r) => setTimeout(r, delays[i]));
           const memoryRow   = await db('child_memories').where({ child_id: childIdStr, friend_id: String(fr.id) }).first();
           const memoryBrief = memoryRow ? buildMemoryBrief(toMemoryType(memoryRow)) : null;
-          const comment = await generatePostComment(friend, child, postContent, memoryBrief, lang);
+          const comment = await generatePostComment(friend, child, commentContext, memoryBrief, lang);
           await db('post_comments').insert({
             post_id:     postId,
             author_id:   String(fr.id),

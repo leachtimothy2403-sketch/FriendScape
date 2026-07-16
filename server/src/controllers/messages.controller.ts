@@ -29,6 +29,7 @@ import { localizedFriendName } from '../utils/friend-names';
 import { detectGrade } from '../utils/grade-detection';
 import type { Child } from '../../../shared/types';
 import { generateSpeech } from '../services/audio.service';
+import { resolveContentImage } from '../services/avatar.service';
 
 // Mirrors nameToCharacterId() in app/components/AudioPlayer.tsx byte-for-byte — must stay
 // identical so the cache key computed here matches what the client requests later.
@@ -226,6 +227,8 @@ export async function sendMessage(req: AuthRequest, res: Response) {
     await db('conversations').where({ id: conversation.id }).update({ updated_at: new Date() });
 
     checkBadgesForChild(childId, 'total_messages').catch(console.error);
+    // encouraging_messages is checked further down, after the semantic classification
+    // (part of the AI reply generation) tells us whether this message actually was.
 
     // c. Fetch child profile + friend (parallel)
     const [childRow, friendRow] = await Promise.all([
@@ -273,6 +276,7 @@ export async function sendMessage(req: AuthRequest, res: Response) {
     let reply: FriendReplyResult = { text: '', inputTokens: 0, outputTokens: 0 };
     let tutorMeta: TutorReply | null = null;
     let rateLimitFallback = false;
+    let triggerBadDayFlag = false;
 
     // Jules (cahier de vacances) — grade detection on first message
     const isJules = Boolean((friendRow as Record<string, unknown>).is_jules);
@@ -509,6 +513,7 @@ export async function sendMessage(req: AuthRequest, res: Response) {
         .first();
       const aiMsgCount = Number(aiMsgCountRow?.count ?? 0);
       const triggerBadDay = aiMsgCount > 0 && aiMsgCount % 12 === 0;
+      triggerBadDayFlag = triggerBadDay;
 
       const [friendReply, mood2] = await Promise.all([
         callClaudeWithRetry(() =>
@@ -537,11 +542,26 @@ export async function sendMessage(req: AuthRequest, res: Response) {
     setTimeout(() => {
       void (async () => {
         try {
+          // Update the child's message with the semantic classification that came back
+          // alongside this reply (from the same Claude call — no extra API cost), and
+          // check the encouraging_messages badge now that we actually know.
+          await db('messages').where({ id: childMessage.id }).update({
+            is_encouraging: !!reply.childMessageWasEncouraging,
+            is_comforting:  !!reply.childMessageWasComforting,
+          });
+          checkBadgesForChild(childId, 'encouraging_messages').catch(console.error);
+
+          const imageUrl = reply.imageTopic
+            ? await resolveContentImage(reply.imageTopic, lang as 'en' | 'fr').catch(() => null)
+            : null;
+
           const insertedRows = await db('messages').insert({
-            conversation_id: conversation.id,
-            sender_id:       friendId,
-            sender_type:     'ai',
-            content:         reply.text,
+            conversation_id:  conversation.id,
+            sender_id:        friendId,
+            sender_type:      'ai',
+            content:          reply.text,
+            is_bad_day_moment: triggerBadDayFlag,
+            image_url:        imageUrl,
           }).returning('id');
 
           const insertedMessageId = typeof insertedRows[0] === 'object'
@@ -558,18 +578,13 @@ export async function sendMessage(req: AuthRequest, res: Response) {
             console.error('[xp] Award failed:', err),
           );
 
-          // Kind Heart badge: child comforted the friend when friend had a tough day
+          // Kind Heart badge: child comforted the friend when friend had a tough day.
+          // childMessageWasComforting is judged semantically by Claude against the real
+          // conversation history (see REPLY_JSON_INSTRUCTION) — replaces the old two
+          // separate keyword lists, which couldn't tell "ça va" from negations like
+          // "ce n'est pas génial", or catch phrasing outside the fixed word lists.
           if (!isTeacher) {
-            const prevAiMsg = recentMessages
-              .filter(m => m.sender_type === 'ai')
-              .slice(-1)[0]?.content?.toLowerCase() ?? '';
-            const friendHadBadDay = [
-              'tired', 'fatigué', 'long day', 'longue journée', 'rough day', 'bit down',
-            ].some(k => prevAiMsg.includes(k));
-            const childComforted = [
-              'better', 'mieux', 'courage', 'ça va', 'bisou', 'hugs', 'sorry', 'désolé', 'cheer',
-            ].some(k => content.trim().toLowerCase().includes(k));
-            if (friendHadBadDay && childComforted) {
+            if (reply.childMessageWasComforting) {
               const kwBadge = await db('badge_definitions')
                 .where({ trigger_type: 'kind_words' })
                 .select('id', 'name', 'name_fr', 'icon', 'lumi_message', 'lumi_message_fr')

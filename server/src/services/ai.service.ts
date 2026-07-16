@@ -17,7 +17,7 @@ const MODELS = {
 } as const;
 
 const MAX_TOKENS = {
-  friendReply:          300,
+  friendReply:          400,
   dailyPosts:           1600,
   moodCheck:            250,
   memoryDistill:        500,
@@ -71,6 +71,9 @@ export interface AITokenUsage {
 
 export interface FriendReplyResult extends AITokenUsage {
   text: string;
+  childMessageWasEncouraging?: boolean;
+  childMessageWasComforting?: boolean;
+  imageTopic?: string | null;
 }
 
 export interface TutorReply extends AITokenUsage {
@@ -225,6 +228,47 @@ function parseJSON<T>(raw: string, label: string): T | null {
   }
 }
 
+// Shared by every conversational reply function (generateFriendReply, generateJulesReply,
+// generateSophieReply) so a child message gets semantically judged — not keyword-matched —
+// for badge purposes (encouraging_messages / kind_words), plus an optional illustrative
+// image topic, as part of the SAME call already generating the reply. No extra API cost.
+const REPLY_JSON_INSTRUCTION = `
+
+Respond with ONLY valid JSON (no markdown, no explanation) in exactly this shape:
+{
+  "reply": "your actual in-character reply, following all the rules above",
+  "childMessageWasEncouraging": true or false — did the CHILD's message (not yours) express kindness, encouragement, praise, or support toward you or someone else? Judge the real meaning, not just keywords — "that's not great" is NOT encouraging even though it contains "great".,
+  "childMessageWasComforting": true or false — look back through the conversation history: if one of YOUR earlier messages (not this reply) mentioned feeling tired, having a rough day, or being a bit down, and the child's current message responds with comfort, empathy, or reassurance about that, mark this true. If none of your earlier messages mentioned anything like that, this is always false.,
+  "imageTopic": a short 2-4 word topic (e.g. "compass", "solar system", "water cycle") ONLY if a simple educational picture would genuinely help illustrate something in your reply, otherwise null
+}`;
+
+interface StructuredReplyJSON {
+  reply: string;
+  childMessageWasEncouraging?: boolean;
+  childMessageWasComforting?: boolean;
+  imageTopic?: string | null;
+}
+
+function parseStructuredReply(raw: string): {
+  text: string;
+  childMessageWasEncouraging?: boolean;
+  childMessageWasComforting?: boolean;
+  imageTopic?: string | null;
+} {
+  const parsed = parseJSON<StructuredReplyJSON>(raw, 'structured reply');
+  if (parsed && typeof parsed.reply === 'string' && parsed.reply.trim()) {
+    return {
+      text: parsed.reply,
+      childMessageWasEncouraging: !!parsed.childMessageWasEncouraging,
+      childMessageWasComforting: !!parsed.childMessageWasComforting,
+      imageTopic: parsed.imageTopic || null,
+    };
+  }
+  // JSON parsing failed or came back malformed — fall back to treating the whole raw
+  // response as the reply text, so a schema hiccup never breaks the actual conversation.
+  return { text: raw };
+}
+
 async function callWithRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
   for (let i = 0; i < maxRetries; i++) {
     try {
@@ -334,7 +378,7 @@ CONVERSATION BALANCE RULES:
     ? `\n\nSPECIAL INSTRUCTION FOR THIS REPLY ONLY: Start your response by naturally mentioning you're having a slightly tired or long day (e.g. 'I'm a bit tired today' / 'Je suis un peu fatigué aujourd'hui'). Keep it brief and natural, then continue the conversation warmly. Don't overdo it — just a light, relatable touch.`
     : '';
 
-  const systemWithCheckIn = (checkInInstruction || badDayInstruction) ? system + checkInInstruction + badDayInstruction : system;
+  const systemWithCheckIn = (checkInInstruction || badDayInstruction ? system + checkInInstruction + badDayInstruction : system) + REPLY_JSON_INSTRUCTION;
 
   const messages: Anthropic.MessageParam[] = [
     ...conversationHistory.map((msg) => ({
@@ -352,7 +396,7 @@ CONVERSATION BALANCE RULES:
   }));
 
   return {
-    text: extractText(response),
+    ...parseStructuredReply(extractText(response)),
     inputTokens: response.usage.input_tokens,
     outputTokens: response.usage.output_tokens,
   };
@@ -389,7 +433,7 @@ RESPONSE RULES:
 - Use ${child.name}'s name occasionally
 - Speak the child's language (${language === 'fr' ? 'French' : 'English'})
 - Never break character as Jules
-- Use 1-2 emojis maximum`;
+- Use 1-2 emojis maximum${REPLY_JSON_INSTRUCTION}`;
 
   // Build history WITHOUT appending message again — message is the current child input
   const historyMessages: Anthropic.MessageParam[] = conversationHistory
@@ -424,7 +468,7 @@ RESPONSE RULES:
   const response = await Promise.race([
     callWithRetry(() => client.messages.create({
       model:      MODELS.smart,
-      max_tokens: 300,
+      max_tokens: 400,
       system,
       messages:   finalMessages,
     })),
@@ -436,7 +480,7 @@ RESPONSE RULES:
   console.log(`[jules] ✅ Reply generated`);
 
   return {
-    text:         extractText(response),
+    ...parseStructuredReply(extractText(response)),
     inputTokens:  response.usage.input_tokens,
     outputTokens: response.usage.output_tokens,
   };

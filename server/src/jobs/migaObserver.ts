@@ -63,45 +63,15 @@ cron.schedule('0 18 * * 0', async () => {
           });
         }
 
-        // Check for badge trigger (encouraging_messages)
-        if (analysis.badge_trigger === 'encouraging_messages') {
-          const count = await db('messages')
-            .join('conversations', 'conversations.id', 'messages.conversation_id')
-            .where('conversations.child_id', childId)
-            .where('messages.sender_type', 'child')
-            .whereRaw(
-              "messages.content ILIKE ANY(ARRAY['%good%','%great%','%amazing%','%love%','%awesome%','%proud%','%bien%','%super%','%g\\u00e9nial%','%bravo%','%incroyable%'])",
-            )
-            .count('messages.id as count')
-            .first() as { count: string } | undefined;
-
-          const val = Number(count?.count ?? 0);
-
-          // Award badge if threshold met and not yet earned
-          const badge = await db('badge_definitions')
-            .where({ trigger_type: 'encouraging_messages' })
-            .first() as { id: string; xp_required: number | null; lumi_message: string | null; lumi_message_fr: string | null } | undefined;
-
-          if (badge && (badge.xp_required === null || val >= badge.xp_required)) {
-            const already = await db('child_badges')
-              .where({ child_id: childId, badge_id: badge.id })
-              .first();
-
-            if (!already) {
-              await db('child_badges')
-                .insert({ child_id: childId, badge_id: badge.id })
-                .onConflict(['child_id', 'badge_id']).ignore();
-
-              const migaMsg = lang === 'fr'
-                ? (badge.lumi_message_fr ?? badge.lumi_message)
-                : badge.lumi_message;
-
-              if (migaMsg) {
-                await sendMigaDM(childId, migaMsg).catch(() => {});
-              }
-            }
-          }
-        }
+        // Note: the "encouraging_messages" badge (Kind Words / Mots Gentils) used to
+        // be checked and awarded here, but only once a week and only for children
+        // this AI pass happened to flag — meaning it could sit unawarded for days
+        // even after the threshold was met, and relied on a fragile keyword match.
+        // It's now checked live, right after every child message, via
+        // checkBadgesForChild(childId, 'encouraging_messages') in messages.controller.ts,
+        // based on a semantic classification Claude returns alongside each reply (see
+        // REPLY_JSON_INSTRUCTION in ai.service.ts and the is_encouraging column on
+        // messages). Don't re-add an award check here.
 
         processed++;
       } catch (childErr) {

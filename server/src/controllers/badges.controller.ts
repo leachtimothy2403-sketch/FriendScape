@@ -22,14 +22,14 @@ async function fetchAllProgress(childId: string): Promise<Record<string, number>
     // first_post / total_posts
     db('posts').where({ child_id: childId, author_type: 'child' }).count('id as count').first(),
 
-    // encouraging_messages
+    // encouraging_messages — semantically classified by Claude as part of generating
+    // the friend's reply to each message (see is_encouraging on the messages table),
+    // not a keyword match.
     db('messages')
       .join('conversations', 'conversations.id', 'messages.conversation_id')
       .where('conversations.child_id', childId)
       .where('messages.sender_type', 'child')
-      .whereRaw(
-        "messages.content ILIKE ANY(ARRAY['%good%','%great%','%amazing%','%love%','%awesome%','%proud%','%bien%','%super%','%g\\u00e9nial%','%bravo%','%incroyable%'])",
-      )
+      .where('messages.is_encouraging', true)
       .count('messages.id as count')
       .first(),
 

@@ -31,6 +31,7 @@ interface ChatMessage {
   localImageUri?: string;
   message_type?: string;
   game_state?: Record<string, unknown>;
+  image_url?: string | null;
 }
 
 interface ActiveGame {
@@ -269,7 +270,10 @@ export default function DMScreen() {
           language,
         });
         const transcript = result.data.transcript?.trim();
-        if (transcript) setInputText(transcript);
+        if (transcript) {
+          setInputText(transcript);
+          void sendMessage(transcript);
+        }
       } catch (err) {
         console.error('[voice] transcription failed:', err);
         showToast(t('dm.voiceError'));
@@ -838,6 +842,9 @@ function MessageBubble({ message, friendName }: { message: ChatMessage; friendNa
             <Image source={{ uri: message.localImageUri }} style={s.bubbleImage} resizeMode="cover" />
           )}
           <View style={{ flexShrink: 1, minWidth: 0 }}>
+            {!isChild && message.image_url && (
+              <Image source={{ uri: message.image_url }} style={s.bubbleImage} resizeMode="cover" />
+            )}
             <Markdown style={mdStyles}>{message.content}</Markdown>
           </View>
           {!isChild && (

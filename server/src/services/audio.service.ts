@@ -144,7 +144,12 @@ export async function transcribeAudio(
     file: blob,
     model_id: 'scribe_v1',
     language_code: language === 'fr' ? 'fra' : 'eng',
-  });
+    // Without this, Scribe tags non-speech sounds inline in the transcript
+    // (e.g. "(5 second pause)", "(sound of wind)") — fine for general use,
+    // but these were leaking straight into the chat input for kids. Defaults
+    // to true if omitted.
+    tag_audio_events: false,
+  } as never);
   return result.text;
 }
 

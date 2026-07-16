@@ -5,6 +5,7 @@ import path from 'path';
 import https from 'https';
 import http from 'http';
 import crypto from 'crypto';
+import db from '../db';
 
 fal.config({ credentials: process.env.FAL_API_KEY ?? '' });
 
@@ -349,4 +350,108 @@ export async function generateMascotAvatar(mascotId: string): Promise<string> {
   if (!url) throw new Error('No image in fal mascot response');
   console.log(`[avatar] mascot ${mascotId} URL:`, url);
   return await downloadAndSave(url);
+}
+
+// ── Content image library (reusable illustrative images for chat replies) ────
+//
+// A friend (e.g. Jules explaining a compass) can ask to show a simple picture.
+// Rather than generating one live every single time — slow, costly, and prone
+// to the same reliability issues we've already hit with post images — this
+// checks a growing library first, only generating (and saving for next time)
+// when nothing close enough already exists.
+
+function normalizeTopicTag(topic: string): string {
+  return topic.trim().toLowerCase();
+}
+
+async function findContentImage(topic: string): Promise<string | null> {
+  const normalized = normalizeTopicTag(topic);
+  const row = await db('content_images')
+    .whereRaw(
+      `EXISTS (SELECT 1 FROM unnest(tags) t WHERE t ILIKE '%' || ? || '%' OR ? ILIKE '%' || t || '%')`,
+      [normalized, normalized],
+    )
+    .select('image_url')
+    .first() as { image_url: string } | undefined;
+  return row?.image_url ?? null;
+}
+
+async function generateContentImage(topic: string, language: 'en' | 'fr'): Promise<string> {
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+  const promptRes = await client.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 100,
+    messages: [{
+      role: 'user',
+      content: `Write a single image generation prompt (max 40 words) for a simple, clear educational
+illustration of: "${topic}". It should look like a colorful children's textbook diagram — clean,
+labeled if relevant (e.g. compass directions), easy to understand at a glance, no clutter.
+End with: "Pixar cartoon style, children's educational illustration, vibrant colors, safe for kids".
+Return ONLY the prompt, no explanation.`,
+    }],
+  });
+
+  const scenePrompt = promptRes.content[0].type === 'text'
+    ? promptRes.content[0].text.trim()
+    : `A simple, clear educational illustration of ${topic}, Pixar cartoon style, children's educational illustration, vibrant colors`;
+
+  const MAX_ATTEMPTS = 3;
+  let lastErr: unknown;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const result = await fal.subscribe('fal-ai/flux/schnell', {
+        input: {
+          prompt: scenePrompt,
+          negative_prompt: 'text errors, garbled text, watermark, blurry, distorted, realistic photo, scary, dark, adult, clutter',
+          image_size: 'square_hd',
+          num_inference_steps: 4,
+          num_images: 1,
+        } as never,
+        pollInterval: 500,
+      });
+
+      const r = result as unknown as {
+        data: { images: Array<{ url: string }>; has_nsfw_concepts?: boolean[] };
+      };
+      const url = r.data?.images?.[0]?.url;
+      if (!url) throw new Error('No image in fal content-image response');
+      if (r.data?.has_nsfw_concepts?.[0]) {
+        throw new Error('fal flagged the generated content image as NSFW — retrying');
+      }
+
+      const savedUrl = await downloadAndSave(url);
+
+      const description = `${topic} — ${scenePrompt}`;
+      await db('content_images').insert({
+        tags:            [normalizeTopicTag(topic)],
+        description_en:  language === 'en' ? description : topic,
+        description_fr:  language === 'fr' ? description : topic,
+        image_url:       savedUrl,
+        category:        null,
+      }).catch((err: unknown) => console.warn('[content-image] failed to save to library:', err));
+
+      return savedUrl;
+    } catch (err) {
+      lastErr = err;
+      console.warn(`[content-image] attempt ${attempt}/${MAX_ATTEMPTS} failed for "${topic}":`, err);
+    }
+  }
+
+  throw lastErr instanceof Error ? lastErr : new Error('Content image generation failed after retries');
+}
+
+// Public entry point: look up the library first, generate (and cache) only if needed.
+// Returns null on any failure rather than throwing — a missing illustration should
+// never break the chat reply itself.
+export async function resolveContentImage(topic: string, language: 'en' | 'fr'): Promise<string | null> {
+  try {
+    const existing = await findContentImage(topic);
+    if (existing) return existing;
+    return await generateContentImage(topic, language);
+  } catch (err) {
+    console.error(`[content-image] resolveContentImage failed for "${topic}":`, err);
+    return null;
+  }
 }

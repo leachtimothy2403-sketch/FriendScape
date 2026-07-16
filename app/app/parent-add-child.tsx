@@ -22,8 +22,12 @@ function toIso(d: Date): string {
 }
 
 export default function ParentAddChildScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const store = useOnboardingStore();
+  // Without an explicit locale, iOS's native spinner can fall back to raw
+  // month codes ("M01", "M02"...) instead of localized month names — this is
+  // a known @react-native-community/datetimepicker quirk, not app state.
+  const pickerLocale = i18n.language === 'fr' ? 'fr-FR' : 'en-US';
 
   const [name, setName]             = useState('');
   const [dateOfBirth, setDob]       = useState('');
@@ -120,6 +124,7 @@ export default function ParentAddChildScreen() {
                 value={pickerDate}
                 mode="date"
                 display="spinner"
+                locale={pickerLocale}
                 maximumDate={MAX_DATE}
                 minimumDate={MIN_DATE}
                 onChange={onDateChange}
@@ -148,6 +153,7 @@ export default function ParentAddChildScreen() {
                   value={pickerDate}
                   mode="date"
                   display="default"
+                  locale={pickerLocale}
                   maximumDate={MAX_DATE}
                   minimumDate={MIN_DATE}
                   onChange={onDateChange}
