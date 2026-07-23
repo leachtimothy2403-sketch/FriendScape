@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="fr" data-lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>myMigo — Guide des testeurs bêta / Beta Tester Guide</title>
+<style>
+  :root {
+    --purple: #7F77DD;
+    --green: #5DCAA5;
+    --orange: #EF9F27;
+    --pink: #ED93B1;
+    --red: #D85A30;
+    --bg: #F8F7FF;
+    --black: #1A1A2E;
+    --gray-600: #757575;
+    --gray-300: #E0E0E0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--black);
+    line-height: 1.6;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+  header.hero {
+    background: linear-gradient(135deg, var(--purple), #9B94E8);
+    color: #fff;
+    padding: 48px 0 40px;
+    text-align: center;
+  }
+  .logo-word {
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    margin: 0;
+  }
+  .logo-word span.my { color: #FFE9A8; }
+  .tagline { font-size: 16px; opacity: 0.95; margin-top: 6px; }
+
+  .lang-switch {
+    margin-top: 20px;
+    display: inline-flex;
+    background: rgba(255,255,255,0.18);
+    border-radius: 999px;
+    padding: 4px;
+  }
+  .lang-switch button {
+    border: none;
+    background: transparent;
+    color: #fff;
+    padding: 8px 18px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .lang-switch button.active { background: #fff; color: var(--purple); }
+
+  main { padding: 40px 0 80px; }
+
+  section { margin-bottom: 48px; }
+  h2 {
+    font-size: 22px;
+    color: var(--purple);
+    border-bottom: 3px solid var(--gray-300);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+  }
+  h3 { font-size: 17px; margin-bottom: 6px; }
+
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  }
+
+  .platform-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+  .platform-tab {
+    flex: 1;
+    text-align: center;
+    padding: 12px;
+    border-radius: 12px;
+    background: #fff;
+    border: 2px solid var(--gray-300);
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .platform-tab.active { border-color: var(--purple); color: var(--purple); background: #F1F0FD; }
+  .platform-panel { display: none; }
+  .platform-panel.active { display: block; }
+
+  ol.steps { padding-left: 22px; }
+  ol.steps li { margin-bottom: 14px; }
+
+  .note {
+    background: #FFF6E5;
+    border-left: 4px solid var(--orange);
+    padding: 14px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-top: 14px;
+  }
+  .note strong { color: var(--red); }
+
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  .feature-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  }
+  .feature-emoji { font-size: 28px; margin-bottom: 8px; display: block; }
+  .feature-card h3 { color: var(--black); }
+  .feature-card p { font-size: 14px; color: var(--gray-600); margin: 0; }
+
+  .safety-box {
+    background: #EFFAF6;
+    border: 2px solid var(--green);
+    border-radius: 16px;
+    padding: 24px;
+  }
+  .safety-box h2 { color: #2E9E7A; border: none; margin-bottom: 12px; }
+
+  footer {
+    text-align: center;
+    padding: 32px 0;
+    color: var(--gray-600);
+    font-size: 13px;
+  }
+
+  [data-i18n] { display: block; }
+  html[data-lang="fr"] [data-i18n="en"] { display: none; }
+  html[data-lang="en"] [data-i18n="fr"] { display: none; }
+  html[data-lang="fr"] [data-i18n="fr"] { display: block; }
+  html[data-lang="en"] [data-i18n="en"] { display: block; }
+  span[data-i18n] { display: inline; }
+  html[data-lang="fr"] span[data-i18n="en"] { display: none; }
+  html[data-lang="en"] span[data-i18n="fr"] { display: none; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="logo-word"><span class="my">my</span>Migo</p>
+    <p class="tagline">
+      <span data-i18n="fr">Apprendre, découvrir et se faire des amis, ensemble.</span>
+      <span data-i18n="en">Learn, discover, and make friends, together.</span>
+    </p>
+    <div class="lang-switch">
+      <button id="btn-fr" onclick="setLang('fr')" class="active">Français</button>
+      <button id="btn-en" onclick="setLang('en')">English</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- INTRO -->
+  <section>
+    <div class="card">
+      <div data-i18n="fr">
+        <p>Merci infiniment de tester myMigo&nbsp;! Vous faites partie d'un tout petit groupe de familles qui aident à construire l'application avant son lancement public. Ce guide vous explique comment l'installer, ce qu'elle propose, et comment bien démarrer avec votre enfant.</p>
+      </div>
+      <div data-i18n="en">
+        <p>Thank you so much for testing myMigo! You're part of a very small group of families helping shape the app before its public launch. This guide walks you through installing it, what it offers, and how to get started with your child.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- DOWNLOAD -->
+  <section>
+    <h2><span data-i18n="fr">1. Installer myMigo</span><span data-i18n="en">1. Installing myMigo</span></h2>
+
+    <div class="platform-tabs">
+      <div class="platform-tab active" id="tab-ios" onclick="setPlatform('ios')">📱 iPhone / iPad</div>
+      <div class="platform-tab" id="tab-android" onclick="setPlatform('android')">🤖 Android</div>
+    </div>
+
+    <div class="platform-panel active" id="panel-ios">
+      <div class="card">
+        <div data-i18n="fr">
+          <p>myMigo se teste via <strong>TestFlight</strong>, l'application officielle d'Apple pour tester des applications avant leur sortie. Ce n'est pas encore sur l'App Store — c'est normal.</p>
+          <ol class="steps">
+            <li>Installez l'application <strong>TestFlight</strong> depuis l'App Store (gratuite, éditée par Apple).</li>
+            <li>Ouvrez ce lien d'invitation sur votre iPhone : <strong>[LIEN TESTFLIGHT À INSÉRER]</strong></li>
+            <li>Dans TestFlight, appuyez sur <strong>Accepter</strong> puis <strong>Installer</strong>.</li>
+            <li>Une fois installée, ouvrez myMigo directement depuis votre écran d'accueil, comme n'importe quelle app.</li>
+          </ol>
+        </div>
+        <div data-i18n="en">
+          <p>myMigo is tested through <strong>TestFlight</strong>, Apple's official app for testing apps before release. It's not on the App Store yet — that's expected.</p>
+          <ol class="steps">
+            <li>Install the <strong>TestFlight</strong> app from the App Store (free, made by Apple).</li>
+            <li>Open this invite link on your iPhone: <strong>[TESTFLIGHT LINK HERE]</strong></li>
+            <li>In TestFlight, tap <strong>Accept</strong>, then <strong>Install</strong>.</li>
+            <li>Once installed, open myMigo straight from your home screen, like any other app.</li>
+          </ol>
+        </div>
+        <div class="note">
+          <div data-i18n="fr"><strong>Pas de compte Apple Developer nécessaire</strong> — juste l'app TestFlight et le lien ci-dessus.</div>
+          <div data-i18n="en"><strong>No Apple Developer account needed</strong> — just the TestFlight app and the link above.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="platform-panel" id="panel-android">
+      <div class="card">
+        <div data-i18n="fr">
+          <p>Sur Android, myMigo s'installe directement (on dit "sideload"), sans passer par le Play Store pour le moment.</p>
+          <ol class="steps">
+            <li>Sur votre téléphone Android, ouvrez ce lien : <strong>[LIEN D'INSTALLATION À INSÉRER]</strong> (ou scannez le QR code fourni).</li>
+            <li>Téléchargez le fichier d'installation (.apk).</li>
+            <li>Votre téléphone va probablement afficher un avertissement du type <em>"application potentiellement dangereuse"</em> ou <em>"source inconnue"</em>. C'est normal et attendu pour toute application qui n'est pas encore sur le Play Store — myMigo n'est pas dangereux, Android affiche simplement ce message pour toute install en dehors du Play Store.</li>
+            <li>Appuyez sur <strong>Installer quand même</strong> / <strong>Paramètres</strong> → autorisez l'installation depuis cette source, puis installez.</li>
+            <li>Ouvrez myMigo depuis votre écran d'accueil.</li>
+          </ol>
+        </div>
+        <div data-i18n="en">
+          <p>On Android, myMigo installs directly (called "sideloading"), without going through the Play Store for now.</p>
+          <ol class="steps">
+            <li>On your Android phone, open this link: <strong>[INSTALL LINK HERE]</strong> (or scan the provided QR code).</li>
+            <li>Download the install file (.apk).</li>
+            <li>Your phone will likely show a warning like <em>"potentially harmful app"</em> or <em>"unknown source"</em>. This is normal and expected for any app not yet on the Play Store — myMigo isn't harmful, Android just shows this for any install outside the Play Store.</li>
+            <li>Tap <strong>Install anyway</strong> / <strong>Settings</strong> → allow installs from this source, then install.</li>
+            <li>Open myMigo from your home screen.</li>
+          </ol>
+        </div>
+        <div class="note">
+          <div data-i18n="fr"><strong>Le message d'avertissement est normal</strong> — il apparaît pour toute app installée en dehors du Play Store, ce n'est pas spécifique à myMigo.</div>
+          <div data-i18n="en"><strong>The warning message is normal</strong> — it appears for any app installed outside the Play Store, it's not specific to myMigo.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GETTING STARTED -->
+  <section>
+    <h2><span data-i18n="fr">2. Premiers pas</span><span data-i18n="en">2. Getting started</span></h2>
+    <div class="card">
+      <div data-i18n="fr">
+        <ol class="steps">
+          <li><strong>Créez votre compte parent</strong> avec votre email — vous recevrez un code de connexion à 6 chiffres à chaque connexion (sécurité supplémentaire, c'est normal).</li>
+          <li><strong>Ajoutez votre enfant</strong> : prénom et date de naissance suffisent pour démarrer.</li>
+          <li><strong>Un questionnaire rapide</strong> sur les centres d'intérêt et la personnalité de votre enfant permet à myMigo de créer des amis IA vraiment adaptés à lui/elle.</li>
+          <li><strong>myMigo génère 2 à 3 amis IA uniques</strong>, avec leur propre personnalité, leurs centres d'intérêt, et leur avatar — créés spécialement pour votre enfant.</li>
+          <li>Votre enfant peut ensuite discuter avec ses amis, publier des posts, et débloquer des badges.</li>
+        </ol>
+      </div>
+      <div data-i18n="en">
+        <ol class="steps">
+          <li><strong>Create your parent account</strong> with your email — you'll get a 6-digit login code each time you sign in (extra security, this is expected).</li>
+          <li><strong>Add your child</strong>: first name and date of birth is enough to get started.</li>
+          <li><strong>A quick questionnaire</strong> about your child's interests and personality lets myMigo create AI friends that genuinely fit them.</li>
+          <li><strong>myMigo generates 2-3 unique AI friends</strong>, each with their own personality, interests, and avatar — created specifically for your child.</li>
+          <li>Your child can then chat with their friends, share posts, and unlock badges.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section>
+    <h2><span data-i18n="fr">3. Ce que propose myMigo</span><span data-i18n="en">3. What myMigo offers</span></h2>
+    <div class="feature-grid">
+
+      <div class="feature-card">
+        <span class="feature-emoji">🤖</span>
+        <h3 data-i18n="fr">Des amis IA uniques</h3>
+        <h3 data-i18n="en" style="display:none">Unique AI friends</h3>
+        <p data-i18n="fr">Chaque enfant a ses propres amis, générés selon sa personnalité et ses goûts — pas des personnages génériques.</p>
+        <p data-i18n="en" style="display:none">Every child gets their own friends, generated around their personality and interests — not generic characters.</p>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-emoji">📝</span>
+        <h3 data-i18n="fr">Fil d'actualité</h3>
+        <h3 data-i18n="en" style="display:none">Social feed</h3>
+        <p data-i18n="fr">Votre enfant et ses amis IA partagent des petits posts illustrés — comme un réseau social, mais 100% sûr.</p>
+        <p data-i18n="en" style="display:none">Your child and their AI friends share small illustrated posts — like a social feed, but 100% safe.</p>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-emoji">🏆</span>
+        <h3 data-i18n="fr">Badges &amp; encouragements</h3>
+        <h3 data-i18n="en" style="display:none">Badges &amp; encouragement</h3>
+        <p data-i18n="fr">Des badges récompensent la gentillesse, la régularité, et la curiosité — pas juste le temps passé sur l'app.</p>
+        <p data-i18n="en" style="display:none">Badges reward kindness, consistency, and curiosity — not just time spent in the app.</p>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-emoji">🛡️</span>
+        <h3 data-i18n="fr">Sophie, éducation à la sécurité</h3>
+        <h3 data-i18n="en" style="display:none">Sophie, safety education</h3>
+        <p data-i18n="fr">Une "grande sœur" IA qui aborde la sécurité numérique naturellement, jamais sous forme de leçon.</p>
+        <p data-i18n="en" style="display:none">A big-sister-style AI who covers online safety naturally, never as a lecture.</p>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-emoji">📚</span>
+        <h3 data-i18n="fr">Mme Luna, soutien scolaire</h3>
+        <h3 data-i18n="en" style="display:none">Ms. Luna, learning support</h3>
+        <p data-i18n="fr">Une enseignante IA patiente pour les devoirs, adaptée au niveau et au rythme de votre enfant.</p>
+        <p data-i18n="en" style="display:none">A patient AI teacher for homework help, adapted to your child's level and pace.</p>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-emoji">🏄</span>
+        <h3 data-i18n="fr">Jules et le cahier de vacances</h3>
+        <h3 data-i18n="en" style="display:none">Jules and the summer workbook</h3>
+        <p data-i18n="fr">L'été, Jules propose des mini-missions ludiques en maths, français et plus, pour arriver confiant en septembre.</p>
+        <p data-i18n="en" style="display:none">In summer, Jules offers fun mini-missions in maths, reading, and more — so kids arrive confident in September.</p>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-emoji">👀</span>
+        <h3 data-i18n="fr">Tableau de bord parent</h3>
+        <h3 data-i18n="en" style="display:none">Parent dashboard</h3>
+        <p data-i18n="fr">Vous gardez une vue complète : conversations, humeur, alertes — vous n'êtes jamais hors de la boucle.</p>
+        <p data-i18n="en" style="display:none">You keep full visibility: conversations, mood, alerts — you're never out of the loop.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SAFETY -->
+  <section>
+    <div class="safety-box">
+      <h2><span data-i18n="fr">🔒 Sécurité avant tout</span><span data-i18n="en">🔒 Safety first</span></h2>
+      <div data-i18n="fr">
+        <p>myMigo est conçu pour qu'un enfant ne parle <strong>jamais</strong> à un vrai inconnu en ligne. Tous les "amis" sont des personnages IA, créés uniquement pour votre enfant. Vous, en tant que parent, avez accès à l'ensemble des conversations et recevez des alertes en cas de sujet préoccupant.</p>
+      </div>
+      <div data-i18n="en">
+        <p>myMigo is designed so a child <strong>never</strong> talks to a real stranger online. Every "friend" is an AI character, created solely for your child. You, as the parent, have access to the full conversation history and get alerted if anything concerning comes up.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEEDBACK -->
+  <section>
+    <h2><span data-i18n="fr">4. Un souci, une idée ?</span><span data-i18n="en">4. Found a bug, have an idea?</span></h2>
+    <div class="card">
+      <div data-i18n="fr">
+        <p>Le plus simple : envoyez un message à la <strong>mascotte de votre enfant</strong> directement dans l'app — elle transmet vos retours automatiquement. Vous pouvez aussi nous écrire directement à <strong><a href="mailto:hello@mymigo.fr">hello@mymigo.fr</a></strong>.</p>
+      </div>
+      <div data-i18n="en">
+        <p>The easiest way: message your <strong>child's mascot</strong> directly in the app — feedback gets relayed automatically. You can also email us directly at <strong><a href="mailto:hello@mymigo.fr">hello@mymigo.fr</a></strong>.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div data-i18n="fr">myMigo — Merci de faire partie de l'aventure. 💜</div>
+  <div data-i18n="en">myMigo — Thank you for being part of the journey. 💜</div>
+</footer>
+
+<script>
+  function setLang(lang) {
+    document.documentElement.setAttribute('data-lang', lang);
+    document.getElementById('btn-fr').classList.toggle('active', lang === 'fr');
+    document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      if (el.tagName === 'H3' || el.tagName === 'P') {
+        el.style.display = el.getAttribute('data-i18n') === lang ? '' : 'none';
+      }
+    });
+    localStorage.setItem('myMigoGuideLang', lang);
+  }
+  function setPlatform(p) {
+    document.getElementById('tab-ios').classList.toggle('active', p === 'ios');
+    document.getElementById('tab-android').classList.toggle('active', p === 'android');
+    document.getElementById('panel-ios').classList.toggle('active', p === 'ios');
+    document.getElementById('panel-android').classList.toggle('active', p === 'android');
+  }
+  (function() {
+    var saved = localStorage.getItem('myMigoGuideLang');
+    if (saved) setLang(saved);
+  })();
+</script>
+
+</body>
+</html>

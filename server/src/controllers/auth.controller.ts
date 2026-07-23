@@ -69,16 +69,28 @@ export async function login(req: Request, res: Response) {
     }
 
     // Password verified — hold the actual login behind a one-time email code (mandatory 2FA).
-    const code = crypto.randomInt(100000, 1000000).toString();
+    // App Store / Play Store reviewers can't receive emailed codes, so the designated
+    // reviewer account gets a fixed, reusable code instead of a random emailed one —
+    // required by both platforms' app-review sign-in policies.
+    const reviewerBypassEmail = process.env.REVIEWER_BYPASS_EMAIL?.toLowerCase();
+    const isReviewerAccount =
+      !!reviewerBypassEmail && String(user.email).toLowerCase() === reviewerBypassEmail;
+
+    const code = isReviewerAccount
+      ? process.env.REVIEWER_BYPASS_OTP_CODE!
+      : crypto.randomInt(100000, 1000000).toString();
     const otpToken = crypto.randomBytes(24).toString('hex');
     await redisSet(
       `login-otp:${otpToken}`,
       JSON.stringify({ userId: user.id, code, attempts: 0 }),
       600, // 10 minutes
     );
-    sendLoginOtpEmail(String(user.email), code).catch((e: unknown) =>
-      console.error('[auth] login OTP email failed:', e),
-    );
+
+    if (!isReviewerAccount) {
+      sendLoginOtpEmail(String(user.email), code).catch((e: unknown) =>
+        console.error('[auth] login OTP email failed:', e),
+      );
+    }
 
     res.json({ requiresOtp: true, otpToken });
   } catch (err) {
