@@ -30,7 +30,7 @@ async function updateOnlineStatuses(): Promise<void> {
 
   // Ensure at least one friend is online — force the one with the earliest start hour
   const anyOnline = updates.some((u) => u.is_online);
-  if (!anyOnline) {
+  if (!anyOnline && friends.length > 0) {
     const earliest = friends.reduce((a, b) =>
       a.online_hours_start <= b.online_hours_start ? a : b,
     );
