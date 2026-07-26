@@ -188,6 +188,27 @@ export async function createChildFromOnboarding(req: AuthRequest, res: Response)
         return;
       }
 
+      // Guard: if this enrollment already produced a child (retry after a backgrounded
+      // request), return the existing child + friends instead of creating duplicates
+      if (enrollment.child_device_id) {
+        const existingChild = await db('children')
+          .where({ id: enrollment.child_device_id as string })
+          .first();
+        if (existingChild) {
+          const existingFriends = await db('child_friends')
+            .where({ child_id: existingChild.id })
+            .join('ai_friends', 'ai_friends.id', 'child_friends.friend_id')
+            .select('ai_friends.*');
+          res.json({
+            childId:         existingChild.id,
+            name:            existingChild.name,
+            mascotId:        existingChild.mascot,
+            assignedFriends: existingFriends,
+          });
+          return;
+        }
+      }
+
       // 3. Find or create parent user account
       let found = await db('users').where({ email: parentEmail as string }).first();
       if (!found) {

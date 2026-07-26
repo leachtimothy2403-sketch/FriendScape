@@ -25,6 +25,12 @@
 	"autoIncrement": true,
 	"channel": "production",
 	"environment": "production"
+	},
+	"preview-store": {
+	"distribution": "store",
+	"environment": "preview",
+	"autoIncrement": true,
+	"channel": "preview"
 	}
   },
   "submit": {
