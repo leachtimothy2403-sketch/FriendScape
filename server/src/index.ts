@@ -11,6 +11,7 @@ process.on('unhandledRejection', (reason, promise) => {
   process.exit(1);
 });
 
+import 'dotenv/config';
 import { execSync } from 'child_process';
 import express from 'express';
 import cors from 'cors';
