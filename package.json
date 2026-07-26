@@ -10,5 +10,8 @@
     "install:all": "npm install && npm install --prefix server && npm install --prefix dashboard && npm install --prefix app && npm install --prefix shared",
     "migrate": "npm run migrate --prefix server",
     "migrate:rollback": "npm run migrate:rollback --prefix server"
+  },
+  "dependencies": {
+    "expo-keep-awake": "~57.0.1"
   }
 }

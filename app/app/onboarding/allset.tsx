@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useKeepAwake } from 'expo-keep-awake';
 import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, Image } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle,
@@ -86,6 +87,13 @@ function Chip({ children }: { children: string }) {
 type Status = 'loading' | 'success' | 'error';
 
 export default function AllSetScreen() {
+  // Keep the screen awake while this screen is mounted. If the device locks
+  // mid-onboarding, iOS/Android suspend the in-flight network request well
+  // before the 120s client timeout, the promise rejects, and the child sees
+  // a scary error + Retry button — which is what caused the duplicate child
+  // records during Play review. Preventing sleep here removes the trigger.
+  useKeepAwake();
+
   const { t } = useTranslation();
   const store = useOnboardingStore();
   const { language } = useLanguageStore();

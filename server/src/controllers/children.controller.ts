@@ -209,6 +209,43 @@ export async function createChildFromOnboarding(req: AuthRequest, res: Response)
         }
       }
 
+      // Atomic claim: the guard above only catches duplicates once a previous request
+      // has *finished* (child_device_id stamped). Friend generation is slow (sequential
+      // Claude calls), so two requests can both pass that guard while the first is still
+      // mid-flight — a double-tap or a client retry after a slow response. Claim the
+      // enrollment here, before any expensive work starts, so only one request proceeds.
+      const claimed = await db('enrollments')
+        .where({ id: enrollment.id, child_creation_claimed: false })
+        .update({ child_creation_claimed: true });
+      if (claimed === 0) {
+        // Someone else already claimed this enrollment and is creating the child right
+        // now. Poll briefly for it to finish instead of creating a duplicate.
+        for (let attempt = 0; attempt < 30; attempt++) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          const fresh = await db('enrollments').where({ id: enrollment.id }).first();
+          if (fresh?.child_device_id) {
+            const existingChild = await db('children')
+              .where({ id: fresh.child_device_id as string })
+              .first();
+            if (existingChild) {
+              const existingFriends = await db('child_friends')
+                .where({ child_id: existingChild.id })
+                .join('ai_friends', 'ai_friends.id', 'child_friends.friend_id')
+                .select('ai_friends.*');
+              res.json({
+                childId:         existingChild.id,
+                name:            existingChild.name,
+                mascotId:        existingChild.mascot,
+                assignedFriends: existingFriends,
+              });
+              return;
+            }
+          }
+        }
+        res.status(409).json({ error: 'Your profile is still being created — please wait a moment and try again.' });
+        return;
+      }
+
       // 3. Find or create parent user account
       let found = await db('users').where({ email: parentEmail as string }).first();
       if (!found) {
