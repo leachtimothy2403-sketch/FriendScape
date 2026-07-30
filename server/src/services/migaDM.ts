@@ -37,7 +37,7 @@ export async function findOrCreateMigaId(): Promise<string> {
       is_star_friend:     false,
       is_teacher:         false,
       cover_emojis:       '🧚✨💜',
-      bio:                "Hi! I'm Miga, your magical Migo guide! I celebrate your wins and help you be the best friend you can be.",
+      bio:                "Hi! I'm Miga, your magical myMigo guide! I celebrate your wins and help you be the best friend you can be.",
       personality:        JSON.stringify(['warm', 'encouraging', 'celebratory', 'wise']),
       interests:          JSON.stringify(['kindness', 'friendship', 'learning']),
       match_tags:         JSON.stringify([]),

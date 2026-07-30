@@ -180,7 +180,7 @@ export async function createChildFromOnboarding(req: AuthRequest, res: Response)
         .where({ parent_email: parentEmail as string, status: 'approved' })
         .first();
       if (!enrollment) {
-        res.status(403).json({ error: 'Parent approval required — ask your parent to approve the Migo request first.' });
+        res.status(403).json({ error: 'Parent approval required — ask your parent to approve the myMigo request first.' });
         return;
       }
       if (!enrollment.consent_accepted_at) {
@@ -935,7 +935,7 @@ export async function updateMyProfile(req: AuthRequest, res: Response) {
       await db('child_memories')
         .where({ child_id: childId })
         .update({
-          milestones:   db.raw("milestones || ?::jsonb", [JSON.stringify(['Updated their interests on Migo'])]),
+          milestones:   db.raw("milestones || ?::jsonb", [JSON.stringify(['Updated their interests on myMigo'])]),
           last_updated: db.fn.now(),
         })
         .catch(() => {});
@@ -1029,7 +1029,7 @@ export async function getMyMemories(req: AuthRequest, res: Response) {
     // d. joined Migo
     if (child) {
       const joinedDate = new Date((child as Record<string, unknown>).created_at as string).toISOString();
-      const joinedText = memLang === 'fr' ? 'A rejoint Migo ! 🌟' : 'Joined Migo! 🌟';
+      const joinedText = memLang === 'fr' ? 'A rejoint myMigo ! 🌟' : 'Joined myMigo! 🌟';
       items.push({ id: makeMemoryId('milestone', joinedText, joinedDate), type: 'milestone', text: joinedText, date: joinedDate, icon: '🌟' });
     }
 

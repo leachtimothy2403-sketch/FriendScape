@@ -47,7 +47,7 @@ export async function getGraduationProgress(childId: string): Promise<Graduation
   const milestones: GraduationMilestone[] = [
     {
       key:         'joined_migo',
-      label:       'Join Migo',
+      label:       'Join myMigo',
       completed:   !!child,
       completedAt: child?.created_at ? new Date(child.created_at as string).toISOString() : null,
     },

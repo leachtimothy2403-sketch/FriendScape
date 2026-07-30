@@ -37,16 +37,16 @@ transporter.verify((err) => {
   }
 });
 
-const FROM = `"Migo" <hello@mymigo.fr>`;
+const FROM = `"myMigo" <hello@mymigo.fr>`;
 
 export async function sendVerificationEmail(to: string, code: string): Promise<void> {
   await transporter.sendMail({
     from: FROM,
     to,
-    subject: 'Verify your Migo account',
+    subject: 'Verify your myMigo account',
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
-        <h1 style="color:#7F77DD">Welcome to Migo! 🌈</h1>
+        <h1 style="color:#7F77DD">Welcome to myMigo! 🌈</h1>
         <p>You're one step away from setting up a safe, joyful world for your child.</p>
         <p>Your verification code is:</p>
         <div style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#7F77DD;padding:16px;background:#F8F7FF;border-radius:8px;text-align:center">${code}</div>
@@ -60,11 +60,11 @@ export async function sendLoginOtpEmail(to: string, code: string): Promise<void>
   await transporter.sendMail({
     from: FROM,
     to,
-    subject: 'Your Migo login code',
+    subject: 'Your myMigo login code',
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
         <h1 style="color:#7F77DD">Confirm it's you</h1>
-        <p>Enter this code to finish logging in to Migo:</p>
+        <p>Enter this code to finish logging in to myMigo:</p>
         <div style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#7F77DD;padding:16px;background:#F8F7FF;border-radius:8px;text-align:center">${code}</div>
         <p style="color:#9E9E9E;font-size:14px">This code expires in 10 minutes. If you didn't try to log in, you can safely ignore this email.</p>
       </div>
@@ -76,11 +76,11 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string): Prom
   await transporter.sendMail({
     from: FROM,
     to,
-    subject: 'Reset your Migo password',
+    subject: 'Reset your myMigo password',
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
         <h1 style="color:#7F77DD">Password Reset</h1>
-        <p>We received a request to reset your Migo password.</p>
+        <p>We received a request to reset your myMigo password.</p>
         <a href="${resetUrl}" style="display:inline-block;background:#7F77DD;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Reset My Password</a>
         <p style="color:#9E9E9E;font-size:14px">This link expires in 1 hour. If you didn't request this, you can safely ignore it.</p>
       </div>
@@ -92,7 +92,7 @@ export async function sendWeeklyReport(to: string, childName: string, reportHtml
   await transporter.sendMail({
     from: FROM,
     to,
-    subject: `${childName}'s weekly Migo report`,
+    subject: `${childName}'s weekly myMigo report`,
     html: reportHtml,
   });
 }
@@ -113,10 +113,10 @@ export async function sendFeedbackEmail(data: FeedbackEmailData): Promise<void> 
   await transporter.sendMail({
     from: FROM,
     to: data.to,
-    subject: `Migo Feedback — ${data.childName} (age ${data.childAge})`,
+    subject: `myMigo Feedback — ${data.childName} (age ${data.childAge})`,
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
-        <h2 style="color:#7F77DD">Migo Feedback</h2>
+        <h2 style="color:#7F77DD">myMigo Feedback</h2>
         <p><strong>Child:</strong> ${data.childName}, age ${data.childAge}, language: ${data.childLanguage}</p>
         <p><strong>Parent email:</strong> ${data.parentEmail || '(unknown)'}</p>
         <p><strong>Child ID:</strong> <code>${data.childId}</code></p>
@@ -143,8 +143,8 @@ export async function sendApprovalEmail(
   console.log(`[email] sendApprovalEmail called → to: ${parentEmail}, lang: ${language ?? 'en'}`);
   console.log(`[email]   approve URL: ${approveUrl}`);
 
-  const subject = fr ? 'Votre enfant veut rejoindre Migo 🌟' : 'Your child wants to join Migo 🌟';
-  const heading = fr ? 'Votre enfant veut rejoindre Migo !' : 'Your child wants to join Migo!';
+  const subject = fr ? 'Votre enfant veut rejoindre myMigo 🌟' : 'Your child wants to join myMigo 🌟';
+  const heading = fr ? 'Votre enfant veut rejoindre myMigo !' : 'Your child wants to join myMigo!';
   const intro   = fr
     ? 'Un monde social sûr et amusant pour les enfants de 5 à 12 ans. Des amis IA, aucun étranger réel, contrôle parental total.'
     : 'A safe, AI-powered social world for children aged 5–12. AI friends, no real strangers, full parent control.';
@@ -161,7 +161,7 @@ export async function sendApprovalEmail(
         ['🏛️', 'COPPA compliant',    'Built from the ground up to meet children\'s privacy laws.'],
         ['🚨', 'Crisis alerts',      'Instant notification if any conversation raises a concern.'],
       ];
-  const approveLabel = fr ? '✅ Oui, approuver Migo !' : '✅ Yes, approve Migo!';
+  const approveLabel = fr ? '✅ Oui, approuver myMigo !' : '✅ Yes, approve myMigo!';
   const declineLabel = fr ? 'Non merci — refuser cette demande' : 'No thanks — decline this request';
   const footerNote   = fr
     ? '🔒 Nous utilisons votre e-mail uniquement pour cette demande. Nous ne vous enverrons jamais de publicité et ne partagerons pas votre adresse.<br>Ce lien expire dans 48 heures.'
@@ -177,7 +177,7 @@ export async function sendApprovalEmail(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Migo Approval</title>
+<title>myMigo Approval</title>
 </head>
 <body style="margin:0;padding:0;background:#F8F7FF;font-family:sans-serif">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#F8F7FF;padding:40px 16px">
@@ -187,7 +187,7 @@ export async function sendApprovalEmail(
         <!-- Header -->
         <tr><td style="background:linear-gradient(135deg,#7F77DD,#9B95E8);border-radius:20px 20px 0 0;padding:36px 40px;text-align:center">
           <span style="font-size:40px">🌈</span>
-          <h1 style="margin:12px 0 0;color:#fff;font-size:28px;font-weight:800;letter-spacing:-0.5px">Migo</h1>
+          <h1 style="margin:12px 0 0;color:#fff;font-size:28px;font-weight:800;letter-spacing:-0.5px">myMigo</h1>
         </td></tr>
 
         <!-- Body -->

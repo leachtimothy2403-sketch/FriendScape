@@ -25,8 +25,8 @@ export async function seed(knex: Knex): Promise<void> {
       category: 'kindness',
       xp_required: 5,
       trigger_type: 'encouraging_messages',
-      lumi_message: "I've been watching and I have to say — you have such a kind heart. The way you encourage your friends makes Migo a better place. Never stop being you! 💛",
-      lumi_message_fr: "Je t'observe et je dois dire — tu as un cœur tellement gentil. La façon dont tu encourages tes amis rend Migo meilleur. Ne change jamais ! 💛",
+      lumi_message: "I've been watching and I have to say — you have such a kind heart. The way you encourage your friends makes myMigo a better place. Never stop being you! 💛",
+      lumi_message_fr: "Je t'observe et je dois dire — tu as un cœur tellement gentil. La façon dont tu encourages tes amis rend myMigo meilleur. Ne change jamais ! 💛",
     },
     {
       name: 'Daily Poster',
@@ -61,8 +61,8 @@ export async function seed(knex: Knex): Promise<void> {
       category: 'social',
       xp_required: 5,
       trigger_type: 'friends_added',
-      lumi_message: "Look at you — making friends left and right! The more the merrier on Migo! Who will you meet next? 🤝💜",
-      lumi_message_fr: "Regarde-toi — tu te fais des amis à tour de bras ! Plus on est de fous, plus on rit sur Migo ! Qui vas-tu rencontrer ensuite ? 🤝💜",
+      lumi_message: "Look at you — making friends left and right! The more the merrier on myMigo! Who will you meet next? 🤝💜",
+      lumi_message_fr: "Regarde-toi — tu te fais des amis à tour de bras ! Plus on est de fous, plus on rit sur myMigo ! Qui vas-tu rencontrer ensuite ? 🤝💜",
     },
     {
       name: 'Chatterbox',
@@ -97,8 +97,8 @@ export async function seed(knex: Knex): Promise<void> {
       category: 'social',
       xp_required: 20,
       trigger_type: 'total_posts',
-      lumi_message: "20 posts!! You are a true Social Star — your feed is the most exciting one on Migo! Keep sharing your world with us! 🌈✨",
-      lumi_message_fr: "20 posts !! Tu es une vraie Star Sociale — ton fil d'actualité est le plus excitant de Migo ! Continue à partager ton monde ! 🌈✨",
+      lumi_message: "20 posts!! You are a true Social Star — your feed is the most exciting one on myMigo! Keep sharing your world with us! 🌈✨",
+      lumi_message_fr: "20 posts !! Tu es une vraie Star Sociale — ton fil d'actualité est le plus excitant de myMigo ! Continue à partager ton monde ! 🌈✨",
     },
     {
       name: 'Kind Heart',

@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Migo"
+    "name": "myMigo"
   },
   "enroll": {
     "title": "Ready to meet your friends?",
@@ -16,7 +16,7 @@
   },
   "waiting": {
     "title": "Message sent! 🎉",
-    "subtitle": "We sent your parent an email. As soon as they say yes, Migo will come to life!",
+    "subtitle": "We sent your parent an email. As soon as they say yes, myMigo will come to life!",
     "waitingFor": "Waiting for your parent to tap \"Yes\"…",
     "jokeLabel": "🧚 Miga says — while you wait!",
     "anotherJoke": "Another one! 😂",
@@ -25,9 +25,9 @@
   },
   "celebration": {
     "title": "Your parent said YES!! 🥳",
-    "subtitle": "Time to set up your Migo! Go find your parent — you'll need them for the first few steps!",
+    "subtitle": "Time to set up your myMigo! Go find your parent — you'll need them for the first few steps!",
     "parentNote": "Your child's account is approved. The next few steps need you — grab the device and let's get started together!",
-    "button": "Let's set up Migo! →"
+    "button": "Let's set up myMigo! →"
   },
   "onboarding": {
     "stepOf": "Step {{current}} of {{total}}",
@@ -62,7 +62,7 @@
     },
     "needs": {
       "title": "Any special needs?",
-      "subtitle": "This helps us set Migo up perfectly! Pick all that apply — you can change this any time.",
+      "subtitle": "This helps us set myMigo up perfectly! Pick all that apply — you can change this any time.",
       "autism": "Autism spectrum",
       "autismDesc": "Social scripts, predictable pacing",
       "dyslexia": "Dyslexia",
@@ -159,8 +159,8 @@
       "badge": "🌟 Your forever guide",
       "mascotIntro": "Hi, I'm {{name}}! 👋",
       "mascotHappyPicked": {
-        "boy": "I'm so happy you picked me! Ask a parent to read about my role in Migo with you! 🎉",
-        "girl": "I'm so happy you picked me! Ask a parent to read about my role in Migo with you! 🎉"
+        "boy": "I'm so happy you picked me! Ask a parent to read about my role in myMigo with you! 🎉",
+        "girl": "I'm so happy you picked me! Ask a parent to read about my role in myMigo with you! 🎉"
       },
       "cardHeader": "Your guide, helper & cheerleader — always",
       "role1": "I celebrate every win",
@@ -315,13 +315,13 @@
       "title": "You're all set, {{name}}! 🎊",
       "subtitle": "{{mascot}} and {{friend}} are already waiting for you!",
       "friendsWaiting": "Your new friends are waiting! 🎉",
-      "settingUp": "Setting up your Migo...",
+      "settingUp": "Setting up your myMigo...",
       "almostThere": "Almost there! ✨",
       "style": "Style",
       "loves": "Loves",
       "parentNote": "Parents — your dashboard is ready",
-      "parentNoteDesc": "You can see everything {{name}} does, manage friends, set screen time limits, and get instant safety alerts — anytime. Just open Migo and tap \"I'm a parent\" to log in.",
-      "goButton": "Go to Migo! 🌟"
+      "parentNoteDesc": "You can see everything {{name}} does, manage friends, set screen time limits, and get instant safety alerts — anytime. Just open myMigo and tap \"I'm a parent\" to log in.",
+      "goButton": "Go to myMigo! 🌟"
     }
   },
   "feed": {
@@ -482,17 +482,17 @@
       "2": "Level 2 · picking up speed",
       "3": "Level 3 · on a roll",
       "4": "Level 4 · almost there",
-      "5": "Level 5 · Migo legend"
+      "5": "Level 5 · myMigo legend"
     },
     "milestones": {
-      "joinMigo": "Join Migo",
+      "joinMigo": "Join myMigo",
       "firstPost": "Share your first post",
       "heartToHeart": "Have a heart-to-heart conversation",
       "digitalCitizenship": "Complete all three levels of the social media safety course with Sophie",
       "introducedFriend": "Introduce a friend"
     },
     "graduationMilestones": {
-      "joined": "Join Migo",
+      "joined": "Join myMigo",
       "firstPost": "Share your first post",
       "heartToHeart": "Have a heart-to-heart conversation",
       "digitalLesson": "Complete a digital citizenship lesson",
@@ -510,7 +510,7 @@
   },
   "profile": {
     "title": "My Profile",
-    "onMigoSince": "On Migo since {{date}}",
+    "onMigoSince": "On myMigo since {{date}}",
     "mascotFriend": "{{mascot}}'s friend",
     "relativeDate": {
       "today": "Today",
@@ -542,13 +542,13 @@
       "levelLabel": "Level {{n}} — {{levelName}}"
     },
     "memories": {
-      "empty": "Your memories will show up here as you use Migo! 🌟"
+      "empty": "Your memories will show up here as you use myMigo! 🌟"
     },
     "settings": {
       "title": "Settings ⚙️",
       "language": "🌍 Language",
       "readToMe": "🔊 Read to me",
-      "about": "ℹ️ About Migo",
+      "about": "ℹ️ About myMigo",
       "privacyPolicy": "Privacy Policy →",
       "termsOfService": "Terms of Service →",
       "signOut": "Switch Profile",
@@ -560,7 +560,7 @@
   },
   "parentLogin": {
     "title": "Parent Login",
-    "subtitle": "Sign in to manage your child's Migo account.",
+    "subtitle": "Sign in to manage your child's myMigo account.",
     "emailLabel": "Email address",
     "emailPlaceholder": "your@email.com",
     "passwordLabel": "Password",
@@ -601,7 +601,7 @@
   },
   "landing": {
     "kidButton": "I'm a Kid 🎮",
-    "kidSubtitle": "Jump into your Migo world",
+    "kidSubtitle": "Jump into your myMigo world",
     "parentButton": "I'm a Parent 👨‍👩‍👧",
     "parentSubtitle": "Manage your child's account"
   },
@@ -620,10 +620,10 @@
   },
   "timeLimit": {
     "title": "See you tomorrow!",
-    "message": "You've had a great day on Migo! Your friends will be waiting for you when you come back 🌟",
+    "message": "You've had a great day on myMigo! Your friends will be waiting for you when you come back 🌟",
     "usedMinutes": "You used {{count}} minutes today",
     "askParent": "Ask a parent for more time",
-    "parentHint": "Ask your parent to open Migo and tap 'Give more time' on your dashboard.",
+    "parentHint": "Ask your parent to open myMigo and tap 'Give more time' on your dashboard.",
     "ok": "OK",
     "parentLogin": "Parent login"
   },

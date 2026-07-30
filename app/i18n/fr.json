@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Migo"
+    "name": "myMigo"
   },
   "enroll": {
     "title": "Prêt(e) à rencontrer tes amis ?",
@@ -16,7 +16,7 @@
   },
   "waiting": {
     "title": "Message envoyé ! 🎉",
-    "subtitle": "Nous avons envoyé un email à tes parents. Dès qu'ils disent oui, Migo prendra vie !",
+    "subtitle": "Nous avons envoyé un email à tes parents. Dès qu'ils disent oui, myMigo prendra vie !",
     "waitingFor": "En attente que tes parents appuient sur \"Oui\"…",
     "jokeLabel": "🧚 Miga dit — pendant que tu attends !",
     "anotherJoke": "Une autre ! 😂",
@@ -25,9 +25,9 @@
   },
   "celebration": {
     "title": "Tes parents ont dit OUI !! 🥳",
-    "subtitle": "C'est l'heure de configurer ton Migo ! Va chercher tes parents — tu en auras besoin pour les premières étapes !",
+    "subtitle": "C'est l'heure de configurer ton myMigo ! Va chercher tes parents — tu en auras besoin pour les premières étapes !",
     "parentNote": "Le compte de votre enfant est approuvé. Les prochaines étapes nécessitent votre présence — prenez l'appareil et commençons ensemble !",
-    "button": "Configurons Migo ! →"
+    "button": "Configurons myMigo ! →"
   },
   "onboarding": {
     "stepOf": "Étape {{current}} sur {{total}}",
@@ -62,7 +62,7 @@
     },
     "needs": {
       "title": "Des besoins spéciaux ?",
-      "subtitle": "Ça nous aide à préparer Migo parfaitement ! Sélectionnez tout ce qui s'applique — modifiable à tout moment.",
+      "subtitle": "Ça nous aide à préparer myMigo parfaitement ! Sélectionnez tout ce qui s'applique — modifiable à tout moment.",
       "autism": "Spectre autistique",
       "autismDesc": "Scripts sociaux, rythme prévisible",
       "dyslexia": "Dyslexie",
@@ -159,8 +159,8 @@
       "badge": "🌟 Ton guide pour toujours",
       "mascotIntro": "Salut, je m'appelle {{name}} ! 👋",
       "mascotHappyPicked": {
-        "boy": "Je suis tellement content que tu m'aies choisi ! Demande à un parent de lire mon rôle dans Migo avec toi !",
-        "girl": "Je suis tellement contente que tu m'aies choisie ! Demande à un parent de lire mon rôle dans Migo avec toi !"
+        "boy": "Je suis tellement content que tu m'aies choisi ! Demande à un parent de lire mon rôle dans myMigo avec toi !",
+        "girl": "Je suis tellement contente que tu m'aies choisie ! Demande à un parent de lire mon rôle dans myMigo avec toi !"
       },
       "cardHeader": "Ton guide, ton aide et ton supporter — toujours",
       "role1": "Je célèbre chaque victoire",
@@ -168,7 +168,7 @@
       "role2": "Je répare les choses",
       "role2Desc": "Si l'app fait quelque chose de bizarre, dis-moi et je vais arranger ça",
       "role3": "Je prends des nouvelles",
-      "role3Desc": "Si tu n'as pas été sur Migo depuis un moment, je t'enverrai un petit coucou amical",
+      "role3Desc": "Si tu n'as pas été sur myMigo depuis un moment, je t'enverrai un petit coucou amical",
       "role4": "Je te protège",
       "role4Desc": "Si quelque chose te met mal à l'aise, viens me voir d'abord — je t'ai couvert(e)",
       "role5": "Je partage les nouvelles",
@@ -331,13 +331,13 @@
       "title": "Tout est prêt, {{name}} ! 🎊",
       "subtitle": "{{mascot}} et {{friend}} t'attendent déjà !",
       "friendsWaiting": "Tes nouveaux amis t'attendent ! 🎉",
-      "settingUp": "On prépare ton Migo...",
+      "settingUp": "On prépare ton myMigo...",
       "almostThere": "Presque prêt(e) ! ✨",
       "style": "Style",
       "loves": "Passions",
       "parentNote": "Parents — votre tableau de bord est prêt",
-      "parentNoteDesc": "Vous pouvez voir tout ce que fait {{name}}, gérer les amis, définir des limites de temps d'écran et recevoir des alertes de sécurité instantanées — à tout moment. Ouvrez simplement Migo et appuyez sur « Je suis un parent » pour vous connecter.",
-      "goButton": "Aller sur Migo ! 🌟"
+      "parentNoteDesc": "Vous pouvez voir tout ce que fait {{name}}, gérer les amis, définir des limites de temps d'écran et recevoir des alertes de sécurité instantanées — à tout moment. Ouvrez simplement myMigo et appuyez sur « Je suis un parent » pour vous connecter.",
+      "goButton": "Aller sur myMigo ! 🌟"
     }
   },
   "feed": {
@@ -498,17 +498,17 @@
       "2": "Niveau 2 · Tu prends ton élan",
       "3": "Niveau 3 · En pleine forme",
       "4": "Niveau 4 · Presque au sommet",
-      "5": "Niveau 5 · Légende Migo"
+      "5": "Niveau 5 · Légende myMigo"
     },
     "milestones": {
-      "joinMigo": "Rejoindre Migo",
+      "joinMigo": "Rejoindre myMigo",
       "firstPost": "Partager ton premier post",
       "heartToHeart": "Avoir une conversation cœur à cœur",
       "digitalCitizenship": "Termine les trois niveaux du cours de sécurité sur les réseaux sociaux avec Sophie",
       "introducedFriend": "Présenter un ami"
     },
     "graduationMilestones": {
-      "joined": "Rejoindre Migo",
+      "joined": "Rejoindre myMigo",
       "firstPost": "Partager ton premier post",
       "heartToHeart": "Avoir une vraie conversation",
       "digitalLesson": "Compléter une leçon de citoyenneté numérique",
@@ -526,7 +526,7 @@
   },
   "profile": {
     "title": "Mon Profil",
-    "onMigoSince": "Sur Migo depuis {{date}}",
+    "onMigoSince": "Sur myMigo depuis {{date}}",
     "mascotFriend": "Ami(e) de {{mascot}}",
     "relativeDate": {
       "today": "Aujourd'hui",
@@ -564,7 +564,7 @@
       "title": "Paramètres ⚙️",
       "language": "🌍 Langue",
       "readToMe": "🔊 Lis-moi ça",
-      "about": "ℹ️ À propos de Migo",
+      "about": "ℹ️ À propos de myMigo",
       "privacyPolicy": "Politique de confidentialité →",
       "termsOfService": "Conditions d'utilisation →",
       "signOut": "Changer de profil",
@@ -576,7 +576,7 @@
   },
   "parentLogin": {
     "title": "Connexion parent",
-    "subtitle": "Connectez-vous pour gérer le compte Migo de votre enfant.",
+    "subtitle": "Connectez-vous pour gérer le compte myMigo de votre enfant.",
     "emailLabel": "Adresse e-mail",
     "emailPlaceholder": "votre@email.com",
     "passwordLabel": "Mot de passe",
@@ -617,7 +617,7 @@
   },
   "landing": {
     "kidButton": "Je suis un enfant 🎮",
-    "kidSubtitle": "Plonge dans ton monde Migo",
+    "kidSubtitle": "Plonge dans ton monde myMigo",
     "parentButton": "Je suis un parent 👨‍👩‍👧",
     "parentSubtitle": "Gérer le compte de votre enfant"
   },
@@ -636,10 +636,10 @@
   },
   "timeLimit": {
     "title": "À demain !",
-    "message": "Tu as passé une super journée sur Migo ! Tes amis t'attendront quand tu reviendras 🌟",
+    "message": "Tu as passé une super journée sur myMigo ! Tes amis t'attendront quand tu reviendras 🌟",
     "usedMinutes": "Tu as utilisé {{count}} minutes aujourd'hui",
     "askParent": "Demande à un parent plus de temps",
-    "parentHint": "Demande à ton parent d'ouvrir Migo et d'appuyer sur 'Donner plus de temps' sur ton tableau de bord.",
+    "parentHint": "Demande à ton parent d'ouvrir myMigo et d'appuyer sur 'Donner plus de temps' sur ton tableau de bord.",
     "ok": "OK",
     "parentLogin": "Connexion parent"
   },

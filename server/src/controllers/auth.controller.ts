@@ -432,7 +432,7 @@ function htmlShell(emoji: string, title: string, body: string): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${title} — Migo</title>
+<title>${title} — myMigo</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;padding:20px;background:#F8F7FF;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh}
@@ -446,7 +446,7 @@ function htmlShell(emoji: string, title: string, body: string): string {
 </head>
 <body>
 <div class="card">
-  <div class="logo"><span class="logo-friend">Mi</span><span class="logo-scape">go</span></div>
+  <div class="logo"><span class="logo-friend">my</span><span class="logo-scape">Migo</span></div>
   <div style="font-size:64px;margin-bottom:4px">${emoji}</div>
   ${body}
 </div>
@@ -550,7 +550,7 @@ function expiredHtml(message?: string, lang = 'en'): string {
     <h1>${lang === 'fr' ? 'Ce lien a expiré' : 'This link has expired'}</h1>
     <p>${message ?? (lang === 'fr'
       ? "Ce lien d'approbation a expiré. Demandez à votre enfant d'ouvrir l'application myMigo et d'envoyer une nouvelle demande."
-      : 'This approval link has expired. Please ask your child to open the Migo app and send a new request.')}</p>
+      : 'This approval link has expired. Please ask your child to open the myMigo app and send a new request.')}</p>
   `);
 }
 
@@ -559,7 +559,7 @@ function declinedHtml(lang = 'en'): string {
     <h1>${lang === 'fr' ? 'Demande refusée' : 'Request declined'}</h1>
     <p>${lang === 'fr'
       ? "Pas de souci — cette demande a été annulée. Si vous changez d'avis, demandez à votre enfant d'ouvrir l'application myMigo et de réessayer."
-      : 'No problem — this request has been cancelled. If you change your mind, ask your child to open the Migo app and try again.'}</p>
+      : 'No problem — this request has been cancelled. If you change your mind, ask your child to open the myMigo app and try again.'}</p>
   `);
 }
 
