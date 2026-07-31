@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>myMigo — Guide du testeur bêta / Beta Tester Guide</title>
+<style>
+  :root{
+    --purple:#7F77DD; --purple-dark:#534AB7; --bg:#F8F7FF; --white:#fff;
+    --text:#2C2C2A; --muted:#888780; --green:#5DCAA5; --orange:#EF9F27;
+    --border:#E8E6FF; --red:#E53E3E;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    line-height:1.6;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:0 20px 80px}
+  header{
+    background:linear-gradient(135deg,var(--purple) 0%,var(--purple-dark) 100%);
+    color:#fff;padding:40px 20px 32px;text-align:center;
+  }
+  header .logo{font-size:26px;font-weight:800;margin-bottom:6px}
+  header .tagline{font-size:15px;opacity:0.9;margin-bottom:24px}
+  .lang-toggle{display:inline-flex;background:rgba(255,255,255,0.15);border-radius:9999px;padding:4px}
+  .lang-toggle button{
+    border:none;background:transparent;color:#fff;font-size:14px;font-weight:700;
+    padding:8px 18px;border-radius:9999px;cursor:pointer;opacity:0.7;
+  }
+  .lang-toggle button.active{background:#fff;color:var(--purple-dark);opacity:1}
+
+  .intro{background:var(--white);border-radius:20px;padding:24px;margin:-28px 0 28px;box-shadow:0 4px 24px rgba(0,0,0,0.06)}
+  .intro p{margin:0;font-size:15px;color:var(--muted)}
+  .intro strong{color:var(--text)}
+
+  .step{background:var(--white);border-radius:20px;padding:28px;margin-bottom:20px;box-shadow:0 2px 16px rgba(0,0,0,0.05)}
+  .step-num{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:32px;height:32px;border-radius:50%;background:var(--purple);color:#fff;
+    font-weight:800;font-size:15px;margin-right:10px;flex-shrink:0;
+  }
+  .step h2{display:flex;align-items:center;font-size:19px;margin:0 0 14px}
+  .step h3{font-size:15px;color:var(--purple-dark);margin:20px 0 8px}
+  .step p{font-size:14.5px;color:var(--text);margin:0 0 10px}
+  .step ol, .step ul{margin:0 0 10px;padding-left:22px}
+  .step li{font-size:14.5px;margin-bottom:6px}
+  .sub{border-left:3px solid var(--border);padding-left:16px;margin:14px 0}
+
+  .shot{
+    border:2px dashed var(--border);border-radius:14px;background:#FBFAFF;
+    padding:14px;margin:12px 0;text-align:center;
+  }
+  .shot img{max-width:100%;max-height:340px;width:auto;border-radius:10px;display:block;margin:0 auto}
+  .shot .caption{font-size:12px;color:var(--muted);margin-top:8px;font-style:italic}
+  .shot .placeholder{font-size:13px;color:#BDBDBD;padding:30px 10px}
+
+  .shot-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+  .shot-grid .shot{margin:0}
+  @media (max-width:520px){ .shot-grid{grid-template-columns:1fr} }
+
+  .note{background:#FFF8E8;border-radius:14px;padding:16px 18px;margin:14px 0;font-size:13.5px;color:#8A6A1A;border:1px solid #F5E3B0}
+  .note strong{color:#6B5313}
+  .tip{background:#EAF7F1;border-radius:14px;padding:16px 18px;margin:14px 0;font-size:13.5px;color:#2F6B52;border:1px solid #CDEBDD}
+  .tip strong{color:#1F5A40}
+
+  .two-col{display:flex;gap:16px;flex-wrap:wrap;margin:14px 0}
+  .col{flex:1;min-width:220px;background:var(--bg);border-radius:14px;padding:16px}
+  .col h4{margin:0 0 8px;font-size:14px;color:var(--purple-dark)}
+
+  code{background:#F0EEFE;padding:2px 6px;border-radius:6px;font-size:13px}
+  .btn-label{
+    display:inline-block;background:var(--purple);color:#fff;font-size:13px;font-weight:700;
+    padding:4px 12px;border-radius:9999px;margin:2px 0;
+  }
+  footer{text-align:center;padding:32px 20px;color:var(--muted);font-size:13px}
+  footer a{color:var(--purple)}
+
+  [data-lang]{display:none}
+  body.lang-fr [data-lang="fr"]{display:block}
+  body.lang-en [data-lang="en"]{display:block}
+  span[data-lang]{display:none}
+  body.lang-fr span[data-lang="fr"]{display:inline}
+  body.lang-en span[data-lang="en"]{display:inline}
+</style>
+</head>
+<body class="lang-fr">
+
+<header>
+  <div class="logo">myMigo</div>
+  <div class="tagline">
+    <span data-lang="fr">Guide du testeur bêta</span>
+    <span data-lang="en">Beta Tester Guide</span>
+  </div>
+  <div class="lang-toggle">
+    <button id="btn-fr" class="active" onclick="setLang('fr')">🇫🇷 Français</button>
+    <button id="btn-en" onclick="setLang('en')">🇬🇧 English</button>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="intro">
+    <p data-lang="fr"><strong>Merci de tester myMigo !</strong> Ce guide vous accompagne pas à pas, de l'installation de l'application jusqu'à la découverte du tableau de bord parent. C'est une version bêta : il pourra y avoir quelques bugs — c'est justement pour ça que votre retour compte. Si quelque chose ne fonctionne pas comme prévu, écrivez-nous à <a href="mailto:hello@mymigo.fr">hello@mymigo.fr</a>.</p>
+    <p data-lang="en"><strong>Thank you for testing myMigo!</strong> This guide walks you through everything from installing the app to exploring the parent dashboard. This is a beta version, so a few bugs are expected — that's exactly why your feedback matters. If something doesn't work as expected, email us at <a href="mailto:hello@mymigo.fr">hello@mymigo.fr</a>.</p>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="step">
+    <h2><span class="step-num">1</span><span data-lang="fr">Installer l'application</span><span data-lang="en">Install the app</span></h2>
+
+    <div class="two-col">
+      <div class="col">
+        <h4>📱 iPhone / iPad</h4>
+        <p data-lang="fr">Vous recevrez une invitation TestFlight par e-mail. Ouvrez-la sur votre iPhone, installez d'abord l'app <strong>TestFlight</strong> (Apple) si vous ne l'avez pas déjà, puis appuyez sur <span class="btn-label">Installer</span>.</p>
+        <p data-lang="en">You'll receive a TestFlight invitation by email. Open it on your iPhone, install the <strong>TestFlight</strong> app (Apple) first if you don't already have it, then tap <span class="btn-label">Install</span>.</p>
+      </div>
+      <div class="col">
+        <h4>🤖 Android</h4>
+        <p data-lang="fr">Vous recevrez un lien d'accès au test fermé sur le Play Store. Ouvrez-le sur votre téléphone Android et appuyez sur <span class="btn-label">Devenir testeur</span>, puis installez l'application depuis le Play Store.</p>
+        <p data-lang="en">You'll receive a closed-testing link for the Play Store. Open it on your Android phone, tap <span class="btn-label">Become a tester</span>, then install the app from the Play Store.</p>
+      </div>
+    </div>
+
+    <div class="note">
+      <strong data-lang="fr">À savoir (iPhone/iPad) : </strong>
+      <span data-lang="fr">l'e-mail d'invitation TestFlight arrive toujours en anglais, même si votre compte Apple est configuré en français — c'est une limitation d'Apple, pas un réglage que nous pouvons changer. Une fois l'application ouverte, tout le reste (inscription, e-mails d'approbation, tableau de bord) est bien disponible en français.</span>
+      <strong data-lang="en">Good to know (iPhone/iPad): </strong>
+      <span data-lang="en">the TestFlight invite email always arrives in English, even if your Apple account is set to French — this is an Apple limitation, not something we can change. Once the app itself is open, everything else (registration, approval emails, the dashboard) is fully available in French.</span>
+    </div>
+
+    <div class="shot-grid">
+      <div class="shot">
+        <img src="beta-guide-images/step1-testflight-invite-email.png" alt="TestFlight invite email">
+        <div class="caption" data-lang="fr">L'e-mail d'invitation TestFlight envoyé par Apple</div>
+        <div class="caption" data-lang="en">The TestFlight invite email sent by Apple</div>
+      </div>
+      <div class="shot">
+        <img src="beta-guide-images/step1-testflight-app-store.jpg" alt="TestFlight app on the App Store">
+        <div class="caption" data-lang="fr">L'application TestFlight sur l'App Store</div>
+        <div class="caption" data-lang="en">The TestFlight app on the App Store</div>
+      </div>
+      <div class="shot">
+        <img src="beta-guide-images/step1-mymigo-in-testflight.jpg" alt="myMigo ready to install inside TestFlight">
+        <div class="caption" data-lang="fr">myMigo dans l'app TestFlight, prêt à installer</div>
+        <div class="caption" data-lang="en">myMigo listed inside the TestFlight app, ready to install</div>
+      </div>
+      <div class="shot">
+        <img src="beta-guide-images/step1-android-install.jpg" alt="Android install page on Google Play">
+        <div class="caption" data-lang="fr">La page d'installation sur le Google Play Store</div>
+        <div class="caption" data-lang="en">The install page on the Google Play Store</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step">
+    <h2><span class="step-num">2</span><span data-lang="fr">L'enfant commence l'inscription</span><span data-lang="en">The child starts registration</span></h2>
+    <p data-lang="fr">Donnez le téléphone à votre enfant pour cette première étape.</p>
+    <p data-lang="en">Hand the phone to your child for this first step.</p>
+    <ol>
+      <li data-lang="fr">Ouvrez l'application myMigo.</li>
+      <li data-lang="en">Open the myMigo app.</li>
+    </ol>
+    <ol start="2">
+      <li data-lang="fr">Sur l'écran d'accueil, appuyez sur <span class="btn-label">Je suis un enfant 🎮</span>.</li>
+      <li data-lang="en">On the home screen, tap <span class="btn-label">I'm a Kid 🎮</span>.</li>
+    </ol>
+    <ol start="3">
+      <li data-lang="fr">L'enfant saisit <strong>l'adresse e-mail du parent</strong> (la vôtre) et appuie sur envoyer.</li>
+      <li data-lang="en">The child enters <strong>the parent's email address</strong> (yours) and taps send.</li>
+    </ol>
+    <ol start="4">
+      <li data-lang="fr">Une écran d'attente s'affiche avec des blagues — c'est normal, l'app attend que le parent approuve par e-mail (voir étape 3).</li>
+      <li data-lang="en">A waiting screen appears with jokes — this is normal, the app is waiting for the parent to approve by email (see step 3).</li>
+    </ol>
+
+    <div class="shot-grid">
+      <div class="shot">
+        <img src="beta-guide-images/step2_jesuisunenfant.jpg" alt="I'm a Kid button">
+        <div class="caption" data-lang="fr">Le bouton « Je suis un enfant »</div>
+        <div class="caption" data-lang="en">The "I'm a Kid" button</div>
+      </div>
+      <div class="shot">
+        <img src="beta-guide-images/step2_enterparentemail.jpg" alt="Parent email entry screen">
+        <div class="caption" data-lang="fr">L'écran de saisie de l'e-mail du parent</div>
+        <div class="caption" data-lang="en">The parent email entry screen</div>
+      </div>
+      <div class="shot">
+        <img src="beta-guide-images/step2_waitingsceenjokes.jpg" alt="Waiting screen with jokes">
+        <div class="caption" data-lang="fr">L'écran d'attente avec blagues</div>
+        <div class="caption" data-lang="en">The waiting screen with jokes</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step">
+    <h2><span class="step-num">3</span><span data-lang="fr">Le parent approuve par e-mail</span><span data-lang="en">The parent approves by email</span></h2>
+    <p data-lang="fr">Cette étape se passe sur <strong>votre</strong> téléphone ou ordinateur, dans votre boîte mail.</p>
+    <p data-lang="en">This step happens on <strong>your</strong> phone or computer, in your email inbox.</p>
+    <ol>
+      <li data-lang="fr">Ouvrez l'e-mail reçu (sujet : « Votre enfant souhaite rejoindre myMigo »).</li>
+      <li data-lang="en">Open the email you received (subject: "Your child wants to join myMigo").</li>
+    </ol>
+    <ol start="2">
+      <li data-lang="fr">Appuyez sur <span class="btn-label">Oui, j'approuve !</span></li>
+      <li data-lang="en">Tap <span class="btn-label">Yes, approve!</span></li>
+    </ol>
+    <ol start="3">
+      <li data-lang="fr">Sur la page qui s'ouvre, appuyez sur <span class="btn-label">Créer mon compte parent →</span></li>
+      <li data-lang="en">On the page that opens, tap <span class="btn-label">Set Up Parent Account →</span></li>
+    </ol>
+    <ol start="4">
+      <li data-lang="fr">Lisez l'accord de test bêta, cochez la case, choisissez un <strong>mot de passe</strong> (8 caractères minimum), puis validez.</li>
+      <li data-lang="en">Read the beta test agreement, check the box, choose a <strong>password</strong> (minimum 8 characters), then submit.</li>
+    </ol>
+    <ol start="5">
+      <li data-lang="fr">Vous voyez une page « Tout est prêt ! » — votre compte parent est créé.</li>
+      <li data-lang="en">You'll see an "All Set!" page — your parent account is created.</li>
+    </ol>
+
+    <div class="note">
+      <strong data-lang="fr">Bon à savoir : </strong>
+      <span data-lang="fr">le lien d'approbation expire au bout de 48 heures. S'il a expiré, redemandez simplement à votre enfant de retenter depuis l'application.</span>
+      <strong data-lang="en">Good to know: </strong>
+      <span data-lang="en">the approval link expires after 48 hours. If it expires, just have your child try again from the app.</span>
+    </div>
+    <div class="shot-grid">
+      <div class="shot">
+        <img src="beta-guide-images/step3_parentemail1.png" alt="Approval email received by the parent">
+        <div class="caption" data-lang="fr">L'e-mail « Votre enfant veut rejoindre myMigo »</div>
+        <div class="caption" data-lang="en">The "Your child wants to join myMigo" email</div>
+      </div>
+      <div class="shot">
+        <img src="beta-guide-images/step3_parentemail2.png" alt="Approval email, scrolled to the approve button">
+        <div class="caption" data-lang="fr">Le bouton « Oui, approuver myMigo ! » en bas de l'e-mail</div>
+        <div class="caption" data-lang="en">The "Yes, approve myMigo!" button at the bottom of the email</div>
+      </div>
+      <div class="shot">
+        <img src="beta-guide-images/step3_parentpassword1.jpg" alt="Create your parent account screen">
+        <div class="caption" data-lang="fr">L'écran « Créer votre compte parent »</div>
+        <div class="caption" data-lang="en">The "Create your parent account" screen</div>
+      </div>
+      <div class="shot">
+        <img src="beta-guide-images/step3_parentpassword2.jpg" alt="Password field and account creation button">
+        <div class="caption" data-lang="fr">Le champ mot de passe et le bouton « Créer mon compte »</div>
+        <div class="caption" data-lang="en">The password field and the "Create my account" button</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="step">
+    <h2><span class="step-num">4</span><span data-lang="fr">L'enfant termine l'inscription</span><span data-lang="en">The child finishes onboarding</span></h2>
+    <p data-lang="fr">Redonnez le téléphone à votre enfant. L'écran d'attente se ferme automatiquement dès que vous avez approuvé (pas besoin de rien faire de plus).</p>
+    <p data-lang="en">Hand the phone back to your child. The waiting screen closes automatically as soon as you've approved (nothing else to do).</p>
+    <ol>
+      <li data-lang="fr">L'enfant choisit son prénom, sa date de naissance, son avatar, ses centres d'intérêt et sa personnalité.</li>
+      <li data-lang="en">The child chooses their name, date of birth, avatar, interests, and personality.</li>
+    </ol>
+    <ol start="2">
+      <li data-lang="fr">L'écran « Ton monde myMigo se prépare » s'affiche pendant que ses amis IA sont créés (30 à 60 secondes environ).</li>
+      <li data-lang="en">A "Setting up your Migo world" screen appears while their AI friends are created (roughly 30–60 seconds).</li>
+    </ol>
+    <ol start="3">
+      <li data-lang="fr">Une fois prêt, l'enfant découvre ses nouveaux amis et appuie sur le bouton pour continuer.</li>
+      <li data-lang="en">Once ready, the child sees their new friends and taps the button to continue.</li>
+    </ol>
+
+    <div class="tip">
+      <strong data-lang="fr">Conseil : </strong>
+      <span data-lang="fr">gardez l'écran allumé pendant cette étape de création — évitez de verrouiller le téléphone. Si une erreur apparaît quand même, appuyez simplement sur « Réessayer », c'est sans risque.</span>
+      <strong data-lang="en">Tip: </strong>
+      <span data-lang="en">keep the screen on during this creation step — avoid locking the phone. If an error does appear anyway, just tap "Retry" — it's safe to do so.</span>
+    </div>
+
+    <div class="shot-grid">
+      <div class="shot">
+        <img src="beta-guide-images/steo5_creationprofil1.jpg" alt="Child name, date of birth, and gender form">
+        <div class="caption" data-lang="fr">Prénom, date de naissance et genre</div>
+        <div class="caption" data-lang="en">Name, date of birth, and gender</div>
+      </div>
+      <div class="shot">
+        <img src="beta-guide-images/step4_creationprofil2.jpg" alt="Avatar creation screen">
+        <div class="caption" data-lang="fr">Création de l'avatar (depuis une photo ou un thème)</div>
+        <div class="caption" data-lang="en">Avatar creation (from a photo or a theme)</div>
+      </div>
+      <div class="shot">
+        <img src="beta-guide-images/step4_creationprofil_other.jpg" alt="Personality quiz screen">
+        <div class="caption" data-lang="fr">Le questionnaire de personnalité</div>
+        <div class="caption" data-lang="en">The personality quiz</div>
+      </div>
+      <div class="shot">
+        <img src="beta-guide-images/step4_creationprofil.jpg" alt="Setting up your myMigo world loading screen">
+        <div class="caption" data-lang="fr">L'écran « On prépare ton myMigo... »</div>
+        <div class="caption" data-lang="en">The "Setting up your myMigo..." loading screen</div>
+      </div>
+      <div class="shot">
+        <img src="beta-guide-images/step4_amisontprets.jpg" alt="AI friends introduction screen">
+        <div class="caption" data-lang="fr">« Tout est prêt ! » — présentation des amis IA</div>
+        <div class="caption" data-lang="en">"All set!" — the AI friends introduction screen</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 5 -->
+  <div class="step">
+    <h2><span class="step-num">5</span><span data-lang="fr">Passer du profil enfant au tableau de bord parent</span><span data-lang="en">Switching from the child profile to the parent dashboard</span></h2>
+
+    <h3 data-lang="fr">A. Quitter le profil enfant</h3>
+    <h3 data-lang="en">A. Leave the child profile</h3>
+    <ol>
+      <li data-lang="fr">Dans l'application (en tant qu'enfant), allez dans l'onglet <strong>Moi</strong> en bas de l'écran.</li>
+      <li data-lang="en">In the app (as the child), go to the <strong>Me</strong> tab at the bottom of the screen.</li>
+    </ol>
+    <ol start="2">
+      <li data-lang="fr">Appuyez sur l'icône ⚙️ (roue crantée) en haut à droite de l'écran.</li>
+      <li data-lang="en">Tap the ⚙️ (gear) icon in the top right of the screen.</li>
+    </ol>
+    <ol start="3">
+      <li data-lang="fr">Appuyez sur <span class="btn-label">Changer de profil</span>, puis confirmez.</li>
+      <li data-lang="en">Tap <span class="btn-label">Switch Profile</span>, then confirm.</li>
+    </ol>
+    <ol start="4">
+      <li data-lang="fr">Vous revenez à l'écran d'accueil de l'application.</li>
+      <li data-lang="en">You'll land back on the app's home screen.</li>
+    </ol>
+
+    <h3 data-lang="fr">B. Se connecter en tant que parent</h3>
+    <h3 data-lang="en">B. Log in as a parent</h3>
+    <ol>
+      <li data-lang="fr">Sur l'écran d'accueil, appuyez sur <span class="btn-label">Je suis un parent 👨‍👩‍👧</span>.</li>
+      <li data-lang="en">On the home screen, tap <span class="btn-label">I'm a Parent 👨‍👩‍👧</span>.</li>
+    </ol>
+    <ol start="2">
+      <li data-lang="fr">Entrez l'e-mail et le mot de passe que vous avez créés à l'étape 3.</li>
+      <li data-lang="en">Enter the email and password you created in step 3.</li>
+    </ol>
+    <ol start="3">
+      <li data-lang="fr">Passez à la double authentification — voir ci-dessous.</li>
+      <li data-lang="en">You'll move to two-factor authentication — see below.</li>
+    </ol>
+
+    <div class="shot-grid">
+      <div class="shot">
+        <img src="beta-guide-images/step5_changerprofil.jpg" alt="Settings menu with Switch Profile button">
+        <div class="caption" data-lang="fr">Le menu Paramètres avec le bouton « Changer de profil »</div>
+        <div class="caption" data-lang="en">The Settings menu with the "Switch Profile" button</div>
+      </div>
+      <div class="shot">
+        <img src="beta-guide-images/step5_connectionparents.jpg" alt="Parent login screen">
+        <div class="caption" data-lang="fr">L'écran de connexion parent</div>
+        <div class="caption" data-lang="en">The parent login screen</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 6: 2FA -->
+  <div class="step">
+    <h2><span class="step-num">6</span><span data-lang="fr">La double authentification (2FA)</span><span data-lang="en">Two-factor authentication (2FA)</span></h2>
+    <p data-lang="fr">Pour protéger les données de votre enfant, myMigo demande <strong>toujours</strong> un code de sécurité en plus du mot de passe, à chaque connexion parent.</p>
+    <p data-lang="en">To protect your child's data, myMigo <strong>always</strong> asks for a security code in addition to the password, every time you log in as a parent.</p>
+    <ol>
+      <li data-lang="fr">Après avoir entré votre mot de passe, un code à <strong>6 chiffres</strong> est envoyé par e-mail à votre adresse.</li>
+      <li data-lang="en">After entering your password, a <strong>6-digit code</strong> is sent by email to your address.</li>
+    </ol>
+    <ol start="2">
+      <li data-lang="fr">Ouvrez votre boîte mail, récupérez le code, et saisissez-le dans l'application.</li>
+      <li data-lang="en">Open your inbox, get the code, and enter it in the app.</li>
+    </ol>
+    <ol start="3">
+      <li data-lang="fr">Vous accédez alors au tableau de bord parent.</li>
+      <li data-lang="en">You'll then land on the parent dashboard.</li>
+    </ol>
+
+    <div class="note">
+      <strong data-lang="fr">Le code n'arrive pas ? </strong>
+      <span data-lang="fr">Il est valable 10 minutes. Utilisez le lien « Renvoyer le code » sur l'écran si besoin, et vérifiez vos courriers indésirables.</span>
+      <strong data-lang="en">Didn't get the code? </strong>
+      <span data-lang="en">It's valid for 10 minutes. Use the "Resend code" link on the screen if needed, and check your spam folder.</span>
+    </div>
+
+    <div class="shot">
+      <img src="beta-guide-images/step6_2FA.jpg" alt="6-digit code entry screen">
+      <div class="caption" data-lang="fr">L'écran de saisie du code à 6 chiffres</div>
+      <div class="caption" data-lang="en">The 6-digit code entry screen</div>
+    </div>
+  </div>
+
+  <!-- STEP 7: Add a child -->
+  <div class="step">
+    <h2><span class="step-num">7</span><span data-lang="fr">Ajouter un deuxième enfant</span><span data-lang="en">Adding a second child</span></h2>
+    <p data-lang="fr">Il existe deux façons de faire — utilisez celle qui vous convient.</p>
+    <p data-lang="en">There are two ways to do this — use whichever suits you.</p>
+
+    <div class="sub">
+      <h3 data-lang="fr">Méthode 1 — Depuis le compte parent</h3>
+      <h3 data-lang="en">Method 1 — From the parent account</h3>
+      <ol>
+        <li data-lang="fr">Connectez-vous en tant que parent (étapes 5 et 6).</li>
+        <li data-lang="en">Log in as a parent (steps 5 and 6).</li>
+      </ol>
+      <ol start="2">
+        <li data-lang="fr">Sur le tableau de bord, appuyez sur la tuile <span class="btn-label">Ajouter un enfant +</span>.</li>
+        <li data-lang="en">On the dashboard, tap the <span class="btn-label">Add another child +</span> tile.</li>
+      </ol>
+      <ol start="3">
+        <li data-lang="fr">Entrez le prénom et la date de naissance de l'enfant, puis appuyez sur Commencer.</li>
+        <li data-lang="en">Enter the child's name and date of birth, then tap Start.</li>
+      </ol>
+      <ol start="4">
+        <li data-lang="fr">L'enfant complète directement le reste de l'inscription (avatar, centres d'intérêt...) — <strong>aucun nouvel e-mail d'approbation n'est nécessaire</strong>, puisque vous êtes déjà connecté en tant que parent.</li>
+        <li data-lang="en">The child completes the rest of onboarding directly (avatar, interests...) — <strong>no new approval email is needed</strong>, since you're already logged in as the parent.</li>
+      </ol>
+    </div>
+
+    <div class="sub">
+      <h3 data-lang="fr">Méthode 2 — Depuis le profil enfant</h3>
+      <h3 data-lang="en">Method 2 — From the child side</h3>
+      <ol>
+        <li data-lang="fr">Sur l'écran d'accueil, appuyez sur <span class="btn-label">Je suis un enfant 🎮</span>.</li>
+        <li data-lang="en">On the home screen, tap <span class="btn-label">I'm a Kid 🎮</span>.</li>
+      </ol>
+      <ol start="2">
+        <li data-lang="fr">Sur l'écran de sélection des profils, appuyez sur la tuile <span class="btn-label">Ajouter un enfant +</span>.</li>
+        <li data-lang="en">On the profile selection screen, tap the <span class="btn-label">Add a child +</span> tile.</li>
+      </ol>
+      <ol start="3">
+        <li data-lang="fr">L'enfant ressaisit l'e-mail du parent. Si c'est la même adresse que précédemment, l'application le reconnaît automatiquement et passe directement à l'inscription — sans nouvel e-mail à approuver.</li>
+        <li data-lang="en">The child re-enters the parent's email. If it's the same address as before, the app recognizes it automatically and goes straight into onboarding — no new email to approve.</li>
+      </ol>
+    </div>
+
+    <div class="shot-grid">
+      <div class="shot">
+        <img src="beta-guide-images/step7_ajouterenfantdepuisparentprofile.jpg" alt="Add a child tile, parent side">
+        <div class="caption" data-lang="fr">La tuile « Ajouter un enfant », côté parent</div>
+        <div class="caption" data-lang="en">The "Add a child" tile, parent side</div>
+      </div>
+      <div class="shot">
+        <img src="beta-guide-images/step7_ajouterenfantdepuisenfant.jpg" alt="Add a child tile, child side">
+        <div class="caption" data-lang="fr">La tuile « Ajouter un enfant », côté enfant</div>
+        <div class="caption" data-lang="en">The "Add a child" tile, child side</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 8: Extras -->
+  <div class="step">
+    <h2><span class="step-num">8</span><span data-lang="fr">Bon à savoir</span><span data-lang="en">Good to know</span></h2>
+
+    <h3 data-lang="fr">Plusieurs enfants sur le même téléphone</h3>
+    <h3 data-lang="en">Multiple children on the same phone</h3>
+    <p data-lang="fr">Depuis l'écran d'accueil, appuyez sur <span class="btn-label">Je suis un enfant 🎮</span> : vous verrez tous les profils enfants déjà créés sur cet appareil et pourrez choisir lequel utiliser.</p>
+    <p data-lang="en">From the home screen, tap <span class="btn-label">I'm a Kid 🎮</span>: you'll see all the child profiles already created on this device and can pick which one to use.</p>
+
+    <h3 data-lang="fr">Mot de passe oublié</h3>
+    <h3 data-lang="en">Forgot your password</h3>
+    <p data-lang="fr">Sur l'écran de connexion parent, appuyez sur « Mot de passe oublié ? » — un lien de réinitialisation vous sera envoyé par e-mail.</p>
+    <p data-lang="en">On the parent login screen, tap "Forgot password?" — a reset link will be emailed to you.</p>
+
+    <h3 data-lang="fr">Le tableau de bord parent</h3>
+    <h3 data-lang="en">The parent dashboard</h3>
+    <p data-lang="fr">Une fois connecté, vous pouvez consulter l'activité de votre enfant, ses amis IA, ses badges, son humeur, et les alertes de sécurité — n'hésitez pas à tout explorer, c'est exactement ce que nous voulons que vous testiez.</p>
+    <p data-lang="en">Once logged in, you can review your child's activity, their AI friends, badges, mood, and safety alerts — feel free to explore everything, that's exactly what we want you to test.</p>
+    <p data-lang="fr">Le temps d'écran se règle aussi depuis le tableau de bord parent : vous pouvez y définir une limite quotidienne pour votre enfant.</p>
+    <p data-lang="en">Screen time can also be set from the parent dashboard: you can define a daily limit for your child there.</p>
+
+    <h3 data-lang="fr">Signaler un problème</h3>
+    <h3 data-lang="en">Reporting an issue</h3>
+    <p data-lang="fr">Deux façons simples : écrivez-nous directement à <a href="mailto:hello@mymigo.fr">hello@mymigo.fr</a> avec une capture d'écran, ou demandez à votre enfant de le signaler directement à Miga dans l'application — Miga peut faire remonter les problèmes pour vous.</p>
+    <p data-lang="en">Two easy ways: email us directly at <a href="mailto:hello@mymigo.fr">hello@mymigo.fr</a> with a screenshot, or have your child report it directly to Miga inside the app — Miga can pass issues along for you.</p>
+
+    <h3 data-lang="fr">Vie privée et sécurité</h3>
+    <h3 data-lang="en">Privacy and safety</h3>
+    <p data-lang="fr">Les amis de votre enfant sont exclusivement des IA — jamais de vrais inconnus. Vous recevez une alerte si une conversation pose question, et vous gardez le contrôle du temps d'écran et du niveau de filtrage de contenu depuis le tableau de bord parent.</p>
+    <p data-lang="en">Your child's friends are exclusively AI — never real strangers. You'll get an alert if a conversation raises a concern, and you stay in control of screen time and content filtering from the parent dashboard.</p>
+  </div>
+
+</div>
+
+<footer>
+  <p data-lang="fr">Une question ? Écrivez-nous à <a href="mailto:hello@mymigo.fr">hello@mymigo.fr</a></p>
+  <p data-lang="en">Have a question? Email us at <a href="mailto:hello@mymigo.fr">hello@mymigo.fr</a></p>
+  <p>myMigo — <span data-lang="fr">merci de faire partie de notre bêta !</span><span data-lang="en">thank you for being part of our beta!</span></p>
+</footer>
+
+<script>
+  function setLang(lang) {
+    document.body.className = 'lang-' + lang;
+    document.getElementById('btn-fr').classList.toggle('active', lang === 'fr');
+    document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+    try { localStorage.setItem('migo-guide-lang', lang); } catch (e) {}
+  }
+  (function () {
+    try {
+      var saved = localStorage.getItem('migo-guide-lang');
+      if (saved === 'en' || saved === 'fr') setLang(saved);
+    } catch (e) {}
+  })();
+</script>
+
+</body>
+</html>

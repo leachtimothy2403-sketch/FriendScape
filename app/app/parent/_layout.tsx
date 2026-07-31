@@ -11,6 +11,7 @@ function TabIcon({ emoji, active }: { emoji: string; active: boolean }) {
 
 export default function ParentLayout() {
   const insets = useSafeAreaInsets();
+  const bottomInset = Math.max(8, insets.bottom);
   const [childName, setChildName] = useState('');
 
   useFocusEffect(useCallback(() => {
@@ -72,9 +73,9 @@ export default function ParentLayout() {
           backgroundColor: Colors.white,
           borderTopColor: Colors.gray[200],
           borderTopWidth: 1,
-          paddingBottom: 8,
+          paddingBottom: bottomInset,
           paddingTop: 4,
-          height: 64,
+          height: 56 + bottomInset,
         },
         tabBarLabelStyle: {
           fontSize: 11,

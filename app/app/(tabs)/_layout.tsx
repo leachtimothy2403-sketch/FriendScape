@@ -2,12 +2,15 @@ import { Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Text, Animated } from 'react-native';
 import { useRef, useEffect } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/theme';
 import { useTourStore } from '@/store/tourStore';
 
 export default function TabsLayout() {
   const { t } = useTranslation();
   const tourStepId = useTourStore(s => s.tourStepId);
+  const insets = useSafeAreaInsets();
+  const bottomInset = Math.max(8, insets.bottom);
 
   return (
     <Tabs
@@ -19,9 +22,9 @@ export default function TabsLayout() {
           backgroundColor: Colors.white,
           borderTopColor: Colors.gray[200],
           borderTopWidth: 1,
-          paddingBottom: 8,
+          paddingBottom: bottomInset,
           paddingTop: 4,
-          height: 64,
+          height: 56 + bottomInset,
         },
         tabBarLabelStyle: {
           fontSize: 11,
