@@ -14,6 +14,10 @@ import redis from '../services/redis.service';
 import { set as redisSet, get as redisGet, del as redisDel } from '../services/redis.service';
 import { generateFriendPortrait, generateAdultFriendPortrait, generateLunaPortrait } from '../services/avatar.service';
 
+// Bump this whenever the wording of https://mymigo-site.vercel.app/beta-terms changes,
+// so consent records show which version of the terms a parent actually agreed to.
+const BETA_TERMS_VERSION = 'v1-2026-07-31';
+
 export async function register(req: Request, res: Response) {
   try {
     const { email, displayName, password } = req.body;
@@ -473,7 +477,6 @@ function setPasswordFormHtml(token: string, error?: string, lang = 'en'): string
     ${error ? `<p style="color:#C0392B">${error}</p>` : ''}
     <form method="POST" action="/auth/set-password" onsubmit="return validateForm()">
       <input type="hidden" name="token" value="${token}">
-      <input type="hidden" name="consent" value="1">
 
       <div style="background:#F8F7FF;border-radius:16px;padding:20px;margin-bottom:24px;text-align:left">
         <p style="margin:0 0 12px;font-size:14px;font-weight:700;color:#2C2C2A">${lang === 'fr' ? 'Accord de test bêta' : 'Beta Test Agreement'}</p>
@@ -494,7 +497,7 @@ function setPasswordFormHtml(token: string, error?: string, lang = 'en'): string
           `}
         </ul>
         <label style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:#2C2C2A;cursor:pointer">
-          <input type="checkbox" id="consentCheck" style="margin-top:3px;width:16px;height:16px;flex-shrink:0">
+          <input type="checkbox" id="consentCheck" name="consent" style="margin-top:3px;width:16px;height:16px;flex-shrink:0">
           <span>${lang === 'fr' ? `J'ai lu et j'accepte les <a href="https://mymigo-site.vercel.app/beta-terms" target="_blank" style="color:#7F77DD">conditions du test bêta</a> et le traitement des données de mon enfant tel que décrit ci-dessus.` : `I have read and agree to the <a href="https://mymigo-site.vercel.app/beta-terms" target="_blank" style="color:#7F77DD">beta test terms</a> and the processing of my child's data as described above.`}</span>
         </label>
       </div>
@@ -588,8 +591,8 @@ export async function showSetPasswordForm(req: Request, res: Response) {
 }
 
 export async function setApprovalPassword(req: Request, res: Response) {
-  const { token, password } = req.body as { token?: string; password?: string };
-  console.log('[auth] 📨 setApprovalPassword called, token:', token, 'password length:', password?.length ?? 0);
+  const { token, password, consent } = req.body as { token?: string; password?: string; consent?: string };
+  console.log('[auth] 📨 setApprovalPassword called, token:', token, 'password length:', password?.length ?? 0, 'consent:', !!consent);
 
   try {
     const enrollment = await db('enrollments').where({ approval_token: token }).first();
@@ -600,9 +603,16 @@ export async function setApprovalPassword(req: Request, res: Response) {
       return;
     }
 
+    const formLang = (enrollment.language as string | undefined) ?? 'en';
+
+    if (!consent) {
+      console.log('[auth] ❌ setApprovalPassword rejected — beta terms checkbox not checked');
+      res.send(setPasswordFormHtml(token, formLang === 'fr' ? "Veuillez lire et accepter l'accord de test bêta pour continuer." : 'Please read and accept the beta test agreement to continue.', formLang));
+      return;
+    }
+
     if (!password || password.length < 8) {
       console.log('[auth] ❌ setApprovalPassword rejected — password too short');
-      const formLang = (enrollment.language as string | undefined) ?? 'en';
       res.send(setPasswordFormHtml(token, formLang === 'fr' ? 'Le mot de passe doit contenir au moins 8 caractères.' : 'Password must be at least 8 characters.', formLang));
       return;
     }
@@ -635,7 +645,12 @@ export async function setApprovalPassword(req: Request, res: Response) {
 
     await db('enrollments')
       .where({ approval_token: token })
-      .update({ consent_accepted_at: new Date() });
+      .update({
+        consent_accepted_at: new Date(),
+        consent_ip: req.ip ?? null,
+        consent_user_agent: req.headers['user-agent'] ?? null,
+        consent_terms_version: BETA_TERMS_VERSION,
+      });
 
     console.log('[auth] ✅ Password set for', enrollment.parent_email, '— existing user updated:', !!existing);
 
